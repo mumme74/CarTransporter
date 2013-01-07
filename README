@@ -1,4 +1,4 @@
-Abstraction layer for EEPROM ICs like 24AA/24LC.
+Abstraction layer for EEPROM ICs like 25AA/25LC.
 
 1. DESCRIPTION
 
@@ -7,28 +7,27 @@ EEPROM like a regular file(s).
 
 2. LIMITATIONS
 
-* Only I2C.
+* Only SPI.
 * Maximum capacity of EEPROM is 65536 bytes.
 
 3. USAGE
 
 * Include eeprom.h file to your project.
-* Create eeprom_conf.h (sample included) in your project.
-* Define file object of a EepromFileStream type
-  and config structure for it.
-* Open them with EepromOpen() function.
+* Modify eeprom_conf.h for your project.
+* Define file object of an EepromFileStream type and config structure for it.
+* Open it with EepromOpen() function.
 
 Now you can access to EEPROM array like to a regular file with functions:
 - chFileStreamRead()
 - chFileStreamWrite()
 - chFileStreamGetPosition()
 - chFileStreamSeek()
-etc. 
+etc.
 
 Examples of usage and checking the returning parameter you can found in
 eeprom_testsuit.c
 
 
 
-Author: Uladzimir Pylinski aka barthess (barthess@yandex.ru). 
+Author: Uladzimir Pylinski aka barthess (barthess@yandex.ru).
 06.02.2012

@@ -4,11 +4,11 @@ You may use this work without restrictions, as long as this notice is included.
 The work is provided "as is" without warranty of any kind, neither express nor implied.
 */
 
-#ifndef EEPROM_TESTSUIT_H_
-#define EEPROM_TESTSUIT_H_
+#ifndef __25XX_EEPROM_TESTSUIT_H_
+#define __25XX_EEPROM_TESTSUIT_H_
 
-#include "eeprom.h"
+#include "eeprom/eeprom.h"
 
-Thread* eepromtest_clicmd(int argc, const char * const * argv, SerialDriver *sdp);
+void eeprom_cmd_test(BaseSequentialStream *chp, int argc, char *argv[]);
 
-#endif /* EEPROM_TESTSUIT_H_ */
+#endif /* __25XX_EEPROM_TESTSUIT_H_ */

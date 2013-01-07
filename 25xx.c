@@ -56,63 +56,70 @@ Note:
 /** @} */
 
 /**
- * @brief 25XX chip low level write then read rountine.
+ * @brief 25XX low level write then read rountine.
  *
- * @param[in]  spip   pointer to SPI device.
+ * @param[in]  spefcp pointer to configuration structure of eeprom file.
  * @param[in]  txbuf  pointer to buffer to be transfered.
  * @param[in]  txlen  number of bytes to be transfered.
  * @param[out] rxbuf  pointer to buffer to be received.
  * @param[in]  rxlen  number of bytes to be received.
  */
-static void ll_25xx_transmit_receive(SPIDriver *spip,
+static void ll_25xx_transmit_receive(const SPIEepromFileConfig *spefcp,
                                      const uint8_t *txbuf, size_t txlen,
                                      uint8_t *rxbuf, size_t rxlen) {
 
 #if SPI_USE_MUTUAL_EXCLUSION
-  spiAcquireBus(spip);
+  spiAcquireBus(spefcp->spip);
 #endif
 
-  spiSelect(spip);
-  spiSend(spip, txlen, &txbuf);
+  spiStart(spefcp->spip, spefcp->spiconfp);
+  spiSelect(spefcp->spip);
+  spiSend(spefcp->spip, txlen, &txbuf);
   if (rxlen) /* Check if receive is needed. */
-    spiReceive(spip, rxlen, &rxbuf);
-  spiUnselect(spip);
+    spiReceive(spefcp->spip, rxlen, &rxbuf);
+  spiUnselect(spefcp->spip);
 
 #if SPI_USE_MUTUAL_EXCLUSION
-  spiReleaseBus(spip);
+  spiReleaseBus(spefcp->spip);
 #endif
+}
+
+/**
+ * @brief Check whether the device is busy (writing in progress).
+ *
+ * @param[in] spefcp   pointer to configuration structure of eeprom file.
+ * @return @p true on busy.
+ */
+static bool_t ll_eeprom_is_busy(const SPIEepromFileConfig *spefcp) {
+
+  uint8_t cmd = CMD_RDSR;
+  uint8_t stat;
+  ll_25xx_transmit_receive(spefcp, &cmd, 1, &stat, 1);
+  if (stat & STAT_WIP)
+    return TRUE;
+  return FALSE;
 }
 
 /**
  * @brief Lock device.
  *
- * @param[in] spip  pointer to SPI device.
+ * @param[in] spefcp  pointer to configuration structure of eeprom file.
  */
-static void ll_25xx_lock(SPIDriver *spip) {
+static void ll_eeprom_lock(const SPIEepromFileConfig *spefcp) {
 
   uint8_t cmd = CMD_WRDI;
-  ll_25xx_transmit_receive(spip, &cmd, 1, NULL, 0);
+  ll_25xx_transmit_receive(spefcp, &cmd, 1, NULL, 0);
 }
 
 /**
  * @brief Unlock device.
  *
- * @param[in] spip  pointer to SPI device.
+ * @param[in] spefcp  pointer to configuration structure of eeprom file.
  */
-static void ll_25xx_unlock(SPIDriver *spip) {
+static void ll_eeprom_unlock(const SPIEepromFileConfig *spefcp) {
 
   uint8_t cmd = CMD_WREN;
-  ll_25xx_transmit_receive(spip, &cmd, 1, NULL, 0);
-}
-
-static bool_t ll_25xx_is_busy(SPIDriver *spip) {
-
-  uint8_t cmd = CMD_RDSR;
-  uint8_t stat;
-  ll_25xx_transmit_receive(spip, &cmd, 1, &stat, 1);
-  if (stat & STAT_WIP)
-    return TRUE;
-  return FALSE;
+  ll_25xx_transmit_receive(spefcp, &cmd, 1, NULL, 0);
 }
 
 /**
@@ -148,6 +155,14 @@ static uint8_t ll_eeprom_prepare_seq(uint8_t *seq, uint32_t size, uint8_t cmd,
   return 2;
 }
 
+/**
+ * @brief   EEPROM read routine.
+ *
+ * @param[in]  spefcp   pointer to configuration structure of eeprom file.
+ * @param[in]  offset   addres of 1-st byte to be read.
+ * @param[out] data     pointer to buffer with data to be written.
+ * @param[in]  len      number of bytes to be red.
+ */
 msg_t ll_eeprom_read(const SPIEepromFileConfig *spefcp, uint32_t offset,
                      uint8_t *data, size_t len) {
 
@@ -159,11 +174,21 @@ msg_t ll_eeprom_read(const SPIEepromFileConfig *spefcp, uint32_t offset,
 
   txlen = ll_eeprom_prepare_seq(txbuff, spefcp->size, CMD_READ,
                                 (offset + spefcp->barrier_low));
-  ll_25xx_transmit_receive(spefcp->spip, txbuff, txlen, data, len);
+  ll_25xx_transmit_receive(spefcp, txbuff, txlen, data, len);
 
   return RDY_OK;
 }
 
+/**
+ * @brief   EEPROM write routine.
+ * @details Function writes data to EEPROM.
+ * @pre     Data must be fit to single EEPROM page.
+ *
+ * @param[in] spefcp  pointer to configuration structure of eeprom file.
+ * @param[in] offset  addres of 1-st byte to be writen.
+ * @param[in] data    pointer to buffer with data to be written.
+ * @param[in] len     number of bytes to be written.
+ */
 msg_t ll_eeprom_write(const SPIEepromFileConfig *spefcp, uint32_t offset,
                       const uint8_t *data, size_t len) {
 
@@ -178,12 +203,13 @@ msg_t ll_eeprom_write(const SPIEepromFileConfig *spefcp, uint32_t offset,
              "data can not be fitted in single page");
 
   /* Unlock array for writting. */
-  ll_25xx_unlock(spefcp->spip);
+  ll_eeprom_unlock(spefcp);
 
 #if SPI_USE_MUTUAL_EXCLUSION
   spiAcquireBus(spefcp->spip);
 #endif
 
+  spiStart(spefcp->spip, spefcp->spiconfp);
   spiSelect(spefcp->spip);
   txlen = ll_eeprom_prepare_seq(txbuff, spefcp->size, CMD_WRITE,
                                 (offset + spefcp->barrier_low));
@@ -197,7 +223,7 @@ msg_t ll_eeprom_write(const SPIEepromFileConfig *spefcp, uint32_t offset,
 
   /* Wait until EEPROM process data. */
   now = chTimeNow();
-  while (ll_25xx_is_busy(spefcp->spip)) {
+  while (ll_eeprom_is_busy(spefcp)) {
     if ((chTimeNow() - now) > spefcp->write_time) {
       return RDY_TIMEOUT;
     }
@@ -206,6 +232,6 @@ msg_t ll_eeprom_write(const SPIEepromFileConfig *spefcp, uint32_t offset,
   }
 
   /* Lock array preventing unexpected access */
-  ll_25xx_lock(spefcp->spip);
+  ll_eeprom_lock(spefcp);
   return RDY_OK;
 }

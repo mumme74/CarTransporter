@@ -8,6 +8,7 @@ The work is provided "as is" without warranty of any kind, neither express nor i
 #define __25XX_EEPROM_TESTSUIT_H_
 
 #include "eeprom/eeprom.h"
+#include "eeprom/eeprom_testsuit_conf.h"
 
 void eeprom_cmd_test(BaseSequentialStream *chp, int argc, char *argv[]);
 

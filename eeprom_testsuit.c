@@ -11,7 +11,6 @@ The work is provided "as is" without warranty of any kind, neither express nor i
 
 #include "chprintf.h"
 
-#include "eeprom/eeprom_conf.h"
 #include "eeprom/eeprom_testsuit.h"
 
 #if USE_EEPROM_TEST_SUIT
@@ -35,8 +34,11 @@ static uint8_t checkbuf[TEST_AREA_SIZE];
 static EepromFileStream ifile;
 static EepromFileStream ofile;
 
+extern const SPIConfig EEPROM_SPIDCONFIG;
+
 static SPIEepromFileConfig ocfg = {
   &EEPROM_SPID,
+  &EEPROM_SPIDCONFIG,
   0,
   0,
   EEPROM_SIZE,
@@ -46,6 +48,7 @@ static SPIEepromFileConfig ocfg = {
 
 static SPIEepromFileConfig icfg = {
   &EEPROM_SPID,
+  &EEPROM_SPIDCONFIG,
   0,
   0,
   EEPROM_SIZE,

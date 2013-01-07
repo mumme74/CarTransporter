@@ -12,27 +12,31 @@ The work is provided "as is" without warranty of any kind, neither express nor i
 
 typedef struct SPIEepromFileConfig {
   /**
-   * Driver connecte to IC.
+   * Driver connected to IC.
    */
-  SPIDriver   *spip;
+  SPIDriver       *spip;
+  /**
+   * Config associated with SPI driver.
+   */
+  const SPIConfig *spiconfp;
   /**
    * Lower barrier of file in EEPROM memory array.
    */
-  uint32_t    barrier_low;
+  uint32_t        barrier_low;
   /**
    * Higher barrier of file in EEPROM memory array.
    */
-  uint32_t    barrier_hi;
+  uint32_t        barrier_hi;
   /**
    * Size of memory array in bytes.
    * @note Check datasheet
    */
-  uint32_t    size;
+  uint32_t        size;
   /**
    * Size of single page in bytes.
    * @note Check datasheet
    */
-  uint16_t    pagesize;
+  uint16_t        pagesize;
   /**
    * Time needed by IC for single byte/page writing.
    * @note Check datasheet

@@ -26,14 +26,8 @@
 #include "ch.h"
 #include "hal.h"
 
-#include "eeprom/eeprom.h"
+#include "eeprom/eeprom_spi.h"
 
-
-msg_t ll_eeprom_read(const SPIEepromFileConfig *spefcp, uint32_t offset,
-                     uint8_t *data, size_t len);
-
-msg_t ll_eeprom_write(const SPIEepromFileConfig *spefcp, uint32_t offset,
-                      const uint8_t *data, size_t len);
-
+extern SPIEepromDevice eepdev_25xx;
 
 #endif /* __25XX_H__ */

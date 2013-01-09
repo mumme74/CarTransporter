@@ -1,7 +1,29 @@
 /*
-Copyright 2012 Uladzimir Pylinski aka barthess.
-You may use this work without restrictions, as long as this notice is included.
-The work is provided "as is" without warranty of any kind, neither express nor implied.
+  Copyright (c) 2013 Timon Wong
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+*/
+
+/*
+  Copyright 2012 Uladzimir Pylinski aka barthess.
+  You may use this work without restrictions, as long as this notice is included.
+  The work is provided "as is" without warranty of any kind, neither express nor implied.
 */
 
 #include <string.h>
@@ -12,6 +34,7 @@ The work is provided "as is" without warranty of any kind, neither express nor i
 #include "chprintf.h"
 
 #include "eeprom/eeprom_testsuit.h"
+#include "eeprom/drv/25xx.h"
 
 #if USE_EEPROM_TEST_SUIT
 
@@ -20,7 +43,7 @@ The work is provided "as is" without warranty of any kind, neither express nor i
 #define TEST_AREA_END       (TEST_AREA_START + TEST_AREA_SIZE)
 
 /* Shortcut to print OK message. */
-#define OK(chp) do { \
+#define OK() do { \
     chprintf((chp), " ... OK\r\n"); \
     chThdSleepMilliseconds(20); \
   } while (0)
@@ -31,29 +54,29 @@ static uint8_t referencebuf[TEST_AREA_SIZE];
 /* buffer for read data */
 static uint8_t checkbuf[TEST_AREA_SIZE];
 
-static EepromFileStream ifile;
-static EepromFileStream ofile;
+static SPIEepromFileStream ifile;
+static SPIEepromFileStream ofile;
 
 extern const SPIConfig EEPROM_SPIDCONFIG;
 
 static SPIEepromFileConfig ocfg = {
-  &EEPROM_SPID,
-  &EEPROM_SPIDCONFIG,
   0,
   0,
   EEPROM_SIZE,
   EEPROM_PAGE_SIZE,
-  MS2ST(EEPROM_WRITE_TIME_MS)
+  MS2ST(EEPROM_WRITE_TIME_MS),
+  &EEPROM_SPID,
+  &EEPROM_SPIDCONFIG,
 };
 
 static SPIEepromFileConfig icfg = {
-  &EEPROM_SPID,
-  &EEPROM_SPIDCONFIG,
   0,
   0,
   EEPROM_SIZE,
   EEPROM_PAGE_SIZE,
-  MS2ST(EEPROM_WRITE_TIME_MS)
+  MS2ST(EEPROM_WRITE_TIME_MS),
+  &EEPROM_SPID,
+  &EEPROM_SPIDCONFIG,
 };
 
 /*
@@ -125,7 +148,10 @@ static void overflow_check(uint32_t b1, uint32_t b2, uint32_t b3, uint32_t b4,
                            uint32_t istart, uint32_t ilen,
                            uint8_t pattern, bool_t pat_autoinc,
                            BaseSequentialStream *chp) {
+
   uint32_t status, i, n;
+  EepromFileStream *iefs;
+  EepromFileStream *oefs;
 
   chDbgCheck(ilen < (b4 - b1), "sequences more than length of outer file can not be verified");
 
@@ -141,13 +167,13 @@ static void overflow_check(uint32_t b1, uint32_t b2, uint32_t b3, uint32_t b4,
   /* open outer file and clear it */
   ocfg.barrier_low  = b1;
   ocfg.barrier_hi   = b4;
-  EepromFileOpen(&ofile, &ocfg);
-  pattern_fill(&ofile, 0x00);
+  oefs = EepromFileOpenSPI(&ofile, &ocfg, &eepdev_25xx);
+  pattern_fill(oefs, 0x00);
 
   /* open inner file */
   icfg.barrier_low  = b2;
   icfg.barrier_hi   = b3;
-  EepromFileOpen(&ifile, &icfg);
+  iefs = EepromFileOpenSPI(&ifile, &icfg, &eepdev_25xx);
 
   /* reference buffer */
   memset(referencebuf, 0x00, b4 - b1);
@@ -175,8 +201,8 @@ static void overflow_check(uint32_t b1, uint32_t b2, uint32_t b3, uint32_t b4,
 
   /* now write check buffer content into inner file */
   chThdSleepMilliseconds(20);
-  chFileStreamSeek(&ifile, istart);
-  status = chFileStreamWrite(&ifile, checkbuf, ilen);
+  chFileStreamSeek(iefs, istart);
+  status = chFileStreamWrite(iefs, checkbuf, ilen);
 
   if ((istart + ilen) > (b3 - b2)) { /* data must be clamped */
     if (status != (b3 - b2 - istart))
@@ -189,16 +215,16 @@ static void overflow_check(uint32_t b1, uint32_t b2, uint32_t b3, uint32_t b4,
 
   /* read outer file and compare content with reference buffer */
   memset(checkbuf, 0x00, b4 - b1);
-  chFileStreamSeek(&ofile, 0);
-  status = chFileStreamRead(&ofile, checkbuf, b4 - b1);
+  chFileStreamSeek(oefs, 0);
+  status = chFileStreamRead(oefs, checkbuf, b4 - b1);
   if (status != (b4 - b1))
     chDbgPanic("reading back failed");
   if (memcmp(referencebuf, checkbuf, b4 - b1) != 0)
-    chDbgPanic("veryfication failed");
+    chDbgPanic("verification failed");
 
-  chFileStreamClose(&ofile);
-  chFileStreamClose(&ifile);
-  OK(chp);
+  chFileStreamClose(oefs);
+  chFileStreamClose(iefs);
+  OK();
 }
 
 /**
@@ -208,6 +234,7 @@ static WORKING_AREA(waEepromTestThread, 1024);
 static msg_t EepromTestThread(void *ctx) {
 
   BaseSequentialStream *chp = (BaseSequentialStream *)ctx;
+  EepromFileStream *oefs;
 
   chRegSetThreadName("EepromTst");
 
@@ -216,36 +243,36 @@ static msg_t EepromTestThread(void *ctx) {
   chprintf(chp, "mount aligned file sized to whole test area");
   ocfg.barrier_low  = TEST_AREA_START;
   ocfg.barrier_hi   = TEST_AREA_END;
-  EepromFileOpen(&ofile, &ocfg);
-  OK(chp);
-  printfileinfo(chp, &ofile);
+  oefs = EepromFileOpenSPI(&ofile, &ocfg, &eepdev_25xx);
+  OK();
+  printfileinfo(chp, oefs);
   chprintf(chp, "test fill with 0xFF");
-  pattern_fill(&ofile, 0xFF);
+  pattern_fill(oefs, 0xFF);
   if (chThdShouldTerminate()) {
     goto END;
   }
-  OK(chp);
+  OK();
   chprintf(chp, "test fill with 0xAA");
-  pattern_fill(&ofile, 0xAA);
+  pattern_fill(oefs, 0xAA);
   if (chThdShouldTerminate()) {
     goto END;
   }
-  OK(chp);
+  OK();
   chprintf(chp, "test fill with 0x55");
-  pattern_fill(&ofile, 0x55);
+  pattern_fill(oefs, 0x55);
   if (chThdShouldTerminate()) {
     goto END;
   }
-  OK(chp);
+  OK();
   chprintf(chp, "test fill with 0x00");
-  pattern_fill(&ofile, 0x00);
+  pattern_fill(oefs, 0x00);
   if (chThdShouldTerminate()) {
     goto END;
   }
-  OK(chp);
+  OK();
   chprintf(chp, "Closing file");
-  chFileStreamClose(&ofile);
-  OK(chp);
+  chFileStreamClose(oefs);
+  OK();
 
 
   uint32_t b1, b2, b3, b4, istart, ilen;
@@ -376,20 +403,20 @@ static msg_t EepromTestThread(void *ctx) {
 
   ocfg.barrier_low  = TEST_AREA_START;
   ocfg.barrier_hi   = TEST_AREA_END;
-  EepromFileOpen(&ofile, &ocfg);
-  chFileStreamSeek(&ofile, 0);
-  EepromWriteByte(&ofile, 0x11);
-  EepromWriteHalfword(&ofile, 0x2222);
-  EepromWriteWord(&ofile, 0x33333333);
-  chFileStreamSeek(&ofile, 0);
-  if (EepromReadByte(&ofile) != 0x11)
+  oefs = EepromFileOpenSPI(&ofile, &ocfg, &eepdev_25xx);
+  chFileStreamSeek(oefs, 0);
+  EepromWriteByte(oefs, 0x11);
+  EepromWriteHalfword(oefs, 0x2222);
+  EepromWriteWord(oefs, 0x33333333);
+  chFileStreamSeek(oefs, 0);
+  if (EepromReadByte(oefs) != 0x11)
     chDbgPanic("");
-  if (EepromReadHalfword(&ofile) != 0x2222)
+  if (EepromReadHalfword(oefs) != 0x2222)
     chDbgPanic("");
-  if (EepromReadWord(&ofile) != 0x33333333)
+  if (EepromReadWord(oefs) != 0x33333333)
     chDbgPanic("");
-  chFileStreamClose(&ofile);
-  OK(chp);
+  chFileStreamClose(oefs);
+  OK();
 
   chprintf(chp, "All tests passed successfully.\r\n");
 END:

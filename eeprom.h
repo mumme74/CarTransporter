@@ -4,56 +4,39 @@ You may use this work without restrictions, as long as this notice is included.
 The work is provided "as is" without warranty of any kind, neither express nor implied.
 */
 
-#ifndef EEPROM_FILE_H_
-#define EEPROM_FILE_H_
+#ifndef __EEPROM_H__
+#define __EEPROM_H__
 
 #include "ch.h"
 #include "hal.h"
 
-typedef struct SPIEepromFileConfig {
-  /**
-   * Driver connected to IC.
-   */
-  SPIDriver       *spip;
-  /**
-   * Config associated with SPI driver.
-   */
-  const SPIConfig *spiconfp;
-  /**
-   * Lower barrier of file in EEPROM memory array.
-   */
-  uint32_t        barrier_low;
-  /**
-   * Higher barrier of file in EEPROM memory array.
-   */
-  uint32_t        barrier_hi;
-  /**
-   * Size of memory array in bytes.
-   * @note Check datasheet
-   */
-  uint32_t        size;
-  /**
-   * Size of single page in bytes.
-   * @note Check datasheet
-   */
-  uint16_t        pagesize;
-  /**
-   * Time needed by IC for single byte/page writing.
-   * @note Check datasheet
-   */
+#define _eeprom_file_config_data                                            \
+  /* Lower barrier of file in EEPROM memory array. */                       \
+  uint32_t        barrier_low;                                              \
+  /* Higher barrier of file in EEPROM memory array. */                      \
+  uint32_t        barrier_hi;                                               \
+  /* Size of memory array in bytes. */                                      \
+  uint32_t        size;                                                     \
+  /* Size of single page in bytes. */                                       \
+  uint16_t        pagesize;                                                 \
+  /* Time needed by IC for single byte/page writing. */                     \
   systime_t   write_time;
-} SPIEepromFileConfig;
+
+typedef struct {
+  _eeprom_file_config_data
+} EepromFileConfig;
 
 /**
  * @brief   @p EepromFileStream specific data.
  */
 #define _eeprom_file_stream_data                                            \
   _base_file_stream_data                                                    \
-  const SPIEepromFileConfig   *cfg;                                         \
   uint32_t                    errors;                                       \
   uint32_t                    position;                                     \
 
 /**
+ * @extends BaseFileStreamVMT
+ *
  * @brief   @p EepromFileStream virtual methods table.
  */
 struct EepromFilelStreamVMT {
@@ -61,16 +44,20 @@ struct EepromFilelStreamVMT {
 };
 
 /**
+ * @extends BaseFileStream
+ *
  * @brief   EEPROM file stream driver class.
  * @details This class extends @p BaseFileStream by adding some fields.
  */
-typedef struct EepromFileStream EepromFileStream;
-struct EepromFileStream {
+typedef struct {
   /** @brief Virtual Methods Table.*/
   const struct EepromFilelStreamVMT *vmt;
   _eeprom_file_stream_data
-};
+  /** pointer to config object, must be overwritten by all derived classes.*/
+  const EepromFileConfig *cfg;
+} EepromFileStream;
 
+#if !defined(chFileStreamRead)
 /**
  * @brief   File Stream read.
  * @details The function reads data from a file into a buffer.
@@ -84,8 +71,10 @@ struct EepromFileStream {
  *
  * @api
  */
-#define chFileStreamRead(ip, bp, n)  (chSequentialStreamRead(ip, bp, n))
+#  define chFileStreamRead(ip, bp, n)  (chSequentialStreamRead(ip, bp, n))
+#endif
 
+#if !defined(chFileStreamWrite)
 /**
  * @brief   File Stream write.
  * @details The function writes data from a buffer to a file.
@@ -100,16 +89,14 @@ struct EepromFileStream {
  *
  * @api
  */
-#define chFileStreamWrite(ip, bp, n) (chSequentialStreamWrite(ip, bp, n))
+#  define chFileStreamWrite(ip, bp, n) (chSequentialStreamWrite(ip, bp, n))
+#endif
 
+uint8_t  EepromReadByte(EepromFileStream *efs);
+uint16_t EepromReadHalfword(EepromFileStream *efs);
+uint32_t EepromReadWord(EepromFileStream *efs);
+size_t EepromWriteByte(EepromFileStream *efs, uint8_t data);
+size_t EepromWriteHalfword(EepromFileStream *efs, uint16_t data);
+size_t EepromWriteWord(EepromFileStream *efs, uint32_t data);
 
-EepromFileStream *EepromFileOpen(EepromFileStream *efs, const SPIEepromFileConfig *eeprom_cfg);
-
-uint8_t  EepromReadByte(EepromFileStream *EepromFile_p);
-uint16_t EepromReadHalfword(EepromFileStream *EepromFile_p);
-uint32_t EepromReadWord(EepromFileStream *EepromFile_p);
-size_t EepromWriteByte(EepromFileStream *EepromFile_p, uint8_t data);
-size_t EepromWriteHalfword(EepromFileStream *EepromFile_p, uint16_t data);
-size_t EepromWriteWord(EepromFileStream *EepromFile_p, uint32_t data);
-
-#endif /* EEPROM_FILE_H_ */
+#endif /* __EEPROM_H__ */

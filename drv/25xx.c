@@ -47,7 +47,8 @@ Note:
 #include "ch.h"
 #include "hal.h"
 
-#include "eeprom/25xx.h"
+#include "eeprom/drv/25xx.h"
+#include "eeprom/base_rw.h"
 
 /**
  * @name Commands of 25XX chip.
@@ -80,43 +81,43 @@ Note:
 /**
  * @brief 25XX low level write then read rountine.
  *
- * @param[in]  spefcp pointer to configuration structure of eeprom file.
+ * @param[in]  eepcfg pointer to configuration structure of eeprom file.
  * @param[in]  txbuf  pointer to buffer to be transfered.
  * @param[in]  txlen  number of bytes to be transfered.
  * @param[out] rxbuf  pointer to buffer to be received.
  * @param[in]  rxlen  number of bytes to be received.
  */
-static void ll_25xx_transmit_receive(const SPIEepromFileConfig *spefcp,
+static void ll_25xx_transmit_receive(const SPIEepromFileConfig *eepcfg,
                                      const uint8_t *txbuf, size_t txlen,
                                      uint8_t *rxbuf, size_t rxlen) {
 
 #if SPI_USE_MUTUAL_EXCLUSION
-  spiAcquireBus(spefcp->spip);
+  spiAcquireBus(eepcfg->spip);
 #endif
 
-  spiStart(spefcp->spip, spefcp->spiconfp);
-  spiSelect(spefcp->spip);
-  spiSend(spefcp->spip, txlen, &txbuf);
+  spiStart(eepcfg->spip, eepcfg->spicfg);
+  spiSelect(eepcfg->spip);
+  spiSend(eepcfg->spip, txlen, &txbuf);
   if (rxlen) /* Check if receive is needed. */
-    spiReceive(spefcp->spip, rxlen, &rxbuf);
-  spiUnselect(spefcp->spip);
+    spiReceive(eepcfg->spip, rxlen, &rxbuf);
+  spiUnselect(eepcfg->spip);
 
 #if SPI_USE_MUTUAL_EXCLUSION
-  spiReleaseBus(spefcp->spip);
+  spiReleaseBus(eepcfg->spip);
 #endif
 }
 
 /**
  * @brief Check whether the device is busy (writing in progress).
  *
- * @param[in] spefcp   pointer to configuration structure of eeprom file.
+ * @param[in] eepcfg   pointer to configuration structure of eeprom file.
  * @return @p true on busy.
  */
-static bool_t ll_eeprom_is_busy(const SPIEepromFileConfig *spefcp) {
+static bool_t ll_eeprom_is_busy(const SPIEepromFileConfig *eepcfg) {
 
   uint8_t cmd = CMD_RDSR;
   uint8_t stat;
-  ll_25xx_transmit_receive(spefcp, &cmd, 1, &stat, 1);
+  ll_25xx_transmit_receive(eepcfg, &cmd, 1, &stat, 1);
   if (stat & STAT_WIP)
     return TRUE;
   return FALSE;
@@ -125,23 +126,23 @@ static bool_t ll_eeprom_is_busy(const SPIEepromFileConfig *spefcp) {
 /**
  * @brief Lock device.
  *
- * @param[in] spefcp  pointer to configuration structure of eeprom file.
+ * @param[in] eepcfg  pointer to configuration structure of eeprom file.
  */
-static void ll_eeprom_lock(const SPIEepromFileConfig *spefcp) {
+static void ll_eeprom_lock(const SPIEepromFileConfig *eepcfg) {
 
   uint8_t cmd = CMD_WRDI;
-  ll_25xx_transmit_receive(spefcp, &cmd, 1, NULL, 0);
+  ll_25xx_transmit_receive(eepcfg, &cmd, 1, NULL, 0);
 }
 
 /**
  * @brief Unlock device.
  *
- * @param[in] spefcp  pointer to configuration structure of eeprom file.
+ * @param[in] eepcfg  pointer to configuration structure of eeprom file.
  */
-static void ll_eeprom_unlock(const SPIEepromFileConfig *spefcp) {
+static void ll_eeprom_unlock(const SPIEepromFileConfig *eepcfg) {
 
   uint8_t cmd = CMD_WREN;
-  ll_25xx_transmit_receive(spefcp, &cmd, 1, NULL, 0);
+  ll_25xx_transmit_receive(eepcfg, &cmd, 1, NULL, 0);
 }
 
 /**
@@ -180,23 +181,23 @@ static uint8_t ll_eeprom_prepare_seq(uint8_t *seq, uint32_t size, uint8_t cmd,
 /**
  * @brief   EEPROM read routine.
  *
- * @param[in]  spefcp   pointer to configuration structure of eeprom file.
+ * @param[in]  eepcfg   pointer to configuration structure of eeprom file.
  * @param[in]  offset   addres of 1-st byte to be read.
  * @param[out] data     pointer to buffer with data to be written.
  * @param[in]  len      number of bytes to be red.
  */
-msg_t ll_eeprom_read(const SPIEepromFileConfig *spefcp, uint32_t offset,
+static msg_t ll_eeprom_read(const SPIEepromFileConfig *eepcfg, uint32_t offset,
                      uint8_t *data, size_t len) {
 
   uint8_t txbuff[4];
   uint8_t txlen;
 
-  chDbgCheck(((len <= spefcp->size) && ((offset + len) <= spefcp->size)),
+  chDbgCheck(((len <= eepcfg->size) && ((offset + len) <= eepcfg->size)),
              "out of device bounds");
 
-  txlen = ll_eeprom_prepare_seq(txbuff, spefcp->size, CMD_READ,
-                                (offset + spefcp->barrier_low));
-  ll_25xx_transmit_receive(spefcp, txbuff, txlen, data, len);
+  txlen = ll_eeprom_prepare_seq(txbuff, eepcfg->size, CMD_READ,
+                                (offset + eepcfg->barrier_low));
+  ll_25xx_transmit_receive(eepcfg, txbuff, txlen, data, len);
 
   return RDY_OK;
 }
@@ -206,47 +207,47 @@ msg_t ll_eeprom_read(const SPIEepromFileConfig *spefcp, uint32_t offset,
  * @details Function writes data to EEPROM.
  * @pre     Data must be fit to single EEPROM page.
  *
- * @param[in] spefcp  pointer to configuration structure of eeprom file.
+ * @param[in] eepcfg  pointer to configuration structure of eeprom file.
  * @param[in] offset  addres of 1-st byte to be writen.
  * @param[in] data    pointer to buffer with data to be written.
  * @param[in] len     number of bytes to be written.
  */
-msg_t ll_eeprom_write(const SPIEepromFileConfig *spefcp, uint32_t offset,
+static msg_t ll_eeprom_write(const SPIEepromFileConfig *eepcfg, uint32_t offset,
                       const uint8_t *data, size_t len) {
 
   uint8_t txbuff[4];
   uint8_t txlen;
   systime_t now;
 
-  chDbgCheck(((len <= spefcp->size) && ((offset + len) <= spefcp->size)),
+  chDbgCheck(((len <= eepcfg->size) && ((offset + len) <= eepcfg->size)),
              "out of device bounds");
-  chDbgCheck((((offset + spefcp->barrier_low) / spefcp->pagesize) ==
-              (((offset + spefcp->barrier_low) + len - 1) / spefcp->pagesize)),
+  chDbgCheck((((offset + eepcfg->barrier_low) / eepcfg->pagesize) ==
+              (((offset + eepcfg->barrier_low) + len - 1) / eepcfg->pagesize)),
              "data can not be fitted in single page");
 
   /* Unlock array for writting. */
-  ll_eeprom_unlock(spefcp);
+  ll_eeprom_unlock(eepcfg);
 
 #if SPI_USE_MUTUAL_EXCLUSION
-  spiAcquireBus(spefcp->spip);
+  spiAcquireBus(eepcfg->spip);
 #endif
 
-  spiStart(spefcp->spip, spefcp->spiconfp);
-  spiSelect(spefcp->spip);
-  txlen = ll_eeprom_prepare_seq(txbuff, spefcp->size, CMD_WRITE,
-                                (offset + spefcp->barrier_low));
-  spiSend(spefcp->spip, txlen, txbuff);
-  spiSend(spefcp->spip, len, data);
-  spiUnselect(spefcp->spip);
+  spiStart(eepcfg->spip, eepcfg->spicfg);
+  spiSelect(eepcfg->spip);
+  txlen = ll_eeprom_prepare_seq(txbuff, eepcfg->size, CMD_WRITE,
+                                (offset + eepcfg->barrier_low));
+  spiSend(eepcfg->spip, txlen, txbuff);
+  spiSend(eepcfg->spip, len, data);
+  spiUnselect(eepcfg->spip);
 
 #if SPI_USE_MUTUAL_EXCLUSION
-  spiReleaseBus(spefcp->spip);
+  spiReleaseBus(eepcfg->spip);
 #endif
 
   /* Wait until EEPROM process data. */
   now = chTimeNow();
-  while (ll_eeprom_is_busy(spefcp)) {
-    if ((chTimeNow() - now) > spefcp->write_time) {
+  while (ll_eeprom_is_busy(eepcfg)) {
+    if ((chTimeNow() - now) > eepcfg->write_time) {
       return RDY_TIMEOUT;
     }
 
@@ -254,6 +255,139 @@ msg_t ll_eeprom_write(const SPIEepromFileConfig *spefcp, uint32_t offset,
   }
 
   /* Lock array preventing unexpected access */
-  ll_eeprom_lock(spefcp);
+  ll_eeprom_lock(eepcfg);
   return RDY_OK;
 }
+
+/**
+ * @brief   Determines and returns size of data that can be processed
+ */
+static size_t __clamp_size(void *ip, size_t n) {
+
+  if ((eepfs_getposition(ip) + n) > eepfs_getsize(ip))
+    return eepfs_getsize(ip) - eepfs_getposition(ip);
+  else
+    return n;
+}
+
+/**
+ * @brief   Write data that can be fitted in one page boundary
+ */
+static void __fitted_write(void *ip, const uint8_t *data, size_t len, uint32_t *written) {
+
+  msg_t status = RDY_RESET;
+
+  chDbgCheck(len != 0, "something broken in hi level part");
+
+  status = ll_eeprom_write(((EepromFileStream *)ip)->cfg, eepfs_getposition(ip), data, len);
+  if (status == RDY_OK) {
+    *written += len;
+    eepfs_lseek(ip, eepfs_getposition(ip) + len);
+  }
+}
+
+/**
+ * @brief     Write data to EEPROM.
+ * @details   Only one EEPROM page can be written at once. So fucntion
+ *            splits large data chunks in small EEPROM transactions if needed.
+ * @note      To achieve the maximum effectivity use write operations
+ *            aligned to EEPROM page boundaries.
+ */
+static size_t write(void *ip, const uint8_t *bp, size_t n) {
+
+  size_t   len = 0;     /* bytes to be written at one trasaction */
+  uint32_t written; /* total bytes successfully written */
+  uint16_t pagesize;
+  uint32_t firstpage;
+  uint32_t lastpage;
+
+  chDbgCheck((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL), "");
+
+  if (n == 0)
+    return 0;
+
+  n = __clamp_size(ip, n);
+  if (n == 0)
+    return 0;
+
+  pagesize  = ((EepromFileStream *)ip)->cfg->pagesize;
+  firstpage = (((EepromFileStream *)ip)->cfg->barrier_low + eepfs_getposition(ip)) / pagesize;
+  lastpage  = (((EepromFileStream *)ip)->cfg->barrier_low + eepfs_getposition(ip) + n - 1) / pagesize;
+
+  written = 0;
+  /* data fitted in single page */
+  if (firstpage == lastpage) {
+    len = n;
+    __fitted_write(ip, bp, len, &written);
+    bp += len;
+    return written;
+  }
+  else {
+    /* write first piece of data to first page boundary */
+    len =  ((firstpage + 1) * pagesize) - eepfs_getposition(ip);
+    len -= ((EepromFileStream *)ip)->cfg->barrier_low;
+    __fitted_write(ip, bp, len, &written);
+    bp += len;
+
+    /* now writes blocks at a size of pages (may be no one) */
+    while ((n - written) > pagesize) {
+      len = pagesize;
+      __fitted_write(ip, bp, len, &written);
+      bp += len;
+    }
+
+    /* wrtie tail */
+    len = n - written;
+    if (len == 0)
+      return written;
+    else {
+      __fitted_write(ip, bp, len, &written);
+    }
+  }
+
+  return written;
+}
+
+/**
+ * Read some bytes from current position in file. After successful
+ * read operation the position pointer will be increased by the number
+ * of read bytes.
+ */
+static size_t read(void *ip, uint8_t *bp, size_t n) {
+
+  msg_t status = RDY_OK;
+
+  chDbgCheck((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL), "");
+
+  if (n == 0)
+    return 0;
+
+  n = __clamp_size(ip, n);
+  if (n == 0)
+    return 0;
+
+  /* call low level function */
+  status = ll_eeprom_read(((EepromFileStream *)ip)->cfg, eepfs_getposition(ip), bp, n);
+  if (status != RDY_OK)
+    return 0;
+  else {
+    eepfs_lseek(ip, (eepfs_getposition(ip) + n));
+    return n;
+  }
+}
+
+static const struct EepromFilelStreamVMT vmt = {
+  write,
+  read,
+  eepfs_put,
+  eepfs_get,
+  eepfs_close,
+  eepfs_geterror,
+  eepfs_getsize,
+  eepfs_getposition,
+  eepfs_lseek,
+};
+
+SPIEepromDevice eepdev_25xx = {
+  &vmt
+};

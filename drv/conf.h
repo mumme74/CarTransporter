@@ -20,23 +20,23 @@
   THE SOFTWARE.
 */
 
-#ifndef __25XX_H__
-#define __25XX_H__
+#ifndef __EEPROM_DRV_CONF_H__
+#define __EEPROM_DRV_CONF_H__
 
-#include "ch.h"
-#include "hal.h"
 
-#include "eeprom/eeprom_spi.h"
-#include "eeprom/drv/conf.h"
+#if !defined(EEPROM_DRV_USE_24XX)
+/**
+ * @brief Enable driver for 24AA/24LC.
+ */
+#define EEPROM_DRV_USE_24XX         TRUE
+#endif
 
-#if HAL_USE_SPI || defined(__DOXYGEN__)
+#if !defined(EEPROM_DRV_USE_25XX)
+/**
+ * @brief Enable driver for 25AA/25LC.
+ */
+#define EEPROM_DRV_USE_25XX         TRUE
+#endif
 
-#if EEPROM_DRV_USE_25XX || defined(__DOXYGEN__)
 
-extern SPIEepromDevice eepdev_25xx;
-
-#endif /* EEPROM_DRV_USE_25XX */
-
-#endif /* HAL_USE_SPI */
-
-#endif /* __25XX_H__ */
+#endif /* __EEPROM_DRV_CONF_H__ */

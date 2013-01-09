@@ -26,18 +26,18 @@
   The work is provided "as is" without warranty of any kind, neither express nor implied.
 */
 
-#include "eeprom/eeprom_spi.h"
+#include "eeprom_i2c.h"
 
-#if HAL_USE_SPI || defined(__DOXYGEN__)
+#if HAL_USE_I2C || defined(__DOXYGEN__)
 
 /**
- * Open SPI EEPROM IC as file and return pointer to the file stream object
+ * Open I2C EEPROM IC as file and return pointer to the file stream object
  * @note      Fucntion allways successfully open file. All checking makes
  *            in read/write functions.
  */
-EepromFileStream *EepromFileOpenSPI(SPIEepromFileStream *efs,
-                                    const SPIEepromFileConfig *eepcfg,
-                                    const SPIEepromDevice *eepdev) {
+EepromFileStream *EepromFileOpenI2C(I2CEepromFileStream *efs,
+                                    const I2CEepromFileConfig *eepcfg,
+                                    const I2CEepromDevice *eepdev) {
 
   chDbgCheck((efs != NULL) && (eepcfg != NULL), "");
   chDbgCheck(efs->vmt != eepdev->efsvmt, "file allready opened");
@@ -52,4 +52,4 @@ EepromFileStream *EepromFileOpenSPI(SPIEepromFileStream *efs,
   return (EepromFileStream *)efs;
 }
 
-#endif /* HAL_USE_SPI */
+#endif /* HAL_USE_I2C */

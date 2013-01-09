@@ -21,9 +21,9 @@
 */
 
 /*
-Copyright 2012 Uladzimir Pylinski aka barthess.
-You may use this work without restrictions, as long as this notice is included.
-The work is provided "as is" without warranty of any kind, neither express nor implied.
+  Copyright 2012 Uladzimir Pylinski aka barthess.
+  You may use this work without restrictions, as long as this notice is included.
+  The work is provided "as is" without warranty of any kind, neither express nor implied.
 */
 
 /*****************************************************************************
@@ -49,6 +49,10 @@ Note:
 
 #include "eeprom/drv/25xx.h"
 #include "eeprom/base_rw.h"
+
+#if HAL_USE_SPI || defined(__DOXYGEN__)
+
+#if EEPROM_DRV_USE_25XX || defined(__DOXYGEN__)
 
 /**
  * @name Commands of 25XX chip.
@@ -187,7 +191,7 @@ static uint8_t ll_eeprom_prepare_seq(uint8_t *seq, uint32_t size, uint8_t cmd,
  * @param[in]  len      number of bytes to be red.
  */
 static msg_t ll_eeprom_read(const SPIEepromFileConfig *eepcfg, uint32_t offset,
-                     uint8_t *data, size_t len) {
+                            uint8_t *data, size_t len) {
 
   uint8_t txbuff[4];
   uint8_t txlen;
@@ -213,7 +217,7 @@ static msg_t ll_eeprom_read(const SPIEepromFileConfig *eepcfg, uint32_t offset,
  * @param[in] len     number of bytes to be written.
  */
 static msg_t ll_eeprom_write(const SPIEepromFileConfig *eepcfg, uint32_t offset,
-                      const uint8_t *data, size_t len) {
+                             const uint8_t *data, size_t len) {
 
   uint8_t txbuff[4];
   uint8_t txlen;
@@ -279,7 +283,8 @@ static void __fitted_write(void *ip, const uint8_t *data, size_t len, uint32_t *
 
   chDbgCheck(len != 0, "something broken in hi level part");
 
-  status = ll_eeprom_write(((EepromFileStream *)ip)->cfg, eepfs_getposition(ip), data, len);
+  status = ll_eeprom_write(((SPIEepromFileStream *)ip)->cfg,
+                           eepfs_getposition(ip), data, len);
   if (status == RDY_OK) {
     *written += len;
     eepfs_lseek(ip, eepfs_getposition(ip) + len);
@@ -367,7 +372,8 @@ static size_t read(void *ip, uint8_t *bp, size_t n) {
     return 0;
 
   /* call low level function */
-  status = ll_eeprom_read(((EepromFileStream *)ip)->cfg, eepfs_getposition(ip), bp, n);
+  status = ll_eeprom_read(((SPIEepromFileStream *)ip)->cfg,
+                          eepfs_getposition(ip), bp, n);
   if (status != RDY_OK)
     return 0;
   else {
@@ -391,3 +397,7 @@ static const struct EepromFilelStreamVMT vmt = {
 SPIEepromDevice eepdev_25xx = {
   &vmt
 };
+
+#endif /* EEPROM_DRV_USE_25XX */
+
+#endif /* HAL_USE_SPI */

@@ -20,10 +20,16 @@
   THE SOFTWARE.
 */
 
-#ifndef __EEPROM_SPI_H__
-#define __EEPROM_SPI_H__
+/*
+  Copyright 2012 Uladzimir Pylinski aka barthess.
+  You may use this work without restrictions, as long as this notice is included.
+  The work is provided "as is" without warranty of any kind, neither express nor implied.
+*/
 
-#if HAL_USE_SPI || defined(__DOXYGEN__)
+#ifndef __EEPROM_I2C_H__
+#define __EEPROM_I2C_H__
+
+#if HAL_USE_I2C || defined(__DOXYGEN__)
 
 #include "eeprom/eeprom.h"
 
@@ -35,39 +41,43 @@ typedef struct {
   /**
    * Driver connected to IC.
    */
-  SPIDriver       *spip;
+  I2CDriver     *i2cp;
   /**
-   * Config associated with SPI driver.
+   * Address of IC on I2C bus.
    */
-  const SPIConfig *spicfg;
-} SPIEepromFileConfig;
+  i2caddr_t     addr;
+  /**
+   * Pointer to write buffer. The safest size is (pagesize + 2)
+   */
+  uint8_t       *write_buf;
+} I2CEepromFileConfig;
 
 typedef struct {
   const struct EepromFilelStreamVMT *efsvmt;
-} SPIEepromDevice;
+} I2CEepromDevice;
 
 /**
- * @brief   @p SPIEepromFileStream specific data.
+ * @brief   @p I2CEepromFileStream specific data.
  */
-#define _eeprom_file_stream_data_spi                                       \
+#define _eeprom_file_stream_data_i2c                                       \
   _eeprom_file_stream_data
 
 /**
  * @extends EepromFileStream
  *
- * @brief   EEPROM file stream driver class for SPI device.
+ * @brief   EEPROM file stream driver class for I2C device.
  */
 typedef struct {
   const struct EepromFilelStreamVMT *vmt;
-  _eeprom_file_stream_data_spi
+  _eeprom_file_stream_data_i2c
   /* Overwritten parent data member. */
-  const SPIEepromFileConfig *cfg;
-} SPIEepromFileStream;
+  const I2CEepromFileConfig *cfg;
+} I2CEepromFileStream;
 
-EepromFileStream *EepromFileOpenSPI(SPIEepromFileStream *efs,
-                                    const SPIEepromFileConfig *eepcfg,
-                                    const SPIEepromDevice *eepdev);
+EepromFileStream *EepromFileOpenI2C(I2CEepromFileStream *efs,
+                                    const I2CEepromFileConfig *eepcfg,
+                                    const I2CEepromDevice *eepdev);
 
-#endif /* HAL_USE_SPI */
+#endif /* HAL_USE_I2C */
 
-#endif /* __EEPROM_SPI_H__ */
+#endif /* __EEPROM_I2C_H__ */

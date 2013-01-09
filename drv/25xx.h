@@ -26,8 +26,8 @@
 #include "ch.h"
 #include "hal.h"
 
-#include "eeprom/eeprom_spi.h"
-#include "eeprom/drv/conf.h"
+#include "eeprom/eeprom.h"
+#include "eeprom/drvconf.h"
 
 #if HAL_USE_SPI || defined(__DOXYGEN__)
 

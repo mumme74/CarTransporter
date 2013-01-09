@@ -26,7 +26,7 @@
   The work is provided "as is" without warranty of any kind, neither express nor implied.
 */
 
-#include "eeprom/eeprom_spi.h"
+#include "eeprom/eeprom.h"
 
 #if HAL_USE_SPI || defined(__DOXYGEN__)
 
@@ -35,7 +35,7 @@
  * @note      Fucntion allways successfully open file. All checking makes
  *            in read/write functions.
  */
-EepromFileStream *EepromFileOpenSPI(SPIEepromFileStream *efs,
+EepromFileStream *SPIEepromFileOpen(SPIEepromFileStream *efs,
                                     const SPIEepromFileConfig *eepcfg,
                                     const SPIEepromDevice *eepdev) {
 

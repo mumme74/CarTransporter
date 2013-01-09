@@ -20,8 +20,8 @@
   THE SOFTWARE.
 */
 
-#ifndef __EEPROM_DRV_CONF_H__
-#define __EEPROM_DRV_CONF_H__
+#ifndef __EEPROM_DRVCONF_H__
+#define __EEPROM_DRVCONF_H__
 
 
 #if !defined(EEPROM_DRV_USE_24XX)
@@ -39,4 +39,4 @@
 #endif
 
 
-#endif /* __EEPROM_DRV_CONF_H__ */
+#endif /* __EEPROM_DRVCONF_H__ */

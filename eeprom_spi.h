@@ -23,8 +23,6 @@
 #ifndef __EEPROM_SPI_H__
 #define __EEPROM_SPI_H__
 
-#include "eeprom/eeprom.h"
-
 #if HAL_USE_SPI || defined(__DOXYGEN__)
 
 /**
@@ -64,7 +62,7 @@ typedef struct {
   const SPIEepromFileConfig *cfg;
 } SPIEepromFileStream;
 
-EepromFileStream *EepromFileOpenSPI(SPIEepromFileStream *efs,
+EepromFileStream *SPIEepromFileOpen(SPIEepromFileStream *efs,
                                     const SPIEepromFileConfig *eepcfg,
                                     const SPIEepromDevice *eepdev);
 

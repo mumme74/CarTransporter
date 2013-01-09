@@ -42,7 +42,7 @@
   /* Size of single page in bytes. */                                       \
   uint16_t        pagesize;                                                 \
   /* Time needed by IC for single byte/page writing. */                     \
-  systime_t   write_time;
+  systime_t       write_time;
 
 typedef struct {
   _eeprom_file_config_data
@@ -120,5 +120,8 @@ uint32_t EepromReadWord(EepromFileStream *efs);
 size_t EepromWriteByte(EepromFileStream *efs, uint8_t data);
 size_t EepromWriteHalfword(EepromFileStream *efs, uint16_t data);
 size_t EepromWriteWord(EepromFileStream *efs, uint32_t data);
+
+#include "eeprom/eeprom_i2c.h"
+#include "eeprom/eeprom_spi.h"
 
 #endif /* __EEPROM_H__ */

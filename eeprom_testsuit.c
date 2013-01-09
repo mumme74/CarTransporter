@@ -34,6 +34,7 @@
 #include "chprintf.h"
 
 #include "eeprom/eeprom_testsuit.h"
+#include "eeprom/eeprom.h"
 #include "eeprom/drv/25xx.h"
 
 #if USE_EEPROM_TEST_SUIT
@@ -167,13 +168,13 @@ static void overflow_check(uint32_t b1, uint32_t b2, uint32_t b3, uint32_t b4,
   /* open outer file and clear it */
   ocfg.barrier_low  = b1;
   ocfg.barrier_hi   = b4;
-  oefs = EepromFileOpenSPI(&ofile, &ocfg, &eepdev_25xx);
+  oefs = SPIEepromFileOpen(&ofile, &ocfg, &eepdev_25xx);
   pattern_fill(oefs, 0x00);
 
   /* open inner file */
   icfg.barrier_low  = b2;
   icfg.barrier_hi   = b3;
-  iefs = EepromFileOpenSPI(&ifile, &icfg, &eepdev_25xx);
+  iefs = SPIEepromFileOpen(&ifile, &icfg, &eepdev_25xx);
 
   /* reference buffer */
   memset(referencebuf, 0x00, b4 - b1);
@@ -243,7 +244,7 @@ static msg_t EepromTestThread(void *ctx) {
   chprintf(chp, "mount aligned file sized to whole test area");
   ocfg.barrier_low  = TEST_AREA_START;
   ocfg.barrier_hi   = TEST_AREA_END;
-  oefs = EepromFileOpenSPI(&ofile, &ocfg, &eepdev_25xx);
+  oefs = SPIEepromFileOpen(&ofile, &ocfg, &eepdev_25xx);
   OK();
   printfileinfo(chp, oefs);
   chprintf(chp, "test fill with 0xFF");
@@ -403,7 +404,7 @@ static msg_t EepromTestThread(void *ctx) {
 
   ocfg.barrier_low  = TEST_AREA_START;
   ocfg.barrier_hi   = TEST_AREA_END;
-  oefs = EepromFileOpenSPI(&ofile, &ocfg, &eepdev_25xx);
+  oefs = SPIEepromFileOpen(&ofile, &ocfg, &eepdev_25xx);
   chFileStreamSeek(oefs, 0);
   EepromWriteByte(oefs, 0x11);
   EepromWriteHalfword(oefs, 0x2222);

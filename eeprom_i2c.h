@@ -29,8 +29,6 @@
 #ifndef __EEPROM_I2C_H__
 #define __EEPROM_I2C_H__
 
-#include "eeprom/eeprom.h"
-
 #if HAL_USE_I2C || defined(__DOXYGEN__)
 
 /**
@@ -74,7 +72,7 @@ typedef struct {
   const I2CEepromFileConfig *cfg;
 } I2CEepromFileStream;
 
-EepromFileStream *EepromFileOpenI2C(I2CEepromFileStream *efs,
+EepromFileStream *I2CEepromFileOpen(I2CEepromFileStream *efs,
                                     const I2CEepromFileConfig *eepcfg,
                                     const I2CEepromDevice *eepdev);
 

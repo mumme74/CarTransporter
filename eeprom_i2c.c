@@ -26,7 +26,7 @@
   The work is provided "as is" without warranty of any kind, neither express nor implied.
 */
 
-#include "eeprom_i2c.h"
+#include "eeprom/eeprom.h"
 
 #if HAL_USE_I2C || defined(__DOXYGEN__)
 
@@ -35,7 +35,7 @@
  * @note      Fucntion allways successfully open file. All checking makes
  *            in read/write functions.
  */
-EepromFileStream *EepromFileOpenI2C(I2CEepromFileStream *efs,
+EepromFileStream *I2CEepromFileOpen(I2CEepromFileStream *efs,
                                     const I2CEepromFileConfig *eepcfg,
                                     const I2CEepromDevice *eepdev) {
 

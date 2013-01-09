@@ -26,8 +26,8 @@
 #include "ch.h"
 #include "hal.h"
 
-#include "eeprom/eeprom_i2c.h"
-#include "eeprom/drv/conf.h"
+#include "eeprom/eeprom.h"
+#include "eeprom/drvconf.h"
 
 #if HAL_USE_I2C || defined(__DOXYGEN__)
 

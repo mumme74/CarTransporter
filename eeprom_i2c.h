@@ -29,9 +29,9 @@
 #ifndef __EEPROM_I2C_H__
 #define __EEPROM_I2C_H__
 
-#if HAL_USE_I2C || defined(__DOXYGEN__)
-
 #include "eeprom/eeprom.h"
+
+#if HAL_USE_I2C || defined(__DOXYGEN__)
 
 /**
  * @extends EepromFileConfig

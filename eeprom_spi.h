@@ -23,9 +23,9 @@
 #ifndef __EEPROM_SPI_H__
 #define __EEPROM_SPI_H__
 
-#if HAL_USE_SPI || defined(__DOXYGEN__)
-
 #include "eeprom/eeprom.h"
+
+#if HAL_USE_SPI || defined(__DOXYGEN__)
 
 /**
  * @extends EepromFileConfig

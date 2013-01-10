@@ -38,5 +38,6 @@
 #define EEPROM_DRV_USE_25XX         TRUE
 #endif
 
+#define EEPROM_DRV_TABLE_SIZE       2
 
 #endif /* __EEPROM_DRVCONF_H__ */

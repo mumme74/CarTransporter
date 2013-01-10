@@ -32,6 +32,27 @@
 #include "eeprom/eeprom.h"
 
 /**
+ * @breif  Find low level EEPROM device by id.
+ */
+const EepromDevice *EepromFindDevice(const char *name) {
+
+  extern EepromDevice *__eeprom_drv_table[];
+  int i;
+  const EepromDevice *drv;
+
+  chDbgCheck(name != NULL, "");
+
+  for (i = 0; i < EEPROM_DRV_TABLE_SIZE; i++) {
+    drv = __eeprom_drv_table[i];
+    if (drv->name != NULL && !strcmp(drv->name, name)) {
+      return drv;
+    }
+  }
+
+  return NULL;
+}
+
+/**
  * Open EEPROM IC as file and return pointer to the file stream object
  * @note      Fucntion allways successfully open file. All checking makes
  *            in read/write functions.
@@ -39,6 +60,7 @@
 EepromFileStream *EepromFileOpen(EepromFileStream *efs,
                                  const EepromFileConfig *eepcfg,
                                  const EepromDevice *eepdev) {
+
   chDbgCheck((efs != NULL) && (eepcfg != NULL) && (eepdev != NULL) &&
              (eepdev->efsvmt != NULL), "");
   chDbgCheck(efs->vmt != eepdev->efsvmt, "file allready opened");
@@ -46,9 +68,9 @@ EepromFileStream *EepromFileOpen(EepromFileStream *efs,
   chDbgCheck(eepcfg->pagesize < eepcfg->size, "pagesize can not be lager than EEPROM size")
   chDbgCheck(eepcfg->barrier_hi <= eepcfg->size, "barrier out of bounds")
 
-  efs->vmt = eepdev->efsvmt;
-  efs->cfg = eepcfg;
-  efs->errors = FILE_OK;
+  efs->vmt      = eepdev->efsvmt;
+  efs->cfg      = eepcfg;
+  efs->errors   = FILE_OK;
   efs->position = 0;
   return (EepromFileStream *)efs;
 }

@@ -47,7 +47,7 @@ Note:
 #include "ch.h"
 #include "hal.h"
 
-#include "eeprom/drv/25xx.h"
+#include "eeprom/eeprom.h"
 #include "eeprom/base_rw.h"
 
 #if HAL_USE_SPI || defined(__DOXYGEN__)

@@ -44,7 +44,10 @@ Note:
 
 #include <string.h>
 
-#include "eeprom/drv/24xx.h"
+#include "ch.h"
+#include "hal.h"
+
+#include "eeprom/eeprom.h"
 #include "eeprom/base_rw.h"
 
 #if HAL_USE_I2C || defined(__DOXYGEN__)

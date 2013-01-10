@@ -32,6 +32,8 @@
 #include "ch.h"
 #include "hal.h"
 
+#include "eeprom/drvconf.h"
+
 #define _eeprom_file_config_data                                            \
   /* Lower barrier of file in EEPROM memory array. */                       \
   uint32_t        barrier_low;                                              \
@@ -80,10 +82,11 @@ typedef struct {
 } EepromFileStream;
 
 /**
- * @brief   Abstract device information.
+ * @brief   Low level device descriptor.
  */
 typedef struct {
-  const struct EepromFilelStreamVMT *efsvmt;
+  const char                          *name;
+  const struct EepromFilelStreamVMT   *efsvmt;
 } EepromDevice;
 
 #if !defined(chFileStreamRead)
@@ -120,6 +123,8 @@ typedef struct {
  */
 #define chFileStreamWrite(ip, bp, n) (chSequentialStreamWrite(ip, bp, n))
 #endif
+
+const EepromDevice *EepromFindDevice(const char *name);
 
 EepromFileStream *EepromFileOpen(EepromFileStream *efs,
                                  const EepromFileConfig *eepcfg,

@@ -20,23 +20,27 @@
   THE SOFTWARE.
 */
 
-#ifndef __25XX_H__
-#define __25XX_H__
-
-#include "ch.h"
-#include "hal.h"
-
 #include "eeprom/eeprom.h"
-#include "eeprom/drvconf.h"
 
-#if HAL_USE_SPI || defined(__DOXYGEN__)
-
-#if EEPROM_DRV_USE_25XX || defined(__DOXYGEN__)
-
+extern EepromDevice eepdev_24xx;
 extern EepromDevice eepdev_25xx;
 
-#endif /* EEPROM_DRV_USE_25XX */
+EepromDevice *__eeprom_drv_table[] = {
+  /* I2C related. */
+#if HAL_USE_I2C
+
+# if EEPROM_DRV_USE_24XX
+  &eepdev_24xx,
+# endif
+
+#endif /* HAL_USE_I2C */
+
+  /* SPI related. */
+#if HAL_USE_SPI
+
+# if EEPROM_DRV_USE_25XX
+  &eepdev_25xx,
+# endif
 
 #endif /* HAL_USE_SPI */
-
-#endif /* __25XX_H__ */
+};

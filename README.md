@@ -19,11 +19,11 @@ USAGE
 -----
 
 * Include `eeprom/eeprom.h` file to your project.
-* Include driver related code in your project, for example: `eeprom/drv/25xx.h`.
 * Customize `eeprom/drvconf.h`.
 * Define a file object of type `SPIEepromFileStream` or `I2CEepromFileStream` and
   config structure for it.
-* Open it with `SPIEepromFileOpen()` or `I2CEepromFileOpen()`.
+* Retrieve low level eeprom driver descriptor by 'EepromFindDevice()'.
+* Open it with `EepromFileOpen()` function.
 
 Now you can access to EEPROM array like to a regular file with functions:
 * `chFileStreamRead()`

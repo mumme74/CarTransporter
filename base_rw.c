@@ -33,7 +33,7 @@ fileoffset_t eepfs_getsize(void *ip) {
   uint32_t h, l;
 
   chDbgCheck((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL) &&
-             (((EepromFileStream *)ip)->cfg != NULL), "");
+             (((EepromFileStream *)ip)->cfg != NULL), "eepfs_getsize");
 
   h = ((EepromFileStream *)ip)->cfg->barrier_hi;
   l = ((EepromFileStream *)ip)->cfg->barrier_low;
@@ -42,7 +42,8 @@ fileoffset_t eepfs_getsize(void *ip) {
 
 fileoffset_t eepfs_getposition(void *ip) {
 
-  chDbgCheck((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL), "");
+  chDbgCheck((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL),
+             "eepfs_getposition");
 
   return ((EepromFileStream *)ip)->position;
 }
@@ -51,7 +52,8 @@ fileoffset_t eepfs_lseek(void *ip, fileoffset_t offset) {
 
   uint32_t size;
 
-  chDbgCheck((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL), "");
+  chDbgCheck((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL),
+             "eepfs_lseek");
 
   size = eepfs_getsize(ip);
   if (offset > size)
@@ -62,7 +64,8 @@ fileoffset_t eepfs_lseek(void *ip, fileoffset_t offset) {
 
 uint32_t eepfs_close(void *ip) {
 
-  chDbgCheck((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL), "");
+  chDbgCheck((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL),
+             "eepfs_close");
 
   ((EepromFileStream *)ip)->errors   = FILE_OK;
   ((EepromFileStream *)ip)->position = 0;
@@ -73,7 +76,8 @@ uint32_t eepfs_close(void *ip) {
 
 int eepfs_geterror(void *ip) {
 
-  chDbgCheck((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL), "");
+  chDbgCheck((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL),
+             "eepfs_geterror");
   return ((EepromFileStream *)ip)->errors;
 }
 

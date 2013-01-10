@@ -40,7 +40,7 @@ const EepromDevice *EepromFindDevice(const char *name) {
   int i;
   const EepromDevice *drv;
 
-  chDbgCheck(name != NULL, "");
+  chDbgCheck(name != NULL, "EepromFindDevice");
 
   for (i = 0; i < EEPROM_DRV_TABLE_SIZE; i++) {
     drv = __eeprom_drv_table[i];
@@ -62,7 +62,7 @@ EepromFileStream *EepromFileOpen(EepromFileStream *efs,
                                  const EepromDevice *eepdev) {
 
   chDbgCheck((efs != NULL) && (eepcfg != NULL) && (eepdev != NULL) &&
-             (eepdev->efsvmt != NULL), "");
+             (eepdev->efsvmt != NULL), "EepromFileOpen");
   chDbgCheck(efs->vmt != eepdev->efsvmt, "file allready opened");
   chDbgCheck(eepcfg->barrier_hi > eepcfg->barrier_low, "wrong barriers")
   chDbgCheck(eepcfg->pagesize < eepcfg->size, "pagesize can not be lager than EEPROM size")

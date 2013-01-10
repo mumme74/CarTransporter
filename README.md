@@ -26,11 +26,12 @@ USAGE
 * Open it with `EepromFileOpen()` function.
 
 Now you can access to EEPROM array like to a regular file with functions:
+
 * `chFileStreamRead()`
 * `chFileStreamWrite()`
 * `chFileStreamGetPosition()`
 * `chFileStreamSeek()`
-etc.
+* etc
 
 Examples of usage and checking the returning parameter you can found in
 `eeprom/eeprom_testsuit.c`.

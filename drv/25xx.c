@@ -306,7 +306,7 @@ static size_t write(void *ip, const uint8_t *bp, size_t n) {
   uint32_t firstpage;
   uint32_t lastpage;
 
-  chDbgCheck((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL), "");
+  chDbgCheck((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL), "write");
 
   if (n == 0)
     return 0;
@@ -362,7 +362,7 @@ static size_t read(void *ip, uint8_t *bp, size_t n) {
 
   msg_t status = RDY_OK;
 
-  chDbgCheck((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL), "");
+  chDbgCheck((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL), "read");
 
   if (n == 0)
     return 0;

@@ -79,6 +79,13 @@ typedef struct {
   const EepromFileConfig *cfg;
 } EepromFileStream;
 
+/**
+ * @brief   Abstract device information.
+ */
+typedef struct {
+  const struct EepromFilelStreamVMT *efsvmt;
+} EepromDevice;
+
 #if !defined(chFileStreamRead)
 /**
  * @brief   File Stream read.
@@ -113,6 +120,10 @@ typedef struct {
  */
 #define chFileStreamWrite(ip, bp, n) (chSequentialStreamWrite(ip, bp, n))
 #endif
+
+EepromFileStream *EepromFileOpen(EepromFileStream *efs,
+                                 const EepromFileConfig *eepcfg,
+                                 const EepromDevice *eepdev);
 
 uint8_t  EepromReadByte(EepromFileStream *efs);
 uint16_t EepromReadHalfword(EepromFileStream *efs);

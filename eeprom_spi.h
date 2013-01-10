@@ -40,10 +40,6 @@ typedef struct {
   const SPIConfig *spicfg;
 } SPIEepromFileConfig;
 
-typedef struct {
-  const struct EepromFilelStreamVMT *efsvmt;
-} SPIEepromDevice;
-
 /**
  * @brief   @p SPIEepromFileStream specific data.
  */
@@ -62,9 +58,17 @@ typedef struct {
   const SPIEepromFileConfig *cfg;
 } SPIEepromFileStream;
 
+/**
+ * Open I2C EEPROM IC as file and return pointer to the file stream object
+ * @note      Fucntion allways successfully open file. All checking makes
+ *            in read/write functions.
+ */
 EepromFileStream *SPIEepromFileOpen(SPIEepromFileStream *efs,
                                     const SPIEepromFileConfig *eepcfg,
-                                    const SPIEepromDevice *eepdev);
+                                    const EepromDevice *eepdev);
+
+#define SPIEepromFileOpen(efs, eepcfg, eepdev) \
+  EepromFileOpen((EepromFileStream *)efs, (EepromFileConfig *)eepcfg, eepdev);
 
 #endif /* HAL_USE_SPI */
 

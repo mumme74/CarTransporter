@@ -50,10 +50,6 @@ typedef struct {
   uint8_t       *write_buf;
 } I2CEepromFileConfig;
 
-typedef struct {
-  const struct EepromFilelStreamVMT *efsvmt;
-} I2CEepromDevice;
-
 /**
  * @brief   @p I2CEepromFileStream specific data.
  */
@@ -72,9 +68,14 @@ typedef struct {
   const I2CEepromFileConfig *cfg;
 } I2CEepromFileStream;
 
-EepromFileStream *I2CEepromFileOpen(I2CEepromFileStream *efs,
-                                    const I2CEepromFileConfig *eepcfg,
-                                    const I2CEepromDevice *eepdev);
+
+/**
+ * Open I2C EEPROM IC as file and return pointer to the file stream object
+ * @note      Fucntion allways successfully open file. All checking makes
+ *            in read/write functions.
+ */
+#define I2CEepromFileOpen(efs, eepcfg, eepdev) \
+  EepromFileOpen((EepromFileStream *)efs, (EepromFileConfig *)eepcfg, eepdev);
 
 #endif /* HAL_USE_I2C */
 

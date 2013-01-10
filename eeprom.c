@@ -31,6 +31,28 @@
 
 #include "eeprom/eeprom.h"
 
+/**
+ * Open EEPROM IC as file and return pointer to the file stream object
+ * @note      Fucntion allways successfully open file. All checking makes
+ *            in read/write functions.
+ */
+EepromFileStream *EepromFileOpen(EepromFileStream *efs,
+                                 const EepromFileConfig *eepcfg,
+                                 const EepromDevice *eepdev) {
+  chDbgCheck((efs != NULL) && (eepcfg != NULL) && (eepdev != NULL) &&
+             (eepdev->efsvmt != NULL), "");
+  chDbgCheck(efs->vmt != eepdev->efsvmt, "file allready opened");
+  chDbgCheck(eepcfg->barrier_hi > eepcfg->barrier_low, "wrong barriers")
+  chDbgCheck(eepcfg->pagesize < eepcfg->size, "pagesize can not be lager than EEPROM size")
+  chDbgCheck(eepcfg->barrier_hi <= eepcfg->size, "barrier out of bounds")
+
+  efs->vmt = eepdev->efsvmt;
+  efs->cfg = eepcfg;
+  efs->errors = FILE_OK;
+  efs->position = 0;
+  return (EepromFileStream *)efs;
+}
+
 uint8_t EepromReadByte(EepromFileStream *efs) {
 
   uint8_t buf;

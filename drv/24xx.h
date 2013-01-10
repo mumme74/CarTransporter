@@ -33,7 +33,7 @@
 
 #if EEPROM_DRV_USE_24XX || defined(__DOXYGEN__)
 
-extern I2CEepromDevice eepdev_24xx;
+extern EepromDevice eepdev_24xx;
 
 #endif /* EEPROM_DRV_USE_24XX */
 

@@ -1,0 +1,110 @@
+Reference, Value, Footprint, Datasheet, farnell, name
+conn1,conn_molex_36638-48pin,,
+U2,BTS6133D,,http://www.farnell.com/datasheets/85594.pdf,1440811,BTS6133D
+U1,ITS5215L,,http://www.farnell.com/datasheets/85674.pdf,1426197,ITS5215L
+VR1,20V,,http://www.littelfuse.com/data/en/Data_Sheets/ZA.pdf,1057155,V8ZA2P
+C1,1000uF,,http://www.farnell.com/datasheets/1884702.pdf,1850136,EEEFK1H102AM
+C3,220nF,,
+C2,220nF,,
+R4,500R,,
+R5,1k,,
+D2,3.3V,,,1757856,PDZ3.3B,115
+R8,10k,,
+R10,5k,,
+R11,10k,,
+D5,ZENER,,,1757856,PDZ3.3B,115
+R6,1k,,
+D3,CompressorLED,LED-0805,,2290331,KP-2012CGCK
+R2,1k,,
+R1,1k,,
+R7,1k,,
+R9,1k,,
+D1,RightFill_Led,LED-0805,,2290331,KP-2012CGCK
+D4,LeftFill_Led,LEDs:LED-0805,,2290331,KP-2012CGCK
+R3,150R,,
+U4,ITS5215L,,,1426197,
+C5,220nF,,
+R17,1k,,
+R15,1k,,
+R23,1k,,
+R24,1k,,
+D8,Spare1_Led,LED-0805,,2290331,KP-2012CGCK
+D9,Airdryer_Led,LED-0805,,2290331,KP-2012CGCK
+R19,150R,,
+U5,ITS5215L,,,1426197,
+C6,220nF,,
+R21,1k,,
+R20,1k,,
+R25,1k,,
+R26,1k,,
+D10,RightSuck_Led,LED-0805,,2290331,KP-2012CGCK
+D11,LeftSuck_Led,LED-0805,,2290331,KP-2012CGCK
+R22,150R,,
+U3,ITS5215L,,,1426197,
+C4,220nF,,
+R13,1k,,
+R12,1k,,
+R16,1k,,
+R18,1k,,
+D6,RightDump_Led,LED-0805,,2290331,KP-2012CGCK
+D7,LeftDump_Led,LED-0805,,2290331,KP-2012CGCK
+R14,150R,,
+Q2,BC847,SOT-23,,1773609,BC847C-7-F
+Q1,BSS138,SOT-23,,2053833,BSS138BK
+U6,LM324ID,,
+C7,1uF,,
+R27,10k,,
+R29,500R,,
+R30,1k,,
+C9,220nF,,
+F1,15R PTC fuse,,
+C8,1uF,,
+R28,10k,,
+R31,500R,,
+R32,1k,,
+C10,220nF,,
+F2,15R PTC fuse,,
+C11,1uF,,
+R33,10k,,
+R35,500R,,
+R36,1k,,
+F3,15R PTC fuse,,
+C13,1uF,,
+R39,10k,,
+R42,500R,,
+R43,1k,,
+F5,15R PTC fuse,,
+U7,LM324ID,,
+C15,1uF,,
+R47,10k,,
+R49,500R,,
+R50,1k,,
+F7,15R PTC fuse,,
+C12,1uF,,
+R34,10k,,
+R37,500R,,
+R38,1k,,
+F4,15R PTC fuse,,
+C14,1uF,,
+R41,10k,,
+R44,500R,,
+R45,1k,,
+F6,15R PTC fuse,,
+R40,2k,,
+C16,1uF,,
+R48,10k,,
+R51,500R,,
+R52,1k,,
+F8,15R PTC fuse,,
+R46,2k,,
+U8,SN65HVD1050D,,
+R53,120R,,
+C17,220nF,,
+JP2,CAN_Silent,,
+JP1,CAN_fullspeed,,
+U9,LM2574M-5,,http://www.farnell.com/datasheets/1896110.pdf,9489908,
+L1,470uH,,http://www.farnell.com/datasheets/1681951.pdf,2288415,MSS1260-474KLD
+D12,SS110,,http://www.farnell.com/datasheets/1662144.pdf,4085140,
+C18,47uF lowESR,,http://www.farnell.com/datasheets/1679509.pdf,2254474,EEETQV470XAP
+C19,470uF low esr,,http://www.farnell.com/datasheets/1790597.pdf,1868411,EEEFT1E471AP
+U10,Teensy3.1,,

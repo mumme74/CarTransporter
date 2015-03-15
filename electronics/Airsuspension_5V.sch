@@ -1,0 +1,254 @@
+EESchema Schematic File Version 2
+LIBS:power
+LIBS:device
+LIBS:transistors
+LIBS:conn
+LIBS:linear
+LIBS:regul
+LIBS:74xx
+LIBS:cmos4000
+LIBS:adc-dac
+LIBS:memory
+LIBS:xilinx
+LIBS:special
+LIBS:microcontrollers
+LIBS:dsp
+LIBS:microchip
+LIBS:analog_switches
+LIBS:motorola
+LIBS:texas
+LIBS:intel
+LIBS:audio
+LIBS:interface
+LIBS:digital-audio
+LIBS:philips
+LIBS:display
+LIBS:cypress
+LIBS:siliconi
+LIBS:opto
+LIBS:atmel
+LIBS:contrib
+LIBS:valves
+LIBS:teensy
+LIBS:power_switches
+LIBS:miscellaneous
+LIBS:airsuspension_controller-cache
+EELAYER 25 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 5 6
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L LM2574 U9
+U 1 1 5507E257
+P 5100 2900
+F 0 "U9" H 5100 3300 60  0000 C CNN
+F 1 "LM2574M-5" H 5100 2500 60  0000 C CNN
+F 2 "" H 5050 2800 60  0000 C CNN
+F 3 "http://www.farnell.com/datasheets/1896110.pdf" H 5050 2800 60  0001 C CNN
+F 4 "9489908" H 5100 2900 60  0001 C CNN "farnell"
+	1    5100 2900
+	1    0    0    -1  
+$EndComp
+$Comp
+L INDUCTOR L1
+U 1 1 5507E28E
+P 6600 2800
+F 0 "L1" V 6550 2800 50  0000 C CNN
+F 1 "470uH" V 6700 2800 50  0000 C CNN
+F 2 "" H 6600 2800 60  0000 C CNN
+F 3 "http://www.farnell.com/datasheets/1681951.pdf" H 6600 2800 60  0001 C CNN
+F 4 "MSS1260-474KLD" V 6600 2800 60  0001 C CNN "name"
+F 5 "2288415" V 6600 2800 60  0001 C CNN "farnell"
+	1    6600 2800
+	0    -1   -1   0   
+$EndComp
+$Comp
+L DIODESCH D12
+U 1 1 5507E2E3
+P 6300 3000
+F 0 "D12" H 6300 3100 50  0000 C CNN
+F 1 "SS110" H 6300 2900 50  0000 C CNN
+F 2 "" H 6300 3000 60  0000 C CNN
+F 3 "http://www.farnell.com/datasheets/1662144.pdf" H 6300 3000 60  0001 C CNN
+F 4 "4085140" H 6300 3000 60  0001 C CNN "farnell"
+	1    6300 3000
+	0    -1   -1   0   
+$EndComp
+$Comp
+L CP2 C18
+U 1 1 5507E34E
+P 5900 3900
+F 0 "C18" H 5950 4000 50  0000 L CNN
+F 1 "47uF lowESR" H 5950 3800 50  0000 L CNN
+F 2 "" H 5938 3750 30  0000 C CNN
+F 3 "http://www.farnell.com/datasheets/1679509.pdf" H 5900 3900 60  0001 C CNN
+F 4 "EEETQV470XAP" H 5900 3900 60  0001 C CNN "name"
+F 5 "2254474" H 5900 3900 60  0001 C CNN "farnell"
+	1    5900 3900
+	1    0    0    -1  
+$EndComp
+$Comp
+L CP2 C19
+U 1 1 5507E397
+P 7250 3000
+F 0 "C19" H 7300 3100 50  0000 L CNN
+F 1 "470uF low esr" H 7000 2900 50  0000 L CNN
+F 2 "" H 7288 2850 30  0000 C CNN
+F 3 "http://www.farnell.com/datasheets/1790597.pdf" H 7250 3000 60  0001 C CNN
+F 4 "EEEFT1E471AP" H 7250 3000 60  0001 C CNN "name"
+F 5 "1868411" H 7250 3000 60  0001 C CNN "farnell"
+	1    7250 3000
+	1    0    0    -1  
+$EndComp
+$Comp
+L GND #PWR051
+U 1 1 5507E4B5
+P 7250 3200
+F 0 "#PWR051" H 7250 2950 60  0001 C CNN
+F 1 "GND" H 7250 3050 60  0000 C CNN
+F 2 "" H 7250 3200 60  0000 C CNN
+F 3 "" H 7250 3200 60  0000 C CNN
+	1    7250 3200
+	1    0    0    -1  
+$EndComp
+$Comp
+L GND #PWR052
+U 1 1 5507E573
+P 6300 3200
+F 0 "#PWR052" H 6300 2950 60  0001 C CNN
+F 1 "GND" H 6300 3050 60  0000 C CNN
+F 2 "" H 6300 3200 60  0000 C CNN
+F 3 "" H 6300 3200 60  0000 C CNN
+	1    6300 3200
+	1    0    0    -1  
+$EndComp
+$Comp
+L GND #PWR053
+U 1 1 5507E62F
+P 5900 4100
+F 0 "#PWR053" H 5900 3850 60  0001 C CNN
+F 1 "GND" H 5900 3950 60  0000 C CNN
+F 2 "" H 5900 4100 60  0000 C CNN
+F 3 "" H 5900 4100 60  0000 C CNN
+	1    5900 4100
+	1    0    0    -1  
+$EndComp
+$Comp
+L GND #PWR054
+U 1 1 5507E64F
+P 4550 3350
+F 0 "#PWR054" H 4550 3100 60  0001 C CNN
+F 1 "GND" H 4550 3200 60  0000 C CNN
+F 2 "" H 4550 3350 60  0000 C CNN
+F 3 "" H 4550 3350 60  0000 C CNN
+	1    4550 3350
+	1    0    0    -1  
+$EndComp
+$Comp
+L GND #PWR055
+U 1 1 5507E66F
+P 5650 3350
+F 0 "#PWR055" H 5650 3100 60  0001 C CNN
+F 1 "GND" H 5650 3200 60  0000 C CNN
+F 2 "" H 5650 3350 60  0000 C CNN
+F 3 "" H 5650 3350 60  0000 C CNN
+	1    5650 3350
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	5700 3700 5900 3700
+Wire Wire Line
+	5900 3700 5900 3000
+Wire Wire Line
+	5900 3000 5650 3000
+Wire Wire Line
+	5650 3100 5650 3350
+Connection ~ 5650 3200
+Wire Wire Line
+	6300 2800 5650 2800
+Connection ~ 7250 2800
+Text GLabel 7500 2800 2    60   Input ~ 0
++5V
+Text HLabel 5700 3700 0    60   Input ~ 0
++12V_IGN
+$Comp
+L GND #PWR056
+U 1 1 5507E84D
+P 6000 2500
+F 0 "#PWR056" H 6000 2250 60  0001 C CNN
+F 1 "GND" H 6000 2350 60  0000 C CNN
+F 2 "" H 6000 2500 60  0000 C CNN
+F 3 "" H 6000 2500 60  0000 C CNN
+	1    6000 2500
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	5650 2400 5650 2700
+Wire Wire Line
+	4550 2400 6000 2400
+Wire Wire Line
+	6000 2400 6000 2500
+Connection ~ 5650 2600
+Wire Wire Line
+	4550 2400 4550 2700
+Connection ~ 5650 2400
+Connection ~ 4550 2600
+Wire Wire Line
+	4550 2900 4550 3350
+Connection ~ 4550 3000
+Connection ~ 4550 3100
+Connection ~ 4550 3200
+Wire Wire Line
+	5650 2900 6050 2900
+Wire Wire Line
+	6050 2900 6050 3200
+Wire Wire Line
+	6050 3200 6300 3200
+Wire Wire Line
+	4550 2800 4300 2800
+Wire Wire Line
+	4300 2800 4300 2200
+Wire Wire Line
+	4300 2200 6900 2200
+Wire Wire Line
+	6900 2200 6900 2800
+Wire Wire Line
+	6900 2800 7500 2800
+Text Notes 4950 1850 0    60   ~ 0
+Can supply at most 500mA
+$Comp
+L PWR_FLAG #FLG057
+U 1 1 550EF529
+P 7250 2800
+F 0 "#FLG057" H 7250 2895 30  0001 C CNN
+F 1 "PWR_FLAG" H 7250 2980 30  0000 C CNN
+F 2 "" H 7250 2800 60  0000 C CNN
+F 3 "" H 7250 2800 60  0000 C CNN
+	1    7250 2800
+	1    0    0    -1  
+$EndComp
+$Comp
+L PWR_FLAG #FLG058
+U 1 1 550EF98F
+P 5950 3500
+F 0 "#FLG058" H 5950 3595 30  0001 C CNN
+F 1 "PWR_FLAG" H 5950 3680 30  0000 C CNN
+F 2 "" H 5950 3500 60  0000 C CNN
+F 3 "" H 5950 3500 60  0000 C CNN
+	1    5950 3500
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	5950 3500 5900 3500
+Connection ~ 5900 3500
+$EndSCHEMATC

@@ -1,0 +1,15 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP BTS6133D
+D Highside powerswitch 33A
+$ENDCMP
+#
+$CMP ITS5215
+D Dual highside switch 3,7A each
+$ENDCMP
+#
+$CMP ITS5215L
+D Dual highside switch 3,7A each
+$ENDCMP
+#
+#End Doc Library

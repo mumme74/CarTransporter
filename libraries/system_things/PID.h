@@ -235,6 +235,9 @@ enum struct IDs : uint16_t {
     airFeedState_32bit           = 40,
     heightState_32bit            = 41,
 
+    // suspension calculated values
+    loadWeight_16bit             = 52,
+
     // displaynode things starts at 200
     upButton_8bit               = 200,
 };
@@ -359,6 +362,12 @@ extern _Handler<PID::Base> collection;
     PID::State airFeedState_PID(PIDs::IDs::airFeedState_32bit);
 #define USE_heightState_PID \
     PID::State heightState_PID(PIDs::IDs::airFeedState_32bit);
+
+
+// calculated values
+#define USE_loadWeight_PID \
+    PID::Base loadWeigth_PID(PIDs::IDs::loadWeight_16bit, PID::Types::input_RawData, \
+                             PID::Types::input_RawData, PID::byteSizes::twoByte);
 
 
 

@@ -22,6 +22,7 @@
 class HeightController
 {
   PID::State *m_statePid;
+  PID::Base *m_weightPid;
   IOutput
     *m_leftFillDrv,
     *m_leftDumpDrv,
@@ -46,7 +47,8 @@ class HeightController
     m_leftHighSetpoint,
     m_rightLowSetpoint,
     m_rightNormalSetpoint,
-    m_rightHighSetpoint;
+    m_rightHighSetpoint,
+    m_deadWeight;       // the chassis dead weight
 
   float
     m_leftInputVar,
@@ -55,7 +57,8 @@ class HeightController
     m_rightOutputVar,
     m_leftSetpointVar,
     m_rightSetpointVar,
-    m_p, m_i, m_d; // the pid values
+    m_p, m_i, m_d, // the pid values
+    m_cylArea;  // the bellows (cylinders) area, calculated from cyl dia. in settings
 
 
   PidLoop
@@ -67,18 +70,22 @@ public:
                    IOutput *rightFillDrv, IOutput *rightDumpDrv, IOutput *rightSuckDrv,
                    AnalogIn *leftPressureDrv,   AnalogIn *rightPressureDrv,
                    AnalogIn *systemPressureDrv, AnalogIn *leftHeightDrv,
-                   AnalogIn *rightHeightDrv,    PID::State *heightControllerPID);
+                   AnalogIn *rightHeightDrv,    PID::State *heightControllerPID,
+                   PID::Base *loadWeigth_PID);
   ~HeightController ();
 
   PID::State *pid() const { return m_statePid; }
   void setState(PID::States state);
   bool rearWheels(bool lift);
 
+  void setCylDia(uint16_t cylDiaIn_mm); // changes in settings the diameter of the air bellows
+
   void init();
   void loop();
 
 private:
   void resetPidLoop();
+  void readSettings();
   void storeSettings();
   void updateInputs();
 };

@@ -28,6 +28,7 @@ USE_systemPressure_PID;
 USE_compressorTemp_PID;
 USE_airFeedState_PID;
 USE_heightState_PID;
+USE_loadWeight_PID;
 
 // outputs
 ITS5215L leftFillDrv(leftFill_outPin, leftFill_diagPin, &leftFill_PID),
@@ -63,7 +64,8 @@ HeightController heightStateMachine(&leftFillDrv,  &leftDumpDrv,  &leftSuckDrv,
                                     &rightFillDrv, &rightDumpDrv, &rightSuckDrv,
                                     &leftPressureDrv,   &rightPressureDrv,
                                     &systemPressureDrv, &leftHeightDrv,
-                                    &rightHeightDrv,    &heightState_PID);
+                                    &rightHeightDrv,    &heightState_PID,
+                                    &loadWeight_PID);
 
 
 // communication controller

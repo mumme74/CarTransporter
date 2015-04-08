@@ -57,28 +57,28 @@ static const uint16_t
  */
 static const uint8_t MAX_FRAME_COUNT = 64;
 enum msgIdsCommand : uint16_t {
-  NoCommandFrame            = 0,
-  highestPrioCommand        = 0x0008, // should not be used
+  NoCommandFrame              = 0,
+  highestPrioCommand          = 0x0008, // should not be used
 
-  parkbrakeSet              = 0x0028,
-  parkbrakeRelease          = 0x0038,
-  parkbrakeServiceSet       = 0x0048,
-  parkbrakeServiceUnset     = 0x0058,
+  parkbrakeSet                = 0x0028,
+  parkbrakeRelease            = 0x0038,
+  parkbrakeServiceSet         = 0x0048,
+  parkbrakeServiceUnset       = 0x0058,
 
-  suspensionSetLow          = 0x0088,
-  suspensionSetNormal       = 0x0098,
-  suspensionSetHigh         = 0x00A8,
-  suspensionSetSuckedNormal = 0x00B8,
-  suspensionSetSuckedHigh   = 0x00C8,
+  suspensionSetLow            = 0x0088,
+  suspensionSetNormal         = 0x0098,
+  suspensionSetHigh           = 0x00A8,
+  suspensionSetRearWheelsUp   = 0x00B8,
+  suspensionSetRearWheelsDown = 0x00C8,
 
-  suspensionConfigHeight    = 0x0108,  // configure normal height
-  suspensionConfigPIDLoop_P = 0x0118,  // Position factor PID loo, how fast
-  suspensionConfigPIDLoop_I = 0x0128,  // Integral factor PID loop, steady state error
-  suspensionConfigPIDLoop_D = 0x0138,  // Derivative factor PID loop, damping
+  suspensionSetConfig         = 0x0108,  // configure, byte0=command, byte 1-2 or 1-4 = value
+  suspensionGetConfig         = 0x0118,  // get current config, byte 0=command
+  suspensionRepondConfig      = 0x0128,  // response to above config, byte0=command, byte 1-2 or 1-4 = value
+  suspensionSaveConfig        = 0x0138,  // Save config to suspensionECU EEPROM
 
-  displayBeep               = 0x0158,
+  displayBeep                 = 0x0158,
 
-  lowestPrioCommand         = 0x01F8 // should not be used
+  lowestPrioCommand           = 0x01F8 // should not be used
 };
 
 // each node start at 0 or 6 to get the revecer node id

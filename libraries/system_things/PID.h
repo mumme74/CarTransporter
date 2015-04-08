@@ -366,7 +366,7 @@ extern _Handler<PID::Base> collection;
 
 // calculated values
 #define USE_loadWeight_PID \
-    PID::Base loadWeigth_PID(PIDs::IDs::loadWeight_16bit, PID::Types::input_RawData, \
+    PID::Base loadWeight_PID(PIDs::IDs::loadWeight_16bit, PID::Types::input_RawData, \
                              PID::Types::input_RawData, PID::byteSizes::twoByte);
 
 

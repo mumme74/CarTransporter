@@ -13,15 +13,15 @@
 static const float
   defaultP = 2.0,
   defaultI = 1.0,
-  defaultD = 1.0,
-  deadBand = 5.0;
+  defaultD = 1.0;
 
 static const uint16_t
   defaultLowPoint    = 200,
   defaultNormalPoint = 1500,
   defaultHighPoint   = 3000,
   defaultCylArea     = 7800,  // 50 *50 *3.14
-  defaultDeadWeight  = 200;   // 200 kg dead weight
+  defaultDeadWeight  = 200,   // 200 kg dead weight
+  defaultDeadBand    = 5;     // how many % of total throw that is within limits and we wont regulate outputs
 
 
 HeightController::HeightController(
@@ -53,6 +53,7 @@ HeightController::HeightController(
    m_rightNormalSetpoint(defaultNormalPoint),
    m_rightHighSetpoint(defaultHighPoint),
    m_deadWeight(defaultDeadWeight),
+   m_deadBand(defaultDeadBand),
    m_leftInputVar(100),
    m_rightInputVar(100),
    m_leftOutputVar(100),
@@ -87,8 +88,8 @@ void HeightController::loop()
   // pidLoop updates outputVar automatically
   if (m_rightPidLoop.compute()) {
     // allow for some dead band
-    if (m_rightOutputVar > m_rightInputVar + deadBand ||
-        m_rightOutputVar < m_rightInputVar - deadBand)
+    if (m_rightOutputVar > m_rightInputVar + m_deadBand ||
+        m_rightOutputVar < m_rightInputVar - m_deadBand)
     {
       leftOnPoint = false;
       if (m_rightOutputVar < 0.0)
@@ -102,8 +103,8 @@ void HeightController::loop()
 
   if (m_leftPidLoop.compute()) {
     // left side
-    if (m_leftOutputVar > m_leftInputVar + deadBand ||
-         m_leftOutputVar < m_leftInputVar - deadBand)
+    if (m_leftOutputVar > m_leftInputVar + m_deadBand ||
+         m_leftOutputVar < m_leftInputVar - m_deadBand)
     {
       rightOnPoint = false;
       if (m_leftOutputVar < 0.0)
@@ -162,7 +163,7 @@ void HeightController::setState(PID::States state)
   }
 }
 
-bool HeightController::rearWheels(bool lift)
+bool HeightController::setRearWheels(bool lift)
 {
   if (m_statePid->state() == PID::States::LowState) {
       m_sucked = lift;
@@ -188,10 +189,126 @@ void HeightController::setCylDia(uint16_t cylDiaIn_mm)
   readSettings(); // update the DIA calculation
 }
 
+void HeightController::setConfig(Configs cfg, store::byte4 value)
+{
+  switch (cfg) {
+    case Configs::KP_factor_float:
+      m_p = value.decimal;
+      break;
+    case Configs::KI_factor_float:
+      m_i = value.decimal;
+      break;
+    case Configs::KD_factor_float:
+      m_d = value.decimal;
+      break;
+    case Configs::LeftLowSetpoint_uint16:
+      m_leftLowSetpoint = static_cast<uint16_t>(value.uint32);
+      break;
+    case Configs::LeftNormalSetpoint_uint16:
+      m_leftNormalSetpoint = static_cast<uint16_t>(value.uint32);
+      break;
+    case Configs::LeftHighSetpoint_uint16:
+      m_leftHighSetpoint = static_cast<uint16_t>(value.uint32);
+      break;
+    case Configs::RightLowSetpoint_uint16:
+      m_rightLowSetpoint = static_cast<uint16_t>(value.uint32);
+      break;
+    case Configs::RightNormalSetpoint_uint16:
+      m_rightNormalSetpoint = static_cast<uint16_t>(value.uint32);
+      break;
+    case Configs::RightHighSetpoint_uint16:
+      m_rightHighSetpoint = static_cast<uint16_t>(value.uint32);
+      break;
+    case Configs::DeadWeight_uint16:
+      m_deadWeight = static_cast<uint16_t>(value.uint32);
+      break;
+    case Configs::DeadBand_uint16:
+      m_deadBand = static_cast<uint16_t>(value.uint32);
+      break;
+    default: ; // ignore
+  }
+}
+
+void HeightController::saveSettings()
+{
+  store::byte2 b2;
+  b2.uint16 = m_leftLowSetpoint;
+  store::write2_to_eeprom(store::Suspension::HEIGHT_LEFT_LOW_ADR, b2);
+  b2.uint16 = m_leftNormalSetpoint;
+  store::write2_to_eeprom(store::Suspension::HEIGHT_LEFT_NORMAL_ADR, b2);
+  b2.uint16 = m_leftHighSetpoint;
+  store::write2_to_eeprom(store::Suspension::HEIGHT_LEFT_HIGH_ADR, b2);
+  b2.uint16 = m_rightLowSetpoint;
+  store::write2_to_eeprom(store::Suspension::HEIGHT_RIGHT_LOW_ADR, b2);
+  b2.uint16 = m_rightNormalSetpoint;
+  store::write2_to_eeprom(store::Suspension::HEIGHT_RIGHT_NORMAL_ADR, b2);
+  b2.uint16 = m_rightHighSetpoint;
+  store::write2_to_eeprom(store::Suspension::HEIGHT_RIGHT_HIGH_ADR, b2);
+  b2.uint16 = m_deadWeight;
+  store::write2_to_eeprom(store::Suspension::HEIGHT_DEAD_WEIGHT_ADR, b2);
+  b2.uint16 = m_deadBand;
+  store::write2_to_eeprom(store::Suspension::HEIGHT_DEAD_BAND_ADR, b2);
+
+  // NOTE store::Suspension::HEIGHT_CYL_DIA_MM_ADR is not saved here,
+  // we need to special case this one as it has no live value stored on RAM
+  // only used in calculation for Cyl area
+
+  store::byte4 b4;
+  b4.decimal = m_p;
+  store::write4_to_eeprom(store::Suspension::HEIGHT_KD_ADR, b4);
+  b4.decimal = m_i;
+  store::write4_to_eeprom(store::Suspension::HEIGHT_KI_ADR, b4);
+  b4.decimal = m_d;
+  store::write4_to_eeprom(store::Suspension::HEIGHT_KP_ADR, b4);
+}
+
+store::byte4 HeightController::getConfig(Configs cfg)
+{
+  store::byte4 value;
+  switch (cfg) {
+    case Configs::KP_factor_float:
+      value.decimal = m_p;
+      break;
+    case Configs::KI_factor_float:
+      value.decimal = m_i;
+      break;
+    case Configs::KD_factor_float:
+      value.decimal = m_d;
+      break;
+    case Configs::LeftLowSetpoint_uint16:
+      value.uint32 = m_leftLowSetpoint;
+      break;
+    case Configs::LeftNormalSetpoint_uint16:
+      value.uint32 = m_leftNormalSetpoint;
+      break;
+    case Configs::LeftHighSetpoint_uint16:
+      value.uint32 = m_leftHighSetpoint;
+      break;
+    case Configs::RightLowSetpoint_uint16:
+      value.uint32 = m_rightLowSetpoint;
+      break;
+    case Configs::RightNormalSetpoint_uint16:
+      value.uint32 = m_rightNormalSetpoint;
+      break;
+    case Configs::RightHighSetpoint_uint16:
+      value.uint32 = m_rightHighSetpoint;
+      break;
+    case Configs::DeadWeight_uint16:
+      value.uint32 = m_deadWeight;
+      break;
+    case Configs::DeadBand_uint16:
+      value.uint32 = m_deadBand;
+      break;
+    default: ;
+      value.uint32 = 0;
+  }
+
+  return value;
+}
+
 void HeightController::init()
 {
   readSettings();
-
   resetPidLoop();
 }
 
@@ -242,43 +359,16 @@ void HeightController::readSettings()
   dia /= 2;
   m_cylArea = dia * dia * 3.141592;
 
-  uint16_t weight = store::read2_from_eeprom(store::Suspension::HEIGHT_DEAD_WEIGHT_ADR).uint16;
-  if (weight == 0)
-    weight = defaultDeadWeight;
-  m_deadWeight = weight;
+  m_deadWeight = store::read2_from_eeprom(store::Suspension::HEIGHT_DEAD_WEIGHT_ADR).uint16;
+  if (m_deadWeight == 0)
+    m_deadWeight = defaultDeadWeight;
+
+  m_deadBand = store::read2_from_eeprom(store::Suspension::HEIGHT_DEAD_BAND_ADR).uint16;
+  if (m_deadBand == 0)
+      m_deadBand = defaultDeadBand;
 
 }
 
-void HeightController::storeSettings()
-{
-  store::byte2 b2;
-  b2.uint16 = m_leftLowSetpoint;
-  store::write2_to_eeprom(store::Suspension::HEIGHT_LEFT_LOW_ADR, b2);
-  b2.uint16 = m_leftNormalSetpoint;
-  store::write2_to_eeprom(store::Suspension::HEIGHT_LEFT_NORMAL_ADR, b2);
-  b2.uint16 = m_leftHighSetpoint;
-  store::write2_to_eeprom(store::Suspension::HEIGHT_LEFT_HIGH_ADR, b2);
-  b2.uint16 = m_rightLowSetpoint;
-  store::write2_to_eeprom(store::Suspension::HEIGHT_RIGHT_LOW_ADR, b2);
-  b2.uint16 = m_rightNormalSetpoint;
-  store::write2_to_eeprom(store::Suspension::HEIGHT_RIGHT_NORMAL_ADR, b2);
-  b2.uint16 = m_rightHighSetpoint;
-  store::write2_to_eeprom(store::Suspension::HEIGHT_RIGHT_HIGH_ADR, b2);
-  b2.uint16 = m_deadWeight;
-  store::write2_to_eeprom(store::Suspension::HEIGHT_DEAD_WEIGHT_ADR, b2);
-
-  // NOTE store::Suspension::HEIGHT_CYL_DIA_MM_ADR is not saved here,
-  // we need to special case this one as it is has no live value stored on RAM
-  // only used in calculation for Cyl area
-
-  store::byte4 b4;
-  b4.decimal = m_p;
-  store::write4_to_eeprom(store::Suspension::HEIGHT_KD_ADR, b4);
-  b4.decimal = m_i;
-  store::write4_to_eeprom(store::Suspension::HEIGHT_KI_ADR, b4);
-  b4.decimal = m_d;
-  store::write4_to_eeprom(store::Suspension::HEIGHT_KP_ADR, b4);
-}
 
 void HeightController::updateInputs()
 {

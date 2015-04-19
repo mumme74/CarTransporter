@@ -380,7 +380,8 @@ void CAN::ControllerBase::loop()
         break;
       default:
         // can never get here as msgTypeMask filter all bits but 2
-        ;
+        //Serial.print("in default");
+        return;
     }
   }
 

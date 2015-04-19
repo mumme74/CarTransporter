@@ -8,6 +8,7 @@
 #include "IOController.h"
 #include "Height.h"
 #include <DTC.h>
+#include <Arduino.h>
 
 
 // PIDS (datastores) in this ECU
@@ -74,6 +75,8 @@ CAN::IOController canIO;
 //The setup function is called once at startup of the sketch
 void setup()
 {
+  Serial.begin(115200);
+
   measure.initForCompressor();
 
   // build PID table
@@ -120,11 +123,14 @@ void setup()
   heightStateMachine.init();
 
   canIO.init();
+
 }
 
 // The loop function is called in an endless loop
 void loop()
 {
+  Serial.print("loop:");Serial.println(millis(),DEC);
+
   static uint32_t lastErrCheck = millis();
   if (lastErrCheck + 1000 < millis()){
     // check each second
@@ -172,10 +178,10 @@ void loop()
       airFeedStateMachine.resetError();
     }
   }
-
   // call eventloop on statemachines
   airFeedStateMachine.loop();
   heightStateMachine.loop();
 
   canIO.loop();
+
 }

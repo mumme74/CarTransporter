@@ -11,13 +11,10 @@
 Measurement measure;
 
 Measurement::Measurement () :
-    ADC(),
-    m_compressorADC(nullptr),
-    m_sensorADC1(nullptr)
+    ADC()
 {
   m_compressorADC = adc1;
   m_sensorADC1 = adc0;
-
 }
 
 void Measurement::initForCompressor()
@@ -28,6 +25,7 @@ void Measurement::initForCompressor()
   m_compressorADC->setSamplingSpeed(ADC_HIGH_SPEED);
   m_compressorADC->setResolution(8);
   m_compressorADC->setReference(ADC_REF_EXTERNAL);
+  m_compressorADC->enableCompare(0, 1);
 
   // somehow set up DMA read for sensorADC
   m_sensorADC1->setAveraging(4);
@@ -35,6 +33,7 @@ void Measurement::initForCompressor()
   m_sensorADC1->setSamplingSpeed(ADC_HIGH_SPEED);
   m_sensorADC1->setResolution(12);
   m_sensorADC1->setReference(ADC_REF_EXTERNAL);
+  m_sensorADC1->enableCompare(0, 1);
 }
 
 Measurement::~Measurement ()

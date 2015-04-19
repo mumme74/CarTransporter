@@ -93,8 +93,8 @@ void isr_scan_inputs()
   if (in == nullptr) {
       in = InputsController.first();
   }
-
-  in->interval();
+  if (in != nullptr)
+    in->interval();
 }
 
 
@@ -103,6 +103,7 @@ void init_inputs()
 {
   // each 20 ms -> 6 inputs ->120 ms cycle or scan 8 times a sec
   inputTmr.begin(isr_scan_inputs, 20000);
+  InputsController.first();
 }
 
 

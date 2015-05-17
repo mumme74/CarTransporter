@@ -53,7 +53,7 @@ U 1 1 550B9955
 P 5450 3250
 F 0 "U10" H 4900 5300 60  0000 C CNN
 F 1 "Teensy3.1" H 6100 5300 60  0000 C CNN
-F 2 "" H 5600 3400 60  0001 C CNN
+F 2 "kicad_lib:teensy3.1_w_underside" H 5600 3400 60  0001 C CNN
 F 3 "https://www.pjrc.com/teensy/pinout.html" H 5600 3400 60  0001 C CNN
 F 4 "Teensy3.1" H 5450 3250 60  0001 C CNN "name"
 F 5 "2430007" H 5450 3250 60  0001 C CNN "farnell"
@@ -144,9 +144,6 @@ NoConn ~ 6800 4200
 NoConn ~ 6800 4350
 NoConn ~ 4200 3550
 NoConn ~ 4200 4950
-NoConn ~ 5000 5800
-NoConn ~ 5450 5800
-NoConn ~ 5850 5800
 NoConn ~ 6800 5550
 NoConn ~ 6800 5400
 NoConn ~ 6800 5250
@@ -185,4 +182,6 @@ Wire Wire Line
 	6800 1550 7300 1550
 Wire Wire Line
 	4200 4200 3400 4200
+Text Notes 7150 4300 0    60   ~ 0
+To access the underside pins see:\nhttps://forum.pjrc.com/threads/26071-Using-all-Teensy3-x-pins-with-a-socket
 $EndSCHEMATC

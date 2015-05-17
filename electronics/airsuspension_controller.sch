@@ -165,7 +165,9 @@ P 2000 3900
 F 0 "conn1" H 2000 5250 60  0000 C CNN
 F 1 "conn_molex_36638-48pin" H 1950 2600 60  0000 C CNN
 F 2 "" H 1950 4750 60  0001 C CNN
-F 3 "" H 1950 4750 60  0000 C CNN
+F 3 "http://www.farnell.com/datasheets/1780492.pdf" H 1950 4750 60  0001 C CNN
+F 4 "1830389" H 2000 3900 60  0001 C CNN "farnell"
+F 5 "MOLEX  36638-0002" H 2000 3900 60  0001 C CNN "name"
 	1    2000 3900
 	1    0    0    -1  
 $EndComp

@@ -1,4 +1,5 @@
 EESchema Schematic File Version 2
+LIBS:airsuspension_controller-rescue
 LIBS:power
 LIBS:device
 LIBS:transistors
@@ -10,7 +11,6 @@ LIBS:cmos4000
 LIBS:adc-dac
 LIBS:memory
 LIBS:xilinx
-LIBS:special
 LIBS:microcontrollers
 LIBS:dsp
 LIBS:microchip
@@ -39,7 +39,7 @@ $Descr A4 11693 8268
 encoding utf-8
 Sheet 3 6
 Title ""
-Date ""
+Date "3 aug 2015"
 Rev ""
 Comp ""
 Comment1 ""
@@ -48,9 +48,11 @@ Comment3 ""
 Comment4 ""
 $EndDescr
 $Comp
-L LM324AN U6
+L LM324AN-RESCUE-airsuspension_controller U6
 U 1 1 5505A221
 P 1750 1750
+AR Path="/5505A221" Ref="U6"  Part="1" 
+AR Path="/550626C9/5505A221" Ref="U6"  Part="1" 
 F 0 "U6" H 1800 1950 60  0000 C CNN
 F 1 "LM224" H 1900 1550 50  0000 C CNN
 F 2 "SMD_Packages:SOIC-14_N" H 1750 1750 60  0001 C CNN
@@ -211,21 +213,23 @@ Wire Wire Line
 Text GLabel 1000 750  0    60   Input ~ 0
 +5V
 Wire Wire Line
-	2100 1300 2150 1300
+	2050 1300 2150 1300
 Wire Wire Line
 	2150 1300 2150 1350
 Wire Wire Line
-	1700 1300 1650 1300
+	1650 1300 1750 1300
 Connection ~ 1650 1300
 Wire Wire Line
-	1050 950  1050 1150
+	1050 950  1050 1250
 $Comp
-L LM324AN U6
+L LM324AN-RESCUE-airsuspension_controller U6
 U 2 1 5505C0DB
 P 1850 4750
+AR Path="/5505C0DB" Ref="U6"  Part="2" 
+AR Path="/550626C9/5505C0DB" Ref="U6"  Part="2" 
 F 0 "U6" H 1900 4950 60  0000 C CNN
 F 1 "LM224" H 2000 4550 50  0000 C CNN
-F 2 "" H 1850 4750 60  0001 C CNN
+F 2 "SMD_Packages:SOIC-14_N" H 1850 4750 60  0001 C CNN
 F 3 "" H 1850 4750 60  0000 C CNN
 	2    1850 4750
 	1    0    0    -1  
@@ -357,7 +361,7 @@ Wire Wire Line
 Text GLabel 1100 3750 0    60   Input ~ 0
 +5V
 Wire Wire Line
-	1150 3950 1150 4150
+	1150 3950 1150 4250
 $Comp
 L C C11
 U 1 1 5505C81E
@@ -485,14 +489,16 @@ Wire Wire Line
 Text GLabel 3350 700  0    60   Input ~ 0
 +5V
 Wire Wire Line
-	3400 900  3400 1100
+	3400 900  3400 1200
 $Comp
-L LM324AN U6
+L LM324AN-RESCUE-airsuspension_controller U6
 U 3 1 5505C818
 P 4100 1700
+AR Path="/5505C818" Ref="U6"  Part="3" 
+AR Path="/550626C9/5505C818" Ref="U6"  Part="3" 
 F 0 "U6" H 4150 1900 60  0000 C CNN
 F 1 "LM224" H 4250 1500 50  0000 C CNN
-F 2 "" H 4100 1700 60  0001 C CNN
+F 2 "SMD_Packages:SOIC-14_N" H 4100 1700 60  0001 C CNN
 F 3 "" H 4100 1700 60  0000 C CNN
 	3    4100 1700
 	1    0    0    -1  
@@ -624,11 +630,13 @@ Wire Wire Line
 Text GLabel 5800 700  0    60   Input ~ 0
 +5V
 Wire Wire Line
-	5850 900  5850 1100
+	5850 900  5850 1200
 $Comp
-L LM324AN U7
+L LM324AN-RESCUE-airsuspension_controller U7
 U 1 1 5505CDB8
 P 6550 1700
+AR Path="/5505CDB8" Ref="U7"  Part="1" 
+AR Path="/550626C9/5505CDB8" Ref="U7"  Part="1" 
 F 0 "U7" H 6600 1900 60  0000 C CNN
 F 1 "LM224" H 6700 1500 50  0000 C CNN
 F 2 "SMD_Packages:SOIC-14_N" H 6550 1700 60  0001 C CNN
@@ -765,14 +773,16 @@ Wire Wire Line
 Text GLabel 8750 800  0    60   Input ~ 0
 +5V
 Wire Wire Line
-	8800 1000 8800 1200
+	8800 1000 8800 1300
 $Comp
-L LM324AN U7
+L LM324AN-RESCUE-airsuspension_controller U7
 U 3 1 5505D52A
 P 9500 1800
+AR Path="/5505D52A" Ref="U7"  Part="3" 
+AR Path="/550626C9/5505D52A" Ref="U7"  Part="3" 
 F 0 "U7" H 9550 2000 60  0000 C CNN
 F 1 "LM224" H 9650 1600 50  0000 C CNN
-F 2 "" H 9500 1800 60  0001 C CNN
+F 2 "SMD_Packages:SOIC-14_N" H 9500 1800 60  0001 C CNN
 F 3 "" H 9500 1800 60  0000 C CNN
 	3    9500 1800
 	1    0    0    -1  
@@ -904,14 +914,16 @@ Wire Wire Line
 Text GLabel 3600 3750 0    60   Input ~ 0
 +5V
 Wire Wire Line
-	3650 3950 3650 4150
+	3650 3950 3650 4250
 $Comp
-L LM324AN U6
+L LM324AN-RESCUE-airsuspension_controller U6
 U 4 1 5505D710
 P 4350 4750
+AR Path="/5505D710" Ref="U6"  Part="4" 
+AR Path="/550626C9/5505D710" Ref="U6"  Part="4" 
 F 0 "U6" H 4400 4950 60  0000 C CNN
 F 1 "LM224" H 4500 4550 50  0000 C CNN
-F 2 "" H 4350 4750 60  0001 C CNN
+F 2 "SMD_Packages:SOIC-14_N" H 4350 4750 60  0001 C CNN
 F 3 "" H 4350 4750 60  0000 C CNN
 	4    4350 4750
 	1    0    0    -1  
@@ -1039,14 +1051,16 @@ Wire Wire Line
 Text GLabel 6150 3850 0    60   Input ~ 0
 +5V
 Wire Wire Line
-	6200 4050 6200 4250
+	6200 4050 6200 4350
 $Comp
-L LM324AN U7
+L LM324AN-RESCUE-airsuspension_controller U7
 U 2 1 5505D8A3
 P 6900 4850
+AR Path="/5505D8A3" Ref="U7"  Part="2" 
+AR Path="/550626C9/5505D8A3" Ref="U7"  Part="2" 
 F 0 "U7" H 6950 5050 60  0000 C CNN
 F 1 "LM224" H 7050 4650 50  0000 C CNN
-F 2 "" H 6900 4850 60  0001 C CNN
+F 2 "SMD_Packages:SOIC-14_N" H 6900 4850 60  0001 C CNN
 F 3 "" H 6900 4850 60  0000 C CNN
 	2    6900 4850
 	1    0    0    -1  
@@ -1065,7 +1079,7 @@ F 5 "1575826" V 5950 5000 60  0001 C CNN "farnell"
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	6200 5150 6200 5250
+	6200 5100 6200 5250
 Wire Wire Line
 	6200 5250 5950 5250
 Text Notes 7550 3500 0    60   ~ 0
@@ -1193,14 +1207,16 @@ Wire Wire Line
 Text GLabel 8800 3700 0    60   Input ~ 0
 +5V
 Wire Wire Line
-	8850 3900 8850 4100
+	8850 3900 8850 4200
 $Comp
-L LM324AN U7
+L LM324AN-RESCUE-airsuspension_controller U7
 U 4 1 5505E972
 P 9550 4700
+AR Path="/5505E972" Ref="U7"  Part="4" 
+AR Path="/550626C9/5505E972" Ref="U7"  Part="4" 
 F 0 "U7" H 9600 4900 60  0000 C CNN
 F 1 "LM224" H 9700 4500 50  0000 C CNN
-F 2 "" H 9550 4700 60  0001 C CNN
+F 2 "SMD_Packages:SOIC-14_N" H 9550 4700 60  0001 C CNN
 F 3 "" H 9550 4700 60  0000 C CNN
 	4    9550 4700
 	1    0    0    -1  
@@ -1220,7 +1236,7 @@ F 5 "1575826" V 8600 4850 60  0001 C CNN "farnell"
 $EndComp
 Connection ~ 8850 4600
 Wire Wire Line
-	8850 5000 8850 5100
+	8850 4950 8850 5100
 Wire Wire Line
 	8850 5100 8600 5100
 Wire Notes Line
@@ -1282,7 +1298,7 @@ F 3 "" H 6900 1300 60  0000 C CNN
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	6500 1250 6450 1250
+	6450 1250 6550 1250
 Connection ~ 6450 1250
 Wire Wire Line
 	6900 1250 6900 1300
@@ -1291,11 +1307,110 @@ Wire Wire Line
 Wire Wire Line
 	6200 4250 5950 4250
 Wire Wire Line
-	5950 4250 5950 4750
+	5950 4250 5950 4850
 Wire Wire Line
 	8850 4600 9050 4600
 Wire Wire Line
 	8850 4100 8600 4100
 Wire Wire Line
-	8600 4100 8600 4600
+	8600 4100 8600 4700
+Wire Wire Line
+	1050 1550 1050 1700
+Connection ~ 1050 1650
+Wire Wire Line
+	1050 2000 1050 2050
+Wire Wire Line
+	2450 1750 2450 1850
+Wire Wire Line
+	2450 2150 2450 2350
+Connection ~ 2450 2250
+Wire Wire Line
+	2450 2750 2450 2650
+Wire Wire Line
+	3400 1500 3400 1650
+Connection ~ 3400 1600
+Wire Wire Line
+	4800 1700 4800 1800
+Wire Wire Line
+	4800 2100 4800 2300
+Connection ~ 4800 2200
+Wire Wire Line
+	4800 2600 4800 2700
+Wire Wire Line
+	1150 4550 1150 4700
+Connection ~ 1150 4650
+Wire Wire Line
+	1150 5000 1150 5050
+Wire Wire Line
+	2550 4750 2550 4850
+Wire Wire Line
+	2550 5150 2550 5350
+Connection ~ 2550 5250
+Wire Wire Line
+	2550 5650 2550 5750
+Wire Wire Line
+	5050 5650 5050 5750
+Wire Wire Line
+	5050 5150 5050 5350
+Connection ~ 5050 5250
+Wire Wire Line
+	5050 4750 5050 4850
+Wire Wire Line
+	3650 4550 3650 4700
+Connection ~ 3650 4650
+Wire Wire Line
+	6200 4650 6200 4800
+Connection ~ 6200 4750
+Wire Wire Line
+	5950 5250 5950 5150
+Wire Wire Line
+	8600 5100 8600 5000
+Wire Wire Line
+	8850 4500 8850 4650
+Connection ~ 8850 4100
+Connection ~ 6200 4250
+Wire Wire Line
+	7600 4850 7600 4950
+Wire Wire Line
+	7600 5250 7600 5450
+Connection ~ 7600 5350
+Wire Wire Line
+	7600 5750 7600 5850
+Wire Wire Line
+	10250 4700 10250 4800
+Wire Wire Line
+	10250 5100 10250 5300
+Connection ~ 10250 5200
+Wire Wire Line
+	10250 5600 10250 5700
+Wire Wire Line
+	8800 1600 8800 1750
+Connection ~ 8800 1700
+Wire Wire Line
+	8800 2050 8800 2100
+Wire Wire Line
+	10200 1800 10200 1900
+Wire Wire Line
+	10200 2200 10200 2400
+Connection ~ 10200 2300
+Wire Wire Line
+	10200 2700 10200 2800
+Wire Wire Line
+	7250 1700 7250 1800
+Wire Wire Line
+	7250 2100 7250 2300
+Connection ~ 7250 2200
+Wire Wire Line
+	7250 2600 7250 2700
+Wire Wire Line
+	5850 1950 5850 2000
+Wire Wire Line
+	5850 1500 5850 1650
+Connection ~ 5850 1600
+Wire Wire Line
+	6900 1250 6850 1250
+Wire Wire Line
+	3400 1950 3400 2000
+Wire Wire Line
+	3650 5000 3650 5050
 $EndSCHEMATC

@@ -1,4 +1,5 @@
 EESchema Schematic File Version 2
+LIBS:airsuspension_controller-rescue
 LIBS:power
 LIBS:device
 LIBS:transistors
@@ -10,7 +11,6 @@ LIBS:cmos4000
 LIBS:adc-dac
 LIBS:memory
 LIBS:xilinx
-LIBS:special
 LIBS:microcontrollers
 LIBS:dsp
 LIBS:microchip
@@ -39,7 +39,7 @@ $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 6
 Title "ECU controller airsuspension"
-Date "2015-03-14"
+Date "3 aug 2015"
 Rev "0.1"
 Comp ""
 Comment1 ""
@@ -133,18 +133,19 @@ U 5507DD0F
 F0 "5V power" 60
 F1 "Airsuspension_5V.sch" 60
 F2 "+12V_IGN" I L 1600 850 60 
+F3 "+12V_IGN_SAFE" I R 2400 950 60 
 $EndSheet
 Text GLabel 2150 5350 0    60   Input ~ 0
 +12V_bat
 $Comp
 L GNDPWR #PWR01
 U 1 1 55081FC6
-P 2650 4850
-F 0 "#PWR01" H 2650 4650 40  0001 C CNN
-F 1 "GNDPWR" H 2650 4720 40  0000 C CNN
-F 2 "" H 2650 4800 60  0000 C CNN
-F 3 "" H 2650 4800 60  0000 C CNN
-	1    2650 4850
+P 1300 4850
+F 0 "#PWR01" H 1300 4650 40  0001 C CNN
+F 1 "GNDPWR" H 1300 4720 40  0000 C CNN
+F 2 "" H 1300 4800 60  0000 C CNN
+F 3 "" H 1300 4800 60  0000 C CNN
+	1    1300 4850
 	1    0    0    -1  
 $EndComp
 $Comp
@@ -164,14 +165,14 @@ U 1 1 550928D4
 P 2000 3900
 F 0 "conn1" H 2000 5250 60  0000 C CNN
 F 1 "conn_molex_36638-48pin" H 1950 2600 60  0000 C CNN
-F 2 "" H 1950 4750 60  0001 C CNN
+F 2 "kicad_lib:Molex_48way_36638" H 1950 4750 60  0001 C CNN
 F 3 "http://www.farnell.com/datasheets/1780492.pdf" H 1950 4750 60  0001 C CNN
 F 4 "1830389" H 2000 3900 60  0001 C CNN "farnell"
 F 5 "MOLEX  36638-0002" H 2000 3900 60  0001 C CNN "name"
 	1    2000 3900
 	1    0    0    -1  
 $EndComp
-Text Label 1300 4850 2    60   ~ 0
+Text Label 2600 4850 0    60   ~ 0
 Compressor_OUT
 Text Label 4550 3950 2    60   ~ 0
 Compressor_OUT
@@ -480,12 +481,12 @@ SpareTemp_IN
 $Comp
 L PWR_FLAG #FLG04
 U 1 1 550ECFBB
-P 2650 4850
-F 0 "#FLG04" H 2650 4945 30  0001 C CNN
-F 1 "PWR_FLAG" H 2650 5030 30  0000 C CNN
-F 2 "" H 2650 4850 60  0000 C CNN
-F 3 "" H 2650 4850 60  0000 C CNN
-	1    2650 4850
+P 1300 4850
+F 0 "#FLG04" H 1300 4945 30  0001 C CNN
+F 1 "PWR_FLAG" H 1300 5030 30  0000 C CNN
+F 2 "" H 1300 4850 60  0000 C CNN
+F 3 "" H 1300 4850 60  0000 C CNN
+	1    1300 4850
 	1    0    0    -1  
 $EndComp
 $Comp
@@ -514,15 +515,11 @@ Connection ~ 1900 5050
 Wire Wire Line
 	1650 4750 1650 4850
 Wire Wire Line
-	1300 4850 2150 4850
-Wire Wire Line
 	1900 4850 1900 4750
 Wire Wire Line
 	2150 4850 2150 4750
 Wire Wire Line
 	2400 4750 2400 4850
-Wire Wire Line
-	2400 4850 2650 4850
 Connection ~ 1650 4850
 Connection ~ 1900 4850
 Wire Wire Line
@@ -643,4 +640,10 @@ Wire Wire Line
 	2550 3100 2400 3100
 Wire Wire Line
 	2550 3300 2400 3300
+Wire Wire Line
+	1900 4850 2600 4850
+Connection ~ 2400 4850
+Connection ~ 2150 4850
+Wire Wire Line
+	1650 4850 1300 4850
 $EndSCHEMATC

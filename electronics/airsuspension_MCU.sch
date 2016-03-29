@@ -1,4 +1,5 @@
 EESchema Schematic File Version 2
+LIBS:airsuspension_controller-rescue
 LIBS:power
 LIBS:device
 LIBS:transistors
@@ -10,7 +11,6 @@ LIBS:cmos4000
 LIBS:adc-dac
 LIBS:memory
 LIBS:xilinx
-LIBS:special
 LIBS:microcontrollers
 LIBS:dsp
 LIBS:microchip
@@ -39,7 +39,7 @@ $Descr A4 11693 8268
 encoding utf-8
 Sheet 6 6
 Title ""
-Date ""
+Date "3 aug 2015"
 Rev ""
 Comp ""
 Comment1 ""
@@ -73,8 +73,6 @@ F 3 "" H 4000 1300 60  0000 C CNN
 $EndComp
 Text GLabel 6800 1400 2    60   Input ~ 0
 +5V
-Text GLabel 6800 1700 2    60   Input ~ 0
-+3.3V
 $Comp
 L GND #PWR060
 U 1 1 550B99C1
@@ -149,7 +147,6 @@ NoConn ~ 6800 5400
 NoConn ~ 6800 5250
 NoConn ~ 6800 5100
 NoConn ~ 6800 4950
-NoConn ~ 6800 4800
 NoConn ~ 6800 4650
 NoConn ~ 6800 4500
 Text HLabel 4200 4350 0    60   Input ~ 0
@@ -184,4 +181,66 @@ Wire Wire Line
 	4200 4200 3400 4200
 Text Notes 7150 4300 0    60   ~ 0
 To access the underside pins see:\nhttps://forum.pjrc.com/threads/26071-Using-all-Teensy3-x-pins-with-a-socket
+$Comp
+L Hardware Ha?
+U 1 1 56FA5E51
+P 8975 1575
+F 0 "Ha?" H 9053 1628 60  0000 L CNN
+F 1 "14Pin dual row header male" H 9053 1522 60  0000 L CNN
+F 2 "" H 8975 1600 60  0000 C CNN
+F 3 "" H 8975 1600 60  0000 C CNN
+F 4 "2356135" H 8975 1575 60  0001 C CNN "farnell"
+	1    8975 1575
+	1    0    0    -1  
+$EndComp
+$Comp
+L Hardware Ha?
+U 1 1 56FA5EE0
+P 8975 1825
+F 0 "Ha?" H 9053 1878 60  0000 L CNN
+F 1 "8Pin dual row header male" H 9053 1772 60  0000 L CNN
+F 2 "" H 8975 1850 60  0000 C CNN
+F 3 "" H 8975 1850 60  0000 C CNN
+F 4 "2356133" H 8975 1825 60  0001 C CNN "farnell"
+	1    8975 1825
+	1    0    0    -1  
+$EndComp
+$Comp
+L Hardware Ha?
+U 1 1 56FA5F48
+P 8975 2100
+F 0 "Ha?" H 9053 2153 60  0000 L CNN
+F 1 "8Pin dual row header female" H 9053 2047 60  0000 L CNN
+F 2 "" H 8975 2125 60  0000 C CNN
+F 3 "" H 8975 2125 60  0000 C CNN
+F 4 "1668094" H 8975 2100 60  0001 C CNN "farnell"
+	1    8975 2100
+	1    0    0    -1  
+$EndComp
+$Comp
+L Hardware Ha?
+U 1 1 56FA5FAE
+P 8975 2350
+F 0 "Ha?" H 9053 2403 60  0000 L CNN
+F 1 "14Pin dual row header female" H 9053 2297 60  0000 L CNN
+F 2 "" H 8975 2375 60  0000 C CNN
+F 3 "" H 8975 2375 60  0000 C CNN
+F 4 "1668300" H 8975 2350 60  0001 C CNN "farnell"
+	1    8975 2350
+	1    0    0    -1  
+$EndComp
+$Comp
+L Hardware Ha?
+U 1 1 56FA63C9
+P 8975 2650
+F 0 "Ha?" H 9053 2703 60  0000 L CNN
+F 1 "6pin single row header female" H 9053 2597 60  0000 L CNN
+F 2 "" H 8975 2675 60  0000 C CNN
+F 3 "" H 8975 2675 60  0000 C CNN
+F 4 "1098036" H 8975 2650 60  0001 C CNN "farnell"
+	1    8975 2650
+	1    0    0    -1  
+$EndComp
+NoConn ~ 6800 1700
+NoConn ~ 6800 4800
 $EndSCHEMATC

@@ -1,4 +1,5 @@
 EESchema Schematic File Version 2
+LIBS:airsuspension_controller-rescue
 LIBS:power
 LIBS:device
 LIBS:transistors
@@ -10,7 +11,6 @@ LIBS:cmos4000
 LIBS:adc-dac
 LIBS:memory
 LIBS:xilinx
-LIBS:special
 LIBS:microcontrollers
 LIBS:dsp
 LIBS:microchip
@@ -39,7 +39,7 @@ $Descr A4 11693 8268
 encoding utf-8
 Sheet 4 6
 Title ""
-Date ""
+Date "3 aug 2015"
 Rev ""
 Comp ""
 Comment1 ""
@@ -158,41 +158,49 @@ F 3 "" H 6600 2450 60  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L JUMPER JP1
-U 1 1 55069FDD
-P 6000 2450
-F 0 "JP1" H 6000 2600 50  0000 C CNN
-F 1 "CAN_fullspeed" H 6000 2370 50  0000 C CNN
-F 2 "Oddities:NetTie-I_Connected_SMD" H 6000 2450 60  0001 C CNN
-F 3 "" H 6000 2450 60  0000 C CNN
-	1    6000 2450
-	1    0    0    -1  
-$EndComp
-$Comp
 L GND #PWR050
 U 1 1 5506A004
-P 5700 2500
-F 0 "#PWR050" H 5700 2250 60  0001 C CNN
-F 1 "GND" H 5700 2350 60  0000 C CNN
-F 2 "" H 5700 2500 60  0000 C CNN
-F 3 "" H 5700 2500 60  0000 C CNN
-	1    5700 2500
+P 5875 2500
+F 0 "#PWR050" H 5875 2250 60  0001 C CNN
+F 1 "GND" H 5875 2350 60  0000 C CNN
+F 2 "" H 5875 2500 60  0000 C CNN
+F 3 "" H 5875 2500 60  0000 C CNN
+	1    5875 2500
 	1    0    0    -1  
 $EndComp
 Text GLabel 6900 2450 2    60   Input ~ 0
 +5V
 Wire Wire Line
-	5800 2900 6150 2900
-Wire Wire Line
-	6150 2900 6150 2700
-Wire Wire Line
-	6150 2700 6300 2700
-Wire Wire Line
-	6300 2700 6300 2450
-Wire Wire Line
-	5700 2500 5700 2450
+	5800 2900 6200 2900
 Text Notes 4700 2000 0    60   ~ 0
-Normal operation should see CAN_fullspeed bridged\nCAN_Silent mode is lowpower mode, should be open by default
+Normal operation should see CAN_fullspeed (LOW)\nCAN_Silent mode is lowpower mode, should be open by default
 Text Notes 6850 3200 0    60   ~ 0
 Resistor is here only when Node is a end node\nThere should be exactly 2 endnodes in a CAN network\n
+Wire Wire Line
+	6600 2900 6600 3000
+Wire Wire Line
+	6600 3300 6600 3400
+Wire Wire Line
+	4350 3350 4350 3400
+Wire Wire Line
+	4350 3700 4350 3750
+$Comp
+L R R?
+U 1 1 56FA4041
+P 6025 2450
+F 0 "R?" V 5818 2450 50  0000 C CNN
+F 1 "10k" V 5909 2450 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" V 5955 2450 50  0001 C CNN
+F 3 "" H 6025 2450 50  0000 C CNN
+F 4 "9332391" V 6025 2450 60  0001 C CNN "farnell"
+	1    6025 2450
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	5875 2450 5875 2500
+Wire Wire Line
+	6175 2450 6300 2450
+Wire Wire Line
+	6200 2900 6200 2450
+Connection ~ 6200 2450
 $EndSCHEMATC

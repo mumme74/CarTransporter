@@ -32,6 +32,7 @@ LIBS:valves
 LIBS:teensy
 LIBS:power_switches
 LIBS:miscellaneous
+LIBS:cinch
 LIBS:airsuspension_controller-cache
 EELAYER 25 0
 EELAYER END
@@ -61,10 +62,10 @@ F 5 "2430007" H 5450 3250 60  0001 C CNN "farnell"
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR059
+L GND #PWR071
 U 1 1 550B9984
 P 4000 1300
-F 0 "#PWR059" H 4000 1050 60  0001 C CNN
+F 0 "#PWR071" H 4000 1050 60  0001 C CNN
 F 1 "GND" H 4000 1150 60  0000 C CNN
 F 2 "" H 4000 1300 60  0000 C CNN
 F 3 "" H 4000 1300 60  0000 C CNN
@@ -74,10 +75,10 @@ $EndComp
 Text GLabel 6800 1400 2    60   Input ~ 0
 +5V
 $Comp
-L GND #PWR060
+L GND #PWR072
 U 1 1 550B99C1
 P 7300 1550
-F 0 "#PWR060" H 7300 1300 60  0001 C CNN
+F 0 "#PWR072" H 7300 1300 60  0001 C CNN
 F 1 "GND" H 7300 1400 60  0000 C CNN
 F 2 "" H 7300 1550 60  0000 C CNN
 F 3 "" H 7300 1550 60  0000 C CNN
@@ -154,10 +155,10 @@ LeftSuck_ON
 Text HLabel 4200 4500 0    60   Input ~ 0
 RightSuck_ON
 $Comp
-L GND #PWR061
+L GND #PWR073
 U 1 1 550CFA12
 P 3400 4200
-F 0 "#PWR061" H 3400 3950 60  0001 C CNN
+F 0 "#PWR073" H 3400 3950 60  0001 C CNN
 F 1 "GND" H 3400 4050 60  0000 C CNN
 F 2 "" H 3400 4200 60  0000 C CNN
 F 3 "" H 3400 4200 60  0000 C CNN
@@ -182,65 +183,78 @@ Wire Wire Line
 Text Notes 7150 4300 0    60   ~ 0
 To access the underside pins see:\nhttps://forum.pjrc.com/threads/26071-Using-all-Teensy3-x-pins-with-a-socket
 $Comp
-L Hardware Ha?
+L Hardware Ha1
 U 1 1 56FA5E51
 P 8975 1575
-F 0 "Ha?" H 9053 1628 60  0000 L CNN
+F 0 "Ha1" H 9053 1628 60  0000 L CNN
 F 1 "14Pin dual row header male" H 9053 1522 60  0000 L CNN
-F 2 "" H 8975 1600 60  0000 C CNN
+F 2 "" H 8975 1600 60  0001 C CNN
 F 3 "" H 8975 1600 60  0000 C CNN
 F 4 "2356135" H 8975 1575 60  0001 C CNN "farnell"
 	1    8975 1575
 	1    0    0    -1  
 $EndComp
 $Comp
-L Hardware Ha?
+L Hardware Ha2
 U 1 1 56FA5EE0
 P 8975 1825
-F 0 "Ha?" H 9053 1878 60  0000 L CNN
+F 0 "Ha2" H 9053 1878 60  0000 L CNN
 F 1 "8Pin dual row header male" H 9053 1772 60  0000 L CNN
-F 2 "" H 8975 1850 60  0000 C CNN
+F 2 "" H 8975 1850 60  0001 C CNN
 F 3 "" H 8975 1850 60  0000 C CNN
 F 4 "2356133" H 8975 1825 60  0001 C CNN "farnell"
 	1    8975 1825
 	1    0    0    -1  
 $EndComp
 $Comp
-L Hardware Ha?
+L Hardware Ha3
 U 1 1 56FA5F48
 P 8975 2100
-F 0 "Ha?" H 9053 2153 60  0000 L CNN
-F 1 "8Pin dual row header female" H 9053 2047 60  0000 L CNN
-F 2 "" H 8975 2125 60  0000 C CNN
+F 0 "Ha3" H 9053 2153 60  0000 L CNN
+F 1 "14Pin single row header female" H 9053 2047 60  0000 L CNN
+F 2 "" H 8975 2125 60  0001 C CNN
 F 3 "" H 8975 2125 60  0000 C CNN
-F 4 "1668094" H 8975 2100 60  0001 C CNN "farnell"
+F 4 "1667519" H 8975 2100 60  0001 C CNN "farnell"
 	1    8975 2100
 	1    0    0    -1  
 $EndComp
 $Comp
-L Hardware Ha?
+L Hardware Ha4
 U 1 1 56FA5FAE
 P 8975 2350
-F 0 "Ha?" H 9053 2403 60  0000 L CNN
-F 1 "14Pin dual row header female" H 9053 2297 60  0000 L CNN
-F 2 "" H 8975 2375 60  0000 C CNN
+F 0 "Ha4" H 9053 2403 60  0000 L CNN
+F 1 "14Pin single row header female" H 9053 2297 60  0000 L CNN
+F 2 "" H 8975 2375 60  0001 C CNN
 F 3 "" H 8975 2375 60  0000 C CNN
-F 4 "1668300" H 8975 2350 60  0001 C CNN "farnell"
+F 4 "1667519" H 8975 2350 60  0001 C CNN "farnell"
+F 5 "CES-114-01-T-S" H 8975 2350 60  0001 C CNN "part"
 	1    8975 2350
 	1    0    0    -1  
 $EndComp
 $Comp
-L Hardware Ha?
+L Hardware Ha5
 U 1 1 56FA63C9
 P 8975 2650
-F 0 "Ha?" H 9053 2703 60  0000 L CNN
-F 1 "6pin single row header female" H 9053 2597 60  0000 L CNN
-F 2 "" H 8975 2675 60  0000 C CNN
+F 0 "Ha5" H 9053 2703 60  0000 L CNN
+F 1 "14pin single row header female" H 9053 2597 60  0000 L CNN
+F 2 "" H 8975 2675 60  0001 C CNN
 F 3 "" H 8975 2675 60  0000 C CNN
-F 4 "1098036" H 8975 2650 60  0001 C CNN "farnell"
+F 4 "1667519" H 8975 2650 60  0001 C CNN "farnell"
 	1    8975 2650
 	1    0    0    -1  
 $EndComp
 NoConn ~ 6800 1700
 NoConn ~ 6800 4800
+$Comp
+L Hardware Ha6
+U 1 1 56FAC00B
+P 8975 2950
+F 0 "Ha6" H 9053 3003 60  0000 L CNN
+F 1 "14pin single row header female" H 9053 2897 60  0000 L CNN
+F 2 "" H 8975 2975 60  0001 C CNN
+F 3 "" H 8975 2975 60  0000 C CNN
+F 4 "1667519" H 8975 2950 60  0001 C CNN "farnell"
+	1    8975 2950
+	1    0    0    -1  
+$EndComp
 $EndSCHEMATC

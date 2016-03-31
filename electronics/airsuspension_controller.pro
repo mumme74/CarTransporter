@@ -1,4 +1,4 @@
-update=mån 28 mar 2016 19:10:58
+update=ons 30 mar 2016 22:47:12
 version=1
 last_client=kicad
 [pcbnew]
@@ -63,3 +63,4 @@ LibName31=valves
 LibName32=teensy
 LibName33=power_switches
 LibName34=miscellaneous
+LibName35=cinch

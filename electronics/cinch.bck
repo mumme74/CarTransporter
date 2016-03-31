@@ -1,0 +1,8 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP Conn48pin
+D 48pin cinch SE connector
+F http://www.cinch.com/pdfs/1219440691-5810148005s_rev_D.pdf
+$ENDCMP
+#
+#End Doc Library

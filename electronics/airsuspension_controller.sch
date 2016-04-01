@@ -353,41 +353,41 @@ Text Label 9650 5000 2    60   ~ 0
 CAN_TX
 Text Label 9650 5150 2    60   ~ 0
 CAN_RX
-Text Label 2825 2275 0    60   ~ 0
+Text Label 2825 2550 0    60   ~ 0
 Compressor_OUT
-Text GLabel 2825 2400 2    60   Input ~ 0
+Text GLabel 2825 2275 2    60   Input ~ 0
 +12V_bat
 $Comp
 L PWR_FLAG #FLG01
 U 1 1 56FCC0F2
-P 2825 2400
-F 0 "#FLG01" H 2825 2495 50  0001 C CNN
-F 1 "PWR_FLAG" H 2825 2624 50  0001 C CNN
-F 2 "" H 2825 2400 50  0000 C CNN
-F 3 "" H 2825 2400 50  0000 C CNN
-	1    2825 2400
-	-1   0    0    1   
+P 2825 2275
+F 0 "#FLG01" H 2825 2370 50  0001 C CNN
+F 1 "PWR_FLAG" H 2825 2499 50  0001 C CNN
+F 2 "" H 2825 2275 50  0000 C CNN
+F 3 "" H 2825 2275 50  0000 C CNN
+	1    2825 2275
+	1    0    0    -1  
 $EndComp
 $Comp
 L PWR_FLAG #FLG02
 U 1 1 56FCC0F8
-P 1800 2775
-F 0 "#FLG02" H 1800 2870 50  0001 C CNN
-F 1 "PWR_FLAG" H 1800 2999 50  0001 C CNN
-F 2 "" H 1800 2775 50  0000 C CNN
-F 3 "" H 1800 2775 50  0000 C CNN
-	1    1800 2775
+P 1800 2675
+F 0 "#FLG02" H 1800 2770 50  0001 C CNN
+F 1 "PWR_FLAG" H 1800 2899 50  0001 C CNN
+F 2 "" H 1800 2675 50  0000 C CNN
+F 3 "" H 1800 2675 50  0000 C CNN
+	1    1800 2675
 	1    0    0    -1  
 $EndComp
 $Comp
 L GNDPWR #PWR03
 U 1 1 56FCC0FE
-P 1800 2775
-F 0 "#PWR03" H 1800 2575 50  0001 C CNN
-F 1 "GNDPWR" H 1807 2849 50  0001 C CNN
-F 2 "" H 1800 2725 50  0000 C CNN
-F 3 "" H 1800 2725 50  0000 C CNN
-	1    1800 2775
+P 1800 2675
+F 0 "#PWR03" H 1800 2475 50  0001 C CNN
+F 1 "GNDPWR" H 1807 2749 50  0001 C CNN
+F 2 "" H 1800 2625 50  0000 C CNN
+F 3 "" H 1800 2625 50  0000 C CNN
+	1    1800 2675
 	1    0    0    -1  
 $EndComp
 Text Label 2825 2825 0    60   ~ 0
@@ -402,7 +402,7 @@ Text Label 2825 3275 0    60   ~ 0
 RightSuck_OUT
 Text Label 2825 3150 0    60   ~ 0
 LeftSuck_OUT
-Text Label 2825 2700 0    60   ~ 0
+Text Label 1775 2875 2    60   ~ 0
 AirDryer_OUT
 Text Label 1775 3100 2    60   ~ 0
 Spare1_OUT
@@ -489,6 +489,23 @@ F 3 "" H 2825 3375 50  0000 C CNN
 	1    2825 3375
 	-1   0    0    1   
 $EndComp
+$Comp
+L Conn48pin conn1
+U 1 1 56FCC139
+P 2300 3525
+F 0 "conn1" H 2175 5175 60  0000 L CNN
+F 1 "Conn48pin" H 2150 5075 60  0000 L CNN
+F 2 "cinch:Conn48pin" H 2450 2525 60  0001 C CNN
+F 3 "http://www.farnell.com/datasheets/49878.pdf" H 2450 2525 60  0001 C CNN
+F 4 "1282187" H 2300 3525 60  0001 C CNN "farnell"
+F 5 "5810148005" H 2300 3525 60  0001 C CNN "part"
+	1    2300 3525
+	1    0    0    -1  
+$EndComp
+Text Label 4800 2800 2    60   ~ 0
+CompressorTemp_5V
+Text Label 4800 2900 2    60   ~ 0
+CompressorTemp_IN
 Wire Wire Line
 	2200 3225 2200 3275
 Wire Wire Line
@@ -556,28 +573,11 @@ Wire Wire Line
 Wire Wire Line
 	2450 4325 2825 4325
 Wire Wire Line
-	1800 2775 2200 2775
-Wire Wire Line
 	2200 3075 2200 3000
 Connection ~ 1950 2325
 Wire Wire Line
-	2200 2400 2200 2625
-Wire Wire Line
-	2450 2400 2450 2625
-Wire Wire Line
-	2200 2400 2825 2400
-Connection ~ 2200 2475
-Connection ~ 2450 2400
-Connection ~ 2450 2475
-Wire Wire Line
-	2200 2625 1950 2625
-Wire Wire Line
-	1950 2775 1950 2925
+	2450 2625 1950 2625
 Connection ~ 1950 2775
-Wire Wire Line
-	2450 2775 2450 2700
-Wire Wire Line
-	2450 2700 2825 2700
 Wire Wire Line
 	2200 2925 2200 2825
 Wire Wire Line
@@ -623,21 +623,8 @@ Wire Wire Line
 	2450 3525 2450 3600
 Wire Wire Line
 	2450 3600 2825 3600
-$Comp
-L Conn48pin conn1
-U 1 1 56FCC139
-P 2300 3525
-F 0 "conn1" H 2175 5175 60  0000 L CNN
-F 1 "Conn48pin" H 2150 5075 60  0000 L CNN
-F 2 "cinch:Conn48pin" H 2450 2525 60  0001 C CNN
-F 3 "http://www.farnell.com/datasheets/49878.pdf" H 2450 2525 60  0001 C CNN
-F 4 "1282187" H 2300 3525 60  0001 C CNN "farnell"
-F 5 "5810148005" H 2300 3525 60  0001 C CNN "part"
-	1    2300 3525
-	1    0    0    -1  
-$EndComp
 Wire Wire Line
-	2200 2275 2200 2325
+	2200 2275 2200 2475
 Wire Wire Line
 	2450 2275 2450 2325
 Wire Wire Line
@@ -654,8 +641,24 @@ Wire Wire Line
 	2450 4925 2450 4975
 Wire Wire Line
 	2450 4975 2825 4975
-Text Label 4800 2800 2    60   ~ 0
-CompressorTemp_5V
-Text Label 4800 2900 2    60   ~ 0
-CompressorTemp_IN
+Connection ~ 2200 2625
+Wire Wire Line
+	2450 2475 2450 2625
+Wire Wire Line
+	2825 2550 2450 2550
+Connection ~ 2450 2550
+Connection ~ 2200 2325
+Connection ~ 2200 2775
+Wire Wire Line
+	1950 2925 1925 2925
+Wire Wire Line
+	1950 2775 1950 2675
+Wire Wire Line
+	1950 2675 1800 2675
+Wire Wire Line
+	1950 2775 2450 2775
+Wire Wire Line
+	1925 2925 1925 2875
+Wire Wire Line
+	1925 2875 1775 2875
 $EndSCHEMATC

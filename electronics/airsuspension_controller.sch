@@ -497,8 +497,8 @@ F 0 "conn1" H 2175 5175 60  0000 L CNN
 F 1 "Conn48pin" H 2150 5075 60  0000 L CNN
 F 2 "cinch:Conn48pin" H 2450 2525 60  0001 C CNN
 F 3 "http://www.farnell.com/datasheets/49878.pdf" H 2450 2525 60  0001 C CNN
-F 4 "1282187" H 2300 3525 60  0001 C CNN "farnell"
-F 5 "5810148005" H 2300 3525 60  0001 C CNN "part"
+F 4 "1282184" H 2300 3525 60  0001 C CNN "farnell"
+F 5 "5810148007" H 2300 3525 60  0001 C CNN "part"
 	1    2300 3525
 	1    0    0    -1  
 $EndComp
@@ -661,4 +661,82 @@ Wire Wire Line
 	1925 2925 1925 2875
 Wire Wire Line
 	1925 2875 1775 2875
+$Comp
+L Hardware Ha8
+U 1 1 56FF0A6B
+P 775 1550
+F 0 "Ha8" H 853 1603 60  0000 L CNN
+F 1 "Cinch_SE_1heatsink" H 853 1497 60  0000 L CNN
+F 2 "" H 775 1575 60  0000 C CNN
+F 3 "" H 775 1575 60  0000 C CNN
+F 4 "5810130042" H 775 1550 60  0001 C CNN "part"
+F 5 "1282197" H 775 1550 60  0001 C CNN "farnell"
+	1    775  1550
+	1    0    0    -1  
+$EndComp
+$Comp
+L Hardware Ha9
+U 1 1 56FF0F10
+P 775 1775
+F 0 "Ha9" H 853 1828 60  0000 L CNN
+F 1 "Thermal_spring" H 853 1722 60  0000 L CNN
+F 2 "" H 775 1800 60  0000 C CNN
+F 3 "" H 775 1800 60  0000 C CNN
+F 4 "5810000021" H 775 1775 60  0001 C CNN "part"
+F 5 "1282203" H 775 1775 60  0001 C CNN "farnell"
+	1    775  1775
+	1    0    0    -1  
+$EndComp
+$Comp
+L Hardware Ha10
+U 1 1 56FF13B6
+P 775 2025
+F 0 "Ha10" H 853 2078 60  0000 L CNN
+F 1 "Thermal pad" H 853 1972 60  0000 L CNN
+F 2 "" H 775 2050 60  0000 C CNN
+F 3 "" H 775 2050 60  0000 C CNN
+F 4 "FCTS73-05N" H 775 2025 60  0001 C CNN "part"
+F 5 "2289473" H 775 2025 60  0001 C CNN "farnell"
+	1    775  2025
+	1    0    0    -1  
+$EndComp
+$Comp
+L Hardware Ha7
+U 1 1 56FF381D
+P 775 1300
+F 0 "Ha7" H 853 1353 60  0000 L CNN
+F 1 "crimp connectors (200pieces)" H 853 1247 60  0000 L CNN
+F 2 "" H 775 1325 60  0000 C CNN
+F 3 "" H 775 1325 60  0000 C CNN
+F 4 "4250000873" H 775 1300 60  0001 C CNN "part"
+F 5 "1282210" H 775 1300 60  0001 C CNN "farnell"
+	1    775  1300
+	1    0    0    -1  
+$EndComp
+$Comp
+L Hardware Ha11
+U 1 1 56FF3F46
+P 775 2275
+F 0 "Ha11" H 853 2328 60  0000 L CNN
+F 1 "18pin_connector" H 853 2222 60  0000 L CNN
+F 2 "" H 775 2300 60  0000 C CNN
+F 3 "" H 775 2300 60  0000 C CNN
+F 4 "5810118023" H 775 2275 60  0001 C CNN "part"
+F 5 "1282205" H 775 2275 60  0001 C CNN "farnell"
+	1    775  2275
+	1    0    0    -1  
+$EndComp
+$Comp
+L Hardware Ha12
+U 1 1 56FF4D0E
+P 775 2475
+F 0 "Ha12" H 853 2528 60  0000 L CNN
+F 1 "30pin connector" H 853 2422 60  0000 L CNN
+F 2 "" H 775 2500 60  0000 C CNN
+F 3 "" H 775 2500 60  0000 C CNN
+F 4 "5810130028" H 775 2475 60  0001 C CNN "part"
+F 5 "1282206" H 775 2475 60  0001 C CNN "farnell"
+	1    775  2475
+	1    0    0    -1  
+$EndComp
 $EndSCHEMATC

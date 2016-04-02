@@ -56,8 +56,7 @@ F 0 "U10" H 4900 5300 60  0000 C CNN
 F 1 "Teensy3.1" H 6100 5300 60  0000 C CNN
 F 2 "kicad_lib:teensy3.1_w_underside" H 5600 3400 60  0001 C CNN
 F 3 "https://www.pjrc.com/teensy/pinout.html" H 5600 3400 60  0001 C CNN
-F 4 "Teensy3.1" H 5450 3250 60  0001 C CNN "name"
-F 5 "2430007" H 5450 3250 60  0001 C CNN "farnell"
+F 4 "Teensy3.1" H 5450 3250 60  0001 C CNN "part"
 	1    5450 3250
 	1    0    0    -1  
 $EndComp

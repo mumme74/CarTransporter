@@ -1,0 +1,20 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP LM2574
+D Switching Voltage regulator
+$ENDCMP
+#
+$CMP MIC2619
+D Boost converter 2.7 -7V to max 30v
+$ENDCMP
+#
+$CMP SN65HVD1050D
+D 1Mbit CAN tranciever
+K CAN
+$ENDCMP
+#
+$CMP ZXCT1082
+D Current sense amplifier highside
+$ENDCMP
+#
+#End Doc Library

@@ -1,0 +1,4 @@
+(fp_lib_table
+  (lib (name kicad_lib)(type KiCad)(uri ${KIPRJMOD}/kicad_lib.pretty)(options "")(descr ""))
+  (lib (name cinch)(type KiCad)(uri "$(KIPRJMOD)/cinch.pretty")(options "")(descr ""))
+)

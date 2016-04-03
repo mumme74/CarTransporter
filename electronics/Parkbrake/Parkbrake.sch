@@ -1,0 +1,245 @@
+EESchema Schematic File Version 2
+LIBS:Parkbrake-rescue
+LIBS:power
+LIBS:device
+LIBS:transistors
+LIBS:conn
+LIBS:linear
+LIBS:regul
+LIBS:74xx
+LIBS:cmos4000
+LIBS:adc-dac
+LIBS:memory
+LIBS:xilinx
+LIBS:microcontrollers
+LIBS:dsp
+LIBS:microchip
+LIBS:analog_switches
+LIBS:motorola
+LIBS:texas
+LIBS:intel
+LIBS:audio
+LIBS:interface
+LIBS:digital-audio
+LIBS:philips
+LIBS:display
+LIBS:cypress
+LIBS:siliconi
+LIBS:opto
+LIBS:atmel
+LIBS:contrib
+LIBS:valves
+LIBS:cinch
+LIBS:miscellaneous
+LIBS:teensy
+LIBS:power_switches
+LIBS:Parkbrake-cache
+EELAYER 25 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 1 5
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L Conn48pin P1
+U 1 1 56FEAA1E
+P 1075 2225
+F 0 "P1" H 1000 3850 60  0000 L CNN
+F 1 "Conn48pin" H 900 3750 60  0000 L CNN
+F 2 "" H 1225 2525 60  0000 C CNN
+F 3 "" H 1225 2525 60  0000 C CNN
+	1    1075 2225
+	1    0    0    -1  
+$EndComp
+$Sheet
+S 6500 2600 1525 1450
+U 570483C1
+F0 "H-Bridge_logic" 60
+F1 "H-Bridge_logic.sch" 60
+$EndSheet
+$Sheet
+S 6500 1000 1525 850 
+U 57088F10
+F0 "PowerRegulators" 60
+F1 "PowerRegulators.sch" 60
+$EndSheet
+$Comp
+L Q_PMOS_GDS Q?
+U 1 1 5708DD42
+P 3775 1375
+F 0 "Q?" V 4106 1375 50  0000 C CNN
+F 1 "Q_PMOS_GDS" V 4015 1375 50  0000 C CNN
+F 2 "" H 3975 1475 50  0000 C CNN
+F 3 "" H 3775 1375 50  0000 C CNN
+	1    3775 1375
+	0    -1   -1   0   
+$EndComp
+$Comp
+L ZENER D?
+U 1 1 5708DE01
+P 4075 1475
+F 0 "D?" V 4029 1554 50  0000 L CNN
+F 1 "10v" V 4120 1554 50  0000 L CNN
+F 2 "" H 4075 1475 50  0000 C CNN
+F 3 "" H 4075 1475 50  0000 C CNN
+	1    4075 1475
+	0    1    1    0   
+$EndComp
+$Comp
+L R R?
+U 1 1 5708DE58
+P 3775 1825
+F 0 "R?" H 3845 1871 50  0000 L CNN
+F 1 "10k" H 3845 1780 50  0000 L CNN
+F 2 "" V 3705 1825 50  0000 C CNN
+F 3 "" H 3775 1825 50  0000 C CNN
+	1    3775 1825
+	1    0    0    -1  
+$EndComp
+$Comp
+L GND #PWR?
+U 1 1 5708DE8A
+P 3775 1975
+F 0 "#PWR?" H 3775 1725 50  0001 C CNN
+F 1 "GND" H 3783 1802 50  0000 C CNN
+F 2 "" H 3775 1975 50  0000 C CNN
+F 3 "" H 3775 1975 50  0000 C CNN
+	1    3775 1975
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4075 1675 3775 1675
+Wire Wire Line
+	3775 1675 3775 1575
+Wire Wire Line
+	3975 1275 4150 1275
+Connection ~ 4075 1275
+Text Label 3575 1275 2    60   ~ 0
++12V_IGN
+$Comp
+L Q_PMOS_GDS Q?
+U 1 1 5709079E
+P 4250 4025
+F 0 "Q?" V 4450 4025 50  0000 C CNN
+F 1 "Q_PMOS_GDS" V 4875 3625 50  0000 C CNN
+F 2 "" H 4450 4125 50  0000 C CNN
+F 3 "" H 4250 4025 50  0000 C CNN
+	1    4250 4025
+	0    -1   -1   0   
+$EndComp
+$Comp
+L ZENER D?
+U 1 1 5709088A
+P 3600 4125
+F 0 "D?" V 3554 4204 50  0000 L CNN
+F 1 "10v" V 3645 4204 50  0000 L CNN
+F 2 "" H 3600 4125 50  0000 C CNN
+F 3 "" H 3600 4125 50  0000 C CNN
+	1    3600 4125
+	0    1    1    0   
+$EndComp
+$Comp
+L R R?
+U 1 1 5709092F
+P 4250 4475
+F 0 "R?" H 4320 4521 50  0000 L CNN
+F 1 "1k" H 4320 4430 50  0000 L CNN
+F 2 "" V 4180 4475 50  0000 C CNN
+F 3 "" H 4250 4475 50  0000 C CNN
+	1    4250 4475
+	1    0    0    -1  
+$EndComp
+$Comp
+L Q_NMOS_GSD Q?
+U 1 1 5709097D
+P 4350 4825
+F 0 "Q?" H 4544 4871 50  0000 L CNN
+F 1 "Q_NMOS_GSD" H 4544 4780 50  0000 L CNN
+F 2 "" H 4550 4925 50  0000 C CNN
+F 3 "" H 4350 4825 50  0000 C CNN
+	1    4350 4825
+	-1   0    0    -1  
+$EndComp
+$Comp
+L GNDPWR #PWR?
+U 1 1 57090A02
+P 4250 5325
+F 0 "#PWR?" H 4250 5125 50  0001 C CNN
+F 1 "GNDPWR" H 4257 5399 50  0001 C CNN
+F 2 "" H 4250 5275 50  0000 C CNN
+F 3 "" H 4250 5275 50  0000 C CNN
+	1    4250 5325
+	1    0    0    -1  
+$EndComp
+$Comp
+L R R?
+U 1 1 57090848
+P 3900 4075
+F 0 "R?" H 3970 4121 50  0000 L CNN
+F 1 "10k" H 3970 4030 50  0000 L CNN
+F 2 "" V 3830 4075 50  0000 C CNN
+F 3 "" H 3900 4075 50  0000 C CNN
+	1    3900 4075
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3475 3925 4050 3925
+Connection ~ 3900 3925
+Wire Wire Line
+	4250 4225 4250 4325
+Connection ~ 3600 3925
+Wire Wire Line
+	4250 4325 3600 4325
+Wire Wire Line
+	3900 4225 3900 4325
+Connection ~ 3900 4325
+$Comp
+L D D?
+U 1 1 570913D2
+P 4250 5175
+F 0 "D?" V 4296 5097 50  0000 R CNN
+F 1 "1n4148w" V 4205 5097 50  0000 R CNN
+F 2 "" H 4250 5175 50  0000 C CNN
+F 3 "" H 4250 5175 50  0000 C CNN
+	1    4250 5175
+	0    -1   -1   0   
+$EndComp
+Text Label 3475 3925 2    60   ~ 0
++12V_bat
+Text GLabel 4450 3925 2    60   Input ~ 0
++12V_power
+Text GLabel 4550 4825 2    60   Input ~ 0
+Enable_12V_power
+Text GLabel 4150 1275 2    60   Input ~ 0
++12V_IGN_Safe
+$Comp
+L Q_PMOS_GDS Q?
+U 1 1 57091D35
+P 4250 3475
+F 0 "Q?" V 4450 3475 50  0000 C CNN
+F 1 "Q_PMOS_GDS" V 4900 3100 50  0000 C CNN
+F 2 "" H 4450 3575 50  0000 C CNN
+F 3 "" H 4250 3475 50  0000 C CNN
+	1    4250 3475
+	0    -1   1    0   
+$EndComp
+Wire Wire Line
+	4050 3575 3900 3575
+Wire Wire Line
+	3900 3575 3900 3925
+Wire Wire Line
+	4450 3575 4450 3925
+Wire Wire Line
+	4250 3275 4025 3275
+Wire Wire Line
+	4025 3275 4025 4325
+Connection ~ 4025 4325
+$EndSCHEMATC

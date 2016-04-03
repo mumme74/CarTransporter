@@ -1,0 +1,2889 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<export version="D">
+  <design>
+    <source>/home/fredrikjohansson/elektronik/CarTransporter/electronics/airsuspension_controller.sch</source>
+    <date>lör  2 apr 2016 10:41:11</date>
+    <tool>Eeschema 0.201603210401+6634~43~ubuntu14.04.1-product</tool>
+    <sheet number="1" name="/" tstamps="/">
+      <title_block>
+        <title>ECU controller airsuspension</title>
+        <company/>
+        <rev>0.1</rev>
+        <date>3 aug 2015</date>
+        <source>airsuspension_controller.sch</source>
+        <comment number="1" value=""/>
+        <comment number="2" value=""/>
+        <comment number="3" value=""/>
+        <comment number="4" value=""/>
+      </title_block>
+    </sheet>
+    <sheet number="2" name="/Outputs/" tstamps="/5504B555/">
+      <title_block>
+        <title/>
+        <company/>
+        <rev/>
+        <date>3 aug 2015</date>
+        <source>airsuspension_outputs.sch</source>
+        <comment number="1" value=""/>
+        <comment number="2" value=""/>
+        <comment number="3" value=""/>
+        <comment number="4" value=""/>
+      </title_block>
+    </sheet>
+    <sheet number="3" name="/Inputs/" tstamps="/550626C9/">
+      <title_block>
+        <title/>
+        <company/>
+        <rev/>
+        <date>3 aug 2015</date>
+        <source>airsupsension_inputs.sch</source>
+        <comment number="1" value=""/>
+        <comment number="2" value=""/>
+        <comment number="3" value=""/>
+        <comment number="4" value=""/>
+      </title_block>
+    </sheet>
+    <sheet number="4" name="/CAN_bus/" tstamps="/55069990/">
+      <title_block>
+        <title/>
+        <company/>
+        <rev/>
+        <date>3 aug 2015</date>
+        <source>airsuspension_CAN.sch</source>
+        <comment number="1" value=""/>
+        <comment number="2" value=""/>
+        <comment number="3" value=""/>
+        <comment number="4" value=""/>
+      </title_block>
+    </sheet>
+    <sheet number="5" name="/5V power/" tstamps="/5507DD0F/">
+      <title_block>
+        <title/>
+        <company/>
+        <rev/>
+        <date>3 aug 2015</date>
+        <source>Airsuspension_5V.sch</source>
+        <comment number="1" value=""/>
+        <comment number="2" value=""/>
+        <comment number="3" value=""/>
+        <comment number="4" value=""/>
+      </title_block>
+    </sheet>
+    <sheet number="6" name="/Microcontroller/" tstamps="/550B97CC/">
+      <title_block>
+        <title/>
+        <company/>
+        <rev/>
+        <date>3 aug 2015</date>
+        <source>airsuspension_MCU.sch</source>
+        <comment number="1" value=""/>
+        <comment number="2" value=""/>
+        <comment number="3" value=""/>
+        <comment number="4" value=""/>
+      </title_block>
+    </sheet>
+  </design>
+  <components>
+    <comp ref="conn1">
+      <value>Conn48pin</value>
+      <footprint>cinch:Conn48pin</footprint>
+      <datasheet>http://www.farnell.com/datasheets/49878.pdf</datasheet>
+      <fields>
+        <field name="farnell">1282184</field>
+        <field name="part">5810148007</field>
+      </fields>
+      <libsource lib="cinch" part="Conn48pin"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>56FCC139</tstamp>
+    </comp>
+    <comp ref="Ha8">
+      <value>Cinch_SE_1heatsink</value>
+      <fields>
+        <field name="part">5810130042</field>
+        <field name="farnell">1282197</field>
+      </fields>
+      <libsource lib="miscellaneous" part="Hardware"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>56FF0A6B</tstamp>
+    </comp>
+    <comp ref="Ha9">
+      <value>Thermal_spring</value>
+      <fields>
+        <field name="part">5810000021</field>
+        <field name="farnell">1282203</field>
+      </fields>
+      <libsource lib="miscellaneous" part="Hardware"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>56FF0F10</tstamp>
+    </comp>
+    <comp ref="Ha10">
+      <value>Thermal pad</value>
+      <fields>
+        <field name="part">FCTS73-05N</field>
+        <field name="farnell">2289473</field>
+      </fields>
+      <libsource lib="miscellaneous" part="Hardware"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>56FF13B6</tstamp>
+    </comp>
+    <comp ref="Ha7">
+      <value>crimp connectors (200pieces)</value>
+      <fields>
+        <field name="part">4250000873</field>
+        <field name="farnell">1282210</field>
+      </fields>
+      <libsource lib="miscellaneous" part="Hardware"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>56FF381D</tstamp>
+    </comp>
+    <comp ref="Ha11">
+      <value>18pin_connector</value>
+      <fields>
+        <field name="part">5810118023</field>
+        <field name="farnell">1282205</field>
+      </fields>
+      <libsource lib="miscellaneous" part="Hardware"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>56FF3F46</tstamp>
+    </comp>
+    <comp ref="Ha12">
+      <value>30pin connector</value>
+      <fields>
+        <field name="part">5810130028</field>
+        <field name="farnell">1282206</field>
+      </fields>
+      <libsource lib="miscellaneous" part="Hardware"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>56FF4D0E</tstamp>
+    </comp>
+    <comp ref="U2">
+      <value>BTS6133D</value>
+      <footprint>kicad_lib:bts6133d</footprint>
+      <datasheet>http://www.farnell.com/datasheets/85594.pdf</datasheet>
+      <fields>
+        <field name="farnell">1440811</field>
+        <field name="part">BTS6133D</field>
+      </fields>
+      <libsource lib="power_switches" part="BTS6133D"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>5504B856</tstamp>
+    </comp>
+    <comp ref="U1">
+      <value>ITS5215L</value>
+      <footprint>kicad_lib:PG-DSO-12-2</footprint>
+      <datasheet>http://www.farnell.com/datasheets/85674.pdf</datasheet>
+      <fields>
+        <field name="part">ITS5215L</field>
+        <field name="farnell">1426197</field>
+      </fields>
+      <libsource lib="power_switches" part="ITS5215L"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>5504BA72</tstamp>
+    </comp>
+    <comp ref="VR1">
+      <value>14V</value>
+      <footprint>Resistors_SMD:R_1206_HandSoldering</footprint>
+      <datasheet>http://www.farnell.com/datasheets/1228202.pdf</datasheet>
+      <fields>
+        <field name="part">V14MLA1206NHAUTO</field>
+        <field name="farnell">1863849</field>
+      </fields>
+      <libsource lib="device" part="VR"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>5504BB91</tstamp>
+    </comp>
+    <comp ref="C1">
+      <value>1000uF</value>
+      <footprint>kicad_lib:SMD_Cap_16x16.5</footprint>
+      <datasheet>http://www.farnell.com/datasheets/1884702.pdf</datasheet>
+      <fields>
+        <field name="part">EEEFK1H102AM</field>
+        <field name="farnell">1850136</field>
+      </fields>
+      <libsource lib="airsuspension_controller-cache" part="CP2"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>5504BBC9</tstamp>
+    </comp>
+    <comp ref="C3">
+      <value>220nF</value>
+      <footprint>Capacitors_SMD:C_0805</footprint>
+      <fields>
+        <field name="farnell">1288261</field>
+        <field name="part">C0805C224K5RACTU</field>
+      </fields>
+      <libsource lib="device" part="C"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>5504BBF3</tstamp>
+    </comp>
+    <comp ref="C2">
+      <value>220nF</value>
+      <footprint>Capacitors_SMD:C_0805</footprint>
+      <fields>
+        <field name="farnell">1288261</field>
+        <field name="part">C0805C224K5RACTU</field>
+      </fields>
+      <libsource lib="device" part="C"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>5504BEDF</tstamp>
+    </comp>
+    <comp ref="R4">
+      <value>500</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">1469936</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>5504D11A</tstamp>
+    </comp>
+    <comp ref="R5">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>5504D232</tstamp>
+    </comp>
+    <comp ref="D2">
+      <value>3.3V</value>
+      <footprint>Diodes_SMD:SOD-323</footprint>
+      <fields>
+        <field name="part">PDZ3.3B.115</field>
+        <field name="farnell">1757856</field>
+      </fields>
+      <libsource lib="device" part="ZENER"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>5504D4F7</tstamp>
+    </comp>
+    <comp ref="R8">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>5504D59F</tstamp>
+    </comp>
+    <comp ref="R10">
+      <value>4.7k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">2333572</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>5504DA08</tstamp>
+    </comp>
+    <comp ref="R11">
+      <value>10k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332391</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>5504DA49</tstamp>
+    </comp>
+    <comp ref="D5">
+      <value>3.3V</value>
+      <footprint>Diodes_SMD:SOD-323</footprint>
+      <fields>
+        <field name="part">PDZ3.3B.115</field>
+        <field name="farnell">1757856</field>
+      </fields>
+      <libsource lib="device" part="ZENER"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>5504DB59</tstamp>
+    </comp>
+    <comp ref="R6">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>5504E490</tstamp>
+    </comp>
+    <comp ref="D3">
+      <value>CompressorLED</value>
+      <footprint>LEDs:LED_0805</footprint>
+      <fields>
+        <field name="part">KP-2012CGCK</field>
+        <field name="farnell">2290331</field>
+      </fields>
+      <libsource lib="device" part="LED"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>5504E4D3</tstamp>
+    </comp>
+    <comp ref="R2">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>5504F3D9</tstamp>
+    </comp>
+    <comp ref="R1">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>5504F42D</tstamp>
+    </comp>
+    <comp ref="R7">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>550503BC</tstamp>
+    </comp>
+    <comp ref="R9">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>55050425</tstamp>
+    </comp>
+    <comp ref="D1">
+      <value>RightFill_Led</value>
+      <footprint>LEDs:LED_0805</footprint>
+      <fields>
+        <field name="part">KP-2012CGCK</field>
+        <field name="farnell">2290331</field>
+      </fields>
+      <libsource lib="device" part="LED"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>5505046F</tstamp>
+    </comp>
+    <comp ref="D4">
+      <value>LeftFill_Led</value>
+      <footprint>LEDs:LED_0805</footprint>
+      <fields>
+        <field name="part">KP-2012CGCK</field>
+        <field name="farnell">2290331</field>
+      </fields>
+      <libsource lib="device" part="LED"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>550504CA</tstamp>
+    </comp>
+    <comp ref="R3">
+      <value>150R</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">1469877</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>55051552</tstamp>
+    </comp>
+    <comp ref="U4">
+      <value>ITS5215L</value>
+      <footprint>kicad_lib:PG-DSO-12-2</footprint>
+      <fields>
+        <field name="farnell">1426197</field>
+        <field name="part">ITS5215L</field>
+      </fields>
+      <libsource lib="power_switches" part="ITS5215L"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>550562FB</tstamp>
+    </comp>
+    <comp ref="C5">
+      <value>220nF</value>
+      <footprint>Capacitors_SMD:C_0805</footprint>
+      <fields>
+        <field name="farnell">1288261</field>
+        <field name="part">C0805C224K5RACTU</field>
+      </fields>
+      <libsource lib="device" part="C"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>55056307</tstamp>
+    </comp>
+    <comp ref="R17">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>55056312</tstamp>
+    </comp>
+    <comp ref="R15">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>55056318</tstamp>
+    </comp>
+    <comp ref="R23">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>55056326</tstamp>
+    </comp>
+    <comp ref="R24">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>5505632C</tstamp>
+    </comp>
+    <comp ref="D8">
+      <value>Spare1_Led</value>
+      <footprint>LEDs:LED_0805</footprint>
+      <fields>
+        <field name="farnell">2290331</field>
+        <field name="part">KP-2012CGCK</field>
+      </fields>
+      <libsource lib="device" part="LED"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>55056332</tstamp>
+    </comp>
+    <comp ref="D9">
+      <value>Airdryer_Led</value>
+      <footprint>LEDs:LED_0805</footprint>
+      <fields>
+        <field name="part">KP-2012CGCK</field>
+        <field name="farnell">2290331</field>
+      </fields>
+      <libsource lib="device" part="LED"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>55056338</tstamp>
+    </comp>
+    <comp ref="R19">
+      <value>150R</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">1469877</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>5505634A</tstamp>
+    </comp>
+    <comp ref="U5">
+      <value>ITS5215L</value>
+      <footprint>kicad_lib:PG-DSO-12-2</footprint>
+      <fields>
+        <field name="farnell">1426197</field>
+        <field name="part">ITS5215L</field>
+      </fields>
+      <libsource lib="power_switches" part="ITS5215L"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>55056818</tstamp>
+    </comp>
+    <comp ref="C6">
+      <value>220nF</value>
+      <footprint>Capacitors_SMD:C_0805</footprint>
+      <fields>
+        <field name="farnell">1288261</field>
+        <field name="part">C0805C224K5RACTU</field>
+      </fields>
+      <libsource lib="device" part="C"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>55056824</tstamp>
+    </comp>
+    <comp ref="R21">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>5505682F</tstamp>
+    </comp>
+    <comp ref="R20">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>55056835</tstamp>
+    </comp>
+    <comp ref="R25">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>55056843</tstamp>
+    </comp>
+    <comp ref="R26">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>55056849</tstamp>
+    </comp>
+    <comp ref="D10">
+      <value>RightSuck_Led</value>
+      <footprint>LEDs:LED_0805</footprint>
+      <fields>
+        <field name="farnell">2290331</field>
+        <field name="part">KP-2012CGCK</field>
+      </fields>
+      <libsource lib="device" part="LED"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>5505684F</tstamp>
+    </comp>
+    <comp ref="D11">
+      <value>LeftSuck_Led</value>
+      <footprint>LEDs:LED_0805</footprint>
+      <fields>
+        <field name="part">KP-2012CGCK</field>
+        <field name="farnell">2290331</field>
+      </fields>
+      <libsource lib="device" part="LED"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>55056855</tstamp>
+    </comp>
+    <comp ref="R22">
+      <value>150R</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">1469877</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>55056867</tstamp>
+    </comp>
+    <comp ref="U3">
+      <value>ITS5215L</value>
+      <footprint>kicad_lib:PG-DSO-12-2</footprint>
+      <fields>
+        <field name="farnell">1426197</field>
+        <field name="part">ITS5215L</field>
+      </fields>
+      <libsource lib="power_switches" part="ITS5215L"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>55056A5C</tstamp>
+    </comp>
+    <comp ref="C4">
+      <value>220nF</value>
+      <footprint>Capacitors_SMD:C_0805</footprint>
+      <fields>
+        <field name="farnell">1288261</field>
+        <field name="part">C0805C224K5RACTU</field>
+      </fields>
+      <libsource lib="device" part="C"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>55056A68</tstamp>
+    </comp>
+    <comp ref="R13">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>55056A73</tstamp>
+    </comp>
+    <comp ref="R12">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>55056A79</tstamp>
+    </comp>
+    <comp ref="R16">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>55056A87</tstamp>
+    </comp>
+    <comp ref="R18">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>55056A8D</tstamp>
+    </comp>
+    <comp ref="D6">
+      <value>RightDump_Led</value>
+      <footprint>LEDs:LED_0805</footprint>
+      <fields>
+        <field name="farnell">2290331</field>
+        <field name="part">KP-2012CGCK</field>
+      </fields>
+      <libsource lib="device" part="LED"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>55056A93</tstamp>
+    </comp>
+    <comp ref="D7">
+      <value>LeftDump_Led</value>
+      <footprint>LEDs:LED_0805</footprint>
+      <fields>
+        <field name="part">KP-2012CGCK</field>
+        <field name="farnell">2290331</field>
+      </fields>
+      <libsource lib="device" part="LED"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>55056A99</tstamp>
+    </comp>
+    <comp ref="R14">
+      <value>150R</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">1469877</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>55056AAB</tstamp>
+    </comp>
+    <comp ref="Q2">
+      <value>BC847</value>
+      <footprint>TO_SOT_Packages_SMD:SOT-23_Handsoldering</footprint>
+      <fields>
+        <field name="farnell">1773609</field>
+        <field name="part">BC847</field>
+      </fields>
+      <libsource lib="transistors" part="BC850"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>550FDF30</tstamp>
+    </comp>
+    <comp ref="Q1">
+      <value>BSS138</value>
+      <footprint>TO_SOT_Packages_SMD:SOT-23_Handsoldering</footprint>
+      <fields>
+        <field name="farnell">2053833</field>
+        <field name="part">BSS138BK</field>
+      </fields>
+      <libsource lib="transistors" part="BSS138"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>550FEDB0</tstamp>
+    </comp>
+    <comp ref="R54">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Outputs/" tstamps="/5504B555/"/>
+      <tstamp>56FAA483</tstamp>
+    </comp>
+    <comp ref="U6">
+      <value>LM224</value>
+      <footprint>SMD_Packages:SOIC-14_N</footprint>
+      <datasheet>http://www.farnell.com/datasheets/81842.pdf</datasheet>
+      <fields>
+        <field name="part">LM224DR2G</field>
+        <field name="farnell">1426352</field>
+      </fields>
+      <libsource lib="airsuspension_controller-rescue" part="LM324AN-RESCUE-airsuspension_controller"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505A221</tstamp>
+    </comp>
+    <comp ref="C7">
+      <value>1uF</value>
+      <footprint>Capacitors_SMD:C_0805</footprint>
+      <fields>
+        <field name="part">C0805C105K5RACTU</field>
+        <field name="farnell">2118131</field>
+      </fields>
+      <libsource lib="device" part="C"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505A269</tstamp>
+    </comp>
+    <comp ref="R27">
+      <value>10k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332391</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505A2E3</tstamp>
+    </comp>
+    <comp ref="R29">
+      <value>500R</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">1469936</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505A316</tstamp>
+    </comp>
+    <comp ref="R30">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505A338</tstamp>
+    </comp>
+    <comp ref="C9">
+      <value>220nF</value>
+      <footprint>Capacitors_SMD:C_0805</footprint>
+      <fields>
+        <field name="part">C0805C224K5RACTU</field>
+        <field name="farnell">1288261</field>
+      </fields>
+      <libsource lib="device" part="C"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505A5E5</tstamp>
+    </comp>
+    <comp ref="F1">
+      <value>15R PTC fuse</value>
+      <footprint>Resistors_SMD:R_1210</footprint>
+      <datasheet>http://www.farnell.com/datasheets/1468628.pdf</datasheet>
+      <fields>
+        <field name="farnell">1345917</field>
+        <field name="part">MICROSMD010F-2</field>
+      </fields>
+      <libsource lib="device" part="VR"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505A754</tstamp>
+    </comp>
+    <comp ref="C8">
+      <value>1uF</value>
+      <footprint>Capacitors_SMD:C_0805</footprint>
+      <fields>
+        <field name="farnell">2118131</field>
+        <field name="part">C0805C105K5RACTU</field>
+      </fields>
+      <libsource lib="device" part="C"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505C0E1</tstamp>
+    </comp>
+    <comp ref="R28">
+      <value>10k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332391</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505C0E7</tstamp>
+    </comp>
+    <comp ref="R31">
+      <value>500R</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">1469936</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505C0ED</tstamp>
+    </comp>
+    <comp ref="R32">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505C0F3</tstamp>
+    </comp>
+    <comp ref="F2">
+      <value>15R PTC fuse</value>
+      <footprint>Resistors_SMD:R_1210</footprint>
+      <fields>
+        <field name="part">MICROSMD010F-2</field>
+        <field name="farnell">1345917</field>
+      </fields>
+      <libsource lib="device" part="VR"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505C11F</tstamp>
+    </comp>
+    <comp ref="C11">
+      <value>1uF</value>
+      <footprint>Capacitors_SMD:C_0805</footprint>
+      <fields>
+        <field name="farnell">2118131</field>
+        <field name="part">C0805C105K5RACTU</field>
+      </fields>
+      <libsource lib="device" part="C"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505C81E</tstamp>
+    </comp>
+    <comp ref="R33">
+      <value>10k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332391</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505C824</tstamp>
+    </comp>
+    <comp ref="R35">
+      <value>500R</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">1469936</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505C82A</tstamp>
+    </comp>
+    <comp ref="R36">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505C830</tstamp>
+    </comp>
+    <comp ref="F3">
+      <value>15R PTC fuse</value>
+      <footprint>Resistors_SMD:R_1210</footprint>
+      <fields>
+        <field name="farnell">1345917</field>
+        <field name="part">MICROSMD010F-2</field>
+      </fields>
+      <libsource lib="device" part="VR"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505C85C</tstamp>
+    </comp>
+    <comp ref="C13">
+      <value>1uF</value>
+      <footprint>Capacitors_SMD:C_0805</footprint>
+      <fields>
+        <field name="farnell">2118131</field>
+        <field name="part">C0805C105K5RACTU</field>
+      </fields>
+      <libsource lib="device" part="C"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505CD79</tstamp>
+    </comp>
+    <comp ref="R39">
+      <value>10k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332391</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505CD7F</tstamp>
+    </comp>
+    <comp ref="R42">
+      <value>500R</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">1469936</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505CD85</tstamp>
+    </comp>
+    <comp ref="R43">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505CD8B</tstamp>
+    </comp>
+    <comp ref="F5">
+      <value>15R PTC fuse</value>
+      <footprint>Resistors_SMD:R_1210</footprint>
+      <fields>
+        <field name="part">MICROSMD010F-2</field>
+        <field name="farnell">1345917</field>
+      </fields>
+      <libsource lib="device" part="VR"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505CDAB</tstamp>
+    </comp>
+    <comp ref="U7">
+      <value>LM224</value>
+      <footprint>SMD_Packages:SOIC-14_N</footprint>
+      <datasheet>http://www.farnell.com/datasheets/81842.pdf</datasheet>
+      <fields>
+        <field name="part">LM224DR2G</field>
+        <field name="farnell">1426352</field>
+      </fields>
+      <libsource lib="airsuspension_controller-rescue" part="LM324AN-RESCUE-airsuspension_controller"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505CDB8</tstamp>
+    </comp>
+    <comp ref="C15">
+      <value>1uF</value>
+      <footprint>Capacitors_SMD:C_0805</footprint>
+      <fields>
+        <field name="farnell">2118131</field>
+        <field name="part">C0805C105K5RACTU</field>
+      </fields>
+      <libsource lib="device" part="C"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505D4EB</tstamp>
+    </comp>
+    <comp ref="R47">
+      <value>10k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332391</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505D4F1</tstamp>
+    </comp>
+    <comp ref="R49">
+      <value>500R</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">1469936</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505D4F7</tstamp>
+    </comp>
+    <comp ref="R50">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505D4FD</tstamp>
+    </comp>
+    <comp ref="F7">
+      <value>15R PTC fuse</value>
+      <footprint>Resistors_SMD:R_1210</footprint>
+      <fields>
+        <field name="part">MICROSMD010F-2</field>
+        <field name="farnell">1345917</field>
+      </fields>
+      <libsource lib="device" part="VR"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505D51D</tstamp>
+    </comp>
+    <comp ref="C12">
+      <value>1uF</value>
+      <footprint>Capacitors_SMD:C_0805</footprint>
+      <fields>
+        <field name="farnell">2118131</field>
+        <field name="part">C0805C105K5RACTU</field>
+      </fields>
+      <libsource lib="device" part="C"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505D6D1</tstamp>
+    </comp>
+    <comp ref="R34">
+      <value>10k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332391</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505D6D7</tstamp>
+    </comp>
+    <comp ref="R37">
+      <value>500R</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">1469936</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505D6DD</tstamp>
+    </comp>
+    <comp ref="R38">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505D6E3</tstamp>
+    </comp>
+    <comp ref="F4">
+      <value>15R PTC fuse</value>
+      <footprint>Resistors_SMD:R_1210</footprint>
+      <fields>
+        <field name="part">MICROSMD010F-2</field>
+        <field name="farnell">1345917</field>
+      </fields>
+      <libsource lib="device" part="VR"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505D703</tstamp>
+    </comp>
+    <comp ref="C14">
+      <value>1uF</value>
+      <footprint>Capacitors_SMD:C_0805</footprint>
+      <fields>
+        <field name="farnell">2118131</field>
+        <field name="part">C0805C105K5RACTU</field>
+      </fields>
+      <libsource lib="device" part="C"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505D864</tstamp>
+    </comp>
+    <comp ref="R41">
+      <value>10k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332391</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505D86A</tstamp>
+    </comp>
+    <comp ref="R44">
+      <value>500R</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">1469936</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505D870</tstamp>
+    </comp>
+    <comp ref="R45">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505D876</tstamp>
+    </comp>
+    <comp ref="F6">
+      <value>15R PTC fuse</value>
+      <footprint>Resistors_SMD:R_1210</footprint>
+      <fields>
+        <field name="part">MICROSMD010F-2</field>
+        <field name="farnell">1345917</field>
+      </fields>
+      <libsource lib="device" part="VR"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505D896</tstamp>
+    </comp>
+    <comp ref="R40">
+      <value>2k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332766</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505DC41</tstamp>
+    </comp>
+    <comp ref="C16">
+      <value>1uF</value>
+      <footprint>Capacitors_SMD:C_0805</footprint>
+      <fields>
+        <field name="farnell">2118131</field>
+        <field name="part">C0805C105K5RACTU</field>
+      </fields>
+      <libsource lib="device" part="C"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505E934</tstamp>
+    </comp>
+    <comp ref="R48">
+      <value>10k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332391</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505E93A</tstamp>
+    </comp>
+    <comp ref="R51">
+      <value>500R</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">1469936</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505E940</tstamp>
+    </comp>
+    <comp ref="R52">
+      <value>1k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332383</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505E946</tstamp>
+    </comp>
+    <comp ref="F8">
+      <value>15R PTC fuse</value>
+      <footprint>Resistors_SMD:R_1210</footprint>
+      <fields>
+        <field name="part">MICROSMD010F-2</field>
+        <field name="farnell">1345917</field>
+      </fields>
+      <libsource lib="device" part="VR"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505E965</tstamp>
+    </comp>
+    <comp ref="R46">
+      <value>2k</value>
+      <footprint>Resistors_SMD:R_0805</footprint>
+      <fields>
+        <field name="farnell">9332766</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5505E978</tstamp>
+    </comp>
+    <comp ref="C10">
+      <value>220nF</value>
+      <footprint>Capacitors_SMD:C_0805</footprint>
+      <fields>
+        <field name="part">C0805C224K5RACTU</field>
+        <field name="farnell">1288261</field>
+      </fields>
+      <libsource lib="device" part="C"/>
+      <sheetpath names="/Inputs/" tstamps="/550626C9/"/>
+      <tstamp>5511D541</tstamp>
+    </comp>
+    <comp ref="U8">
+      <value>SN65HVD1050D</value>
+      <footprint>Housings_SOIC:SOIC-8_3.9x4.9mm_Pitch1.27mm</footprint>
+      <datasheet>http://www.farnell.com/datasheets/1804905.pdf</datasheet>
+      <fields>
+        <field name="farnell">1220984</field>
+        <field name="part">SN65HVD1050D</field>
+      </fields>
+      <libsource lib="miscellaneous" part="SN65HVD1050D"/>
+      <sheetpath names="/CAN_bus/" tstamps="/55069990/"/>
+      <tstamp>55069C80</tstamp>
+    </comp>
+    <comp ref="R53">
+      <value>120R</value>
+      <footprint>Resistors_SMD:R_0805_HandSoldering</footprint>
+      <datasheet>http://www.farnell.com/datasheets/1678782.pdf</datasheet>
+      <fields>
+        <field name="farnell">2303452</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/CAN_bus/" tstamps="/55069990/"/>
+      <tstamp>55069CB3</tstamp>
+    </comp>
+    <comp ref="C17">
+      <value>220nF</value>
+      <footprint>Capacitors_SMD:C_0805</footprint>
+      <fields>
+        <field name="farnell">1288261</field>
+        <field name="part">C0805C224K5RACTU</field>
+      </fields>
+      <libsource lib="device" part="C"/>
+      <sheetpath names="/CAN_bus/" tstamps="/55069990/"/>
+      <tstamp>55069D36</tstamp>
+    </comp>
+    <comp ref="JP2">
+      <value>CAN_Silent</value>
+      <footprint>Oddities:NetTie-I_SMD</footprint>
+      <fields>
+        <field name="part"> </field>
+        <field name="farnell"> </field>
+      </fields>
+      <libsource lib="device" part="JUMPER"/>
+      <sheetpath names="/CAN_bus/" tstamps="/55069990/"/>
+      <tstamp>55069F8E</tstamp>
+    </comp>
+    <comp ref="R55">
+      <value>10k</value>
+      <footprint>Resistors_SMD:R_0805_HandSoldering</footprint>
+      <fields>
+        <field name="farnell">9332391</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/CAN_bus/" tstamps="/55069990/"/>
+      <tstamp>56FA4041</tstamp>
+    </comp>
+    <comp ref="U11">
+      <value>MC34063</value>
+      <footprint>Housings_SOIC:SOIC-8_3.9x4.9mm_Pitch1.27mm</footprint>
+      <fields>
+        <field name="farnell">1087205</field>
+        <field name="part">MC34063ABD-TR</field>
+      </fields>
+      <libsource lib="regul" part="MC34063"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56F98FC6</tstamp>
+    </comp>
+    <comp ref="R58">
+      <value>1.2k</value>
+      <footprint>Resistors_SMD:R_0805_HandSoldering</footprint>
+      <fields>
+        <field name="farnell">9332499</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56F990BE</tstamp>
+    </comp>
+    <comp ref="R60">
+      <value>3.6k</value>
+      <footprint>Resistors_SMD:R_0805_HandSoldering</footprint>
+      <fields>
+        <field name="farnell">9333118</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56F99108</tstamp>
+    </comp>
+    <comp ref="C21">
+      <value>100n</value>
+      <footprint>Capacitors_SMD:C_0805_HandSoldering</footprint>
+      <fields>
+        <field name="farnell">2496940</field>
+        <field name="part">0805B104J500CT</field>
+      </fields>
+      <libsource lib="device" part="C"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56F991A6</tstamp>
+    </comp>
+    <comp ref="D15">
+      <value>1n4148w</value>
+      <footprint>Diodes_SMD:SOD-323</footprint>
+      <fields>
+        <field name="farnell">1466524</field>
+      </fields>
+      <libsource lib="device" part="D"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56F99296</tstamp>
+    </comp>
+    <comp ref="R57">
+      <value>0.031</value>
+      <footprint>Resistors_SMD:R_1206_HandSoldering</footprint>
+      <fields>
+        <field name="farnell">1099911</field>
+        <field name="part">LR1206-R033FW</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56F997E0</tstamp>
+    </comp>
+    <comp ref="C22">
+      <value>1n</value>
+      <footprint>Capacitors_SMD:C_0805_HandSoldering</footprint>
+      <fields>
+        <field name="farnell">2496932</field>
+        <field name="part">0805B102J500CT</field>
+      </fields>
+      <libsource lib="device" part="C"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56F99978</tstamp>
+    </comp>
+    <comp ref="L1">
+      <value>SRR1240-180M 17.4uH</value>
+      <footprint>Inductors_NEOSID:Neosid_Inductor_SM-NE127</footprint>
+      <fields>
+        <field name="farnell">2333725</field>
+      </fields>
+      <libsource lib="device" part="INDUCTOR_SMALL"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56F9A4C5</tstamp>
+    </comp>
+    <comp ref="Q6">
+      <value>IPD060N03L G</value>
+      <footprint>TO_SOT_Packages_SMD:TO-252-2Lead</footprint>
+      <fields>
+        <field name="farnell">1775575</field>
+      </fields>
+      <libsource lib="device" part="Q_NMOS_GDS"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56F9B69F</tstamp>
+    </comp>
+    <comp ref="C23">
+      <value>100n</value>
+      <footprint>Capacitors_SMD:C_0805_HandSoldering</footprint>
+      <fields>
+        <field name="part">0805B104J500CT</field>
+        <field name="farnell">2496940</field>
+      </fields>
+      <libsource lib="device" part="C"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56F9B9F9</tstamp>
+    </comp>
+    <comp ref="D13">
+      <value>1n4148w</value>
+      <footprint>Diodes_SMD:SOD-323</footprint>
+      <fields>
+        <field name="farnell">1466524</field>
+      </fields>
+      <libsource lib="device" part="D"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56F9C22A</tstamp>
+    </comp>
+    <comp ref="R61">
+      <value>10k</value>
+      <footprint>Resistors_SMD:R_0805_HandSoldering</footprint>
+      <fields>
+        <field name="farnell">9332391</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56F9C3BD</tstamp>
+    </comp>
+    <comp ref="Q5">
+      <value>BC856</value>
+      <footprint>TO_SOT_Packages_SMD:SOT-23_Handsoldering</footprint>
+      <fields>
+        <field name="part">BC856B-7-F</field>
+        <field name="farnell">1773623</field>
+      </fields>
+      <libsource lib="transistors" part="BC856"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56F9C453</tstamp>
+    </comp>
+    <comp ref="R62">
+      <value>10</value>
+      <footprint>Resistors_SMD:R_0805_HandSoldering</footprint>
+      <fields>
+        <field name="farnell">9332766</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56F9C914</tstamp>
+    </comp>
+    <comp ref="D14">
+      <value>schotky</value>
+      <footprint>Diodes_SMD:DO-214AB_Handsoldering</footprint>
+      <fields>
+        <field name="farnell">9557377</field>
+        <field name="part">MBRS340T3G</field>
+      </fields>
+      <libsource lib="device" part="D_Schottky"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56F9CBEC</tstamp>
+    </comp>
+    <comp ref="C24">
+      <value>680uF</value>
+      <footprint>Capacitors_SMD:c_elec_10x10.5</footprint>
+      <fields>
+        <field name="part">EEEHAC681UAP</field>
+        <field name="farnell">2326228</field>
+      </fields>
+      <libsource lib="device" part="CP"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56F9D763</tstamp>
+    </comp>
+    <comp ref="L2">
+      <value>SRR1240-180M 17.4uH</value>
+      <footprint>Inductors_NEOSID:Neosid_Inductor_SM-NE127</footprint>
+      <fields>
+        <field name="farnell">2333725</field>
+      </fields>
+      <libsource lib="device" part="INDUCTOR_SMALL"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56F9D7B7</tstamp>
+    </comp>
+    <comp ref="C25">
+      <value>680uF</value>
+      <footprint>Capacitors_SMD:c_elec_10x10.5</footprint>
+      <fields>
+        <field name="farnell">2326228</field>
+        <field name="part">EEEHAC681UAP</field>
+      </fields>
+      <libsource lib="device" part="CP"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56F9D859</tstamp>
+    </comp>
+    <comp ref="Q4">
+      <value>BC856</value>
+      <footprint>TO_SOT_Packages_SMD:SOT-23_Handsoldering</footprint>
+      <fields>
+        <field name="farnell">1773623</field>
+        <field name="part">BC856B-7-F</field>
+      </fields>
+      <libsource lib="transistors" part="BC856"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56FA0342</tstamp>
+    </comp>
+    <comp ref="R59">
+      <value>10k</value>
+      <footprint>Resistors_SMD:R_0805_HandSoldering</footprint>
+      <fields>
+        <field name="farnell">9332391</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56FA063C</tstamp>
+    </comp>
+    <comp ref="Q3">
+      <value>IPD50P04P4L-11</value>
+      <footprint>TO_SOT_Packages_SMD:TO-252-2Lead</footprint>
+      <fields>
+        <field name="farnell">2443434</field>
+        <field name="part">IPD50P04P4L-11</field>
+      </fields>
+      <libsource lib="device" part="Q_PMOS_GDS"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56FA2337</tstamp>
+    </comp>
+    <comp ref="R56">
+      <value>10k</value>
+      <footprint>Resistors_SMD:R_0805_HandSoldering</footprint>
+      <fields>
+        <field name="farnell">9332391</field>
+      </fields>
+      <libsource lib="device" part="R"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56FA2497</tstamp>
+    </comp>
+    <comp ref="D12">
+      <value>10v</value>
+      <footprint>Diodes_SMD:SOD-323</footprint>
+      <fields>
+        <field name="farnell">1466026</field>
+        <field name="part">BZT52C10S</field>
+      </fields>
+      <libsource lib="device" part="ZENER"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56FA260A</tstamp>
+    </comp>
+    <comp ref="C19">
+      <value>680uF</value>
+      <footprint>Capacitors_SMD:c_elec_10x10.5</footprint>
+      <fields>
+        <field name="part">EEEHAC681UAP</field>
+        <field name="farnell">2326228</field>
+      </fields>
+      <libsource lib="device" part="CP"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56FA26D4</tstamp>
+    </comp>
+    <comp ref="VR2">
+      <value>VR</value>
+      <footprint>Resistors_SMD:R_1206_HandSoldering</footprint>
+      <fields>
+        <field name="farnell">1301938</field>
+        <field name="part">VC120618A400DP</field>
+      </fields>
+      <libsource lib="device" part="VR"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56FA28D9</tstamp>
+    </comp>
+    <comp ref="U9">
+      <value>LD1117S33CTR</value>
+      <footprint>TO_SOT_Packages_SMD:SOT-223</footprint>
+      <fields>
+        <field name="farnell">1467779</field>
+      </fields>
+      <libsource lib="regul" part="LD1117S33CTR"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56FA68CB</tstamp>
+    </comp>
+    <comp ref="C20">
+      <value>10uF</value>
+      <footprint>Capacitors_SMD:C_1206_HandSoldering</footprint>
+      <fields>
+        <field name="farnell">1463368</field>
+      </fields>
+      <libsource lib="device" part="C"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56FA6D19</tstamp>
+    </comp>
+    <comp ref="C18">
+      <value>100nF</value>
+      <footprint>Capacitors_SMD:C_0805_HandSoldering</footprint>
+      <fields>
+        <field name="farnell">2496940</field>
+      </fields>
+      <libsource lib="device" part="C"/>
+      <sheetpath names="/5V power/" tstamps="/5507DD0F/"/>
+      <tstamp>56FA6FD9</tstamp>
+    </comp>
+    <comp ref="U10">
+      <value>Teensy3.1</value>
+      <footprint>kicad_lib:teensy3.1_w_underside</footprint>
+      <datasheet>https://www.pjrc.com/teensy/pinout.html</datasheet>
+      <fields>
+        <field name="part">Teensy3.1</field>
+      </fields>
+      <libsource lib="teensy" part="Teensy3.1"/>
+      <sheetpath names="/Microcontroller/" tstamps="/550B97CC/"/>
+      <tstamp>550B9955</tstamp>
+    </comp>
+    <comp ref="Ha1">
+      <value>14Pin dual row header male</value>
+      <fields>
+        <field name="farnell">2356135</field>
+      </fields>
+      <libsource lib="miscellaneous" part="Hardware"/>
+      <sheetpath names="/Microcontroller/" tstamps="/550B97CC/"/>
+      <tstamp>56FA5E51</tstamp>
+    </comp>
+    <comp ref="Ha2">
+      <value>8Pin dual row header male</value>
+      <fields>
+        <field name="farnell">2356133</field>
+      </fields>
+      <libsource lib="miscellaneous" part="Hardware"/>
+      <sheetpath names="/Microcontroller/" tstamps="/550B97CC/"/>
+      <tstamp>56FA5EE0</tstamp>
+    </comp>
+    <comp ref="Ha3">
+      <value>14Pin single row header female</value>
+      <fields>
+        <field name="farnell">1667519</field>
+      </fields>
+      <libsource lib="miscellaneous" part="Hardware"/>
+      <sheetpath names="/Microcontroller/" tstamps="/550B97CC/"/>
+      <tstamp>56FA5F48</tstamp>
+    </comp>
+    <comp ref="Ha4">
+      <value>14Pin single row header female</value>
+      <fields>
+        <field name="farnell">1667519</field>
+        <field name="part">CES-114-01-T-S</field>
+      </fields>
+      <libsource lib="miscellaneous" part="Hardware"/>
+      <sheetpath names="/Microcontroller/" tstamps="/550B97CC/"/>
+      <tstamp>56FA5FAE</tstamp>
+    </comp>
+    <comp ref="Ha5">
+      <value>14pin single row header female</value>
+      <fields>
+        <field name="farnell">1667519</field>
+      </fields>
+      <libsource lib="miscellaneous" part="Hardware"/>
+      <sheetpath names="/Microcontroller/" tstamps="/550B97CC/"/>
+      <tstamp>56FA63C9</tstamp>
+    </comp>
+    <comp ref="Ha6">
+      <value>14pin single row header female</value>
+      <fields>
+        <field name="farnell">1667519</field>
+      </fields>
+      <libsource lib="miscellaneous" part="Hardware"/>
+      <sheetpath names="/Microcontroller/" tstamps="/550B97CC/"/>
+      <tstamp>56FAC00B</tstamp>
+    </comp>
+  </components>
+  <libparts>
+    <libpart lib="transistors" part="BC850">
+      <aliases>
+        <alias>BC849</alias>
+      </aliases>
+      <description>45V Vce, 0.1A Ic, Low noise, NPN, SOT-23</description>
+      <docs>http://www.fairchildsemi.com/ds/BC/BC850.pdf</docs>
+      <footprints>
+        <fp>SOT-23*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">Q</field>
+        <field name="Value">BC850</field>
+        <field name="Footprint">SOT-23</field>
+      </fields>
+      <pins>
+        <pin num="1" name="B" type="input"/>
+        <pin num="2" name="E" type="passive"/>
+        <pin num="3" name="C" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="transistors" part="BC856">
+      <aliases>
+        <alias>BC857</alias>
+        <alias>BC858</alias>
+      </aliases>
+      <description>65V Vce, 0.1A Ic, PNP, SOT-23</description>
+      <docs>http://www.fairchildsemi.com/ds/BC/BC856.pdf</docs>
+      <footprints>
+        <fp>SOT-23*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">Q</field>
+        <field name="Value">BC856</field>
+        <field name="Footprint">SOT-23</field>
+      </fields>
+      <pins>
+        <pin num="1" name="B" type="input"/>
+        <pin num="2" name="E" type="passive"/>
+        <pin num="3" name="C" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="transistors" part="BSS138">
+      <description>50V Vds, 0.22A Id, N-Channel MOSFET, SOT-23</description>
+      <docs>http://www.fairchildsemi.com/ds/BS/BSS138.pdf</docs>
+      <footprints>
+        <fp>SOT-23*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">Q</field>
+        <field name="Value">BSS138</field>
+        <field name="Footprint">SOT-23</field>
+      </fields>
+      <pins>
+        <pin num="1" name="G" type="passive"/>
+        <pin num="2" name="S" type="passive"/>
+        <pin num="3" name="D" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="power_switches" part="BTS6133D">
+      <description>Highside powerswitch 33A</description>
+      <footprints>
+        <fp>TO252-5</fp>
+        <fp>DPAK5</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">BTS6133D</field>
+      </fields>
+      <pins>
+        <pin num="1" name="OUT" type="passive"/>
+        <pin num="2" name="IN" type="BiDi"/>
+        <pin num="3" name="+Vbb" type="power_in"/>
+        <pin num="4" name="IS" type="output"/>
+        <pin num="5" name="OUT" type="power_out"/>
+        <pin num="tab" name="+Vbb" type="power_in"/>
+      </pins>
+    </libpart>
+    <libpart lib="device" part="C">
+      <description>Unpolarized capacitor</description>
+      <footprints>
+        <fp>C?</fp>
+        <fp>C_????_*</fp>
+        <fp>C_????</fp>
+        <fp>SMD*_c</fp>
+        <fp>Capacitor*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">C</field>
+        <field name="Value">C</field>
+      </fields>
+      <pins>
+        <pin num="1" name="~" type="passive"/>
+        <pin num="2" name="~" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="device" part="CP">
+      <description>Polarised capacitor</description>
+      <footprints>
+        <fp>CP*</fp>
+        <fp>C_Axial*</fp>
+        <fp>C_Radial*</fp>
+        <fp>TantalC*</fp>
+        <fp>C*elec</fp>
+        <fp>c_elec*</fp>
+        <fp>SMD*_Pol</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">C</field>
+        <field name="Value">CP</field>
+      </fields>
+      <pins>
+        <pin num="1" name="~" type="passive"/>
+        <pin num="2" name="~" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="airsuspension_controller-cache" part="CP2">
+      <footprints>
+        <fp>SM*</fp>
+        <fp>C?</fp>
+        <fp>C1-1</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">C</field>
+        <field name="Value">CP2</field>
+      </fields>
+      <pins>
+        <pin num="1" name="~" type="passive"/>
+        <pin num="2" name="~" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="cinch" part="Conn48pin">
+      <description>48pin cinch SE connector</description>
+      <docs>http://www.cinch.com/pdfs/1219440691-5810148005s_rev_D.pdf</docs>
+      <footprints>
+        <fp>cinch</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">P</field>
+        <field name="Value">Conn48pin</field>
+      </fields>
+      <pins>
+        <pin num="1" name="A1" type="passive"/>
+        <pin num="2" name="A2" type="passive"/>
+        <pin num="3" name="A3" type="passive"/>
+        <pin num="4" name="B1" type="passive"/>
+        <pin num="5" name="B2" type="passive"/>
+        <pin num="6" name="B3" type="passive"/>
+        <pin num="7" name="C1" type="passive"/>
+        <pin num="8" name="C2" type="passive"/>
+        <pin num="9" name="C3" type="passive"/>
+        <pin num="10" name="D1" type="passive"/>
+        <pin num="11" name="D2" type="passive"/>
+        <pin num="12" name="D3" type="passive"/>
+        <pin num="13" name="E1" type="passive"/>
+        <pin num="14" name="E2" type="passive"/>
+        <pin num="15" name="E3" type="passive"/>
+        <pin num="16" name="F1" type="passive"/>
+        <pin num="17" name="F2" type="passive"/>
+        <pin num="18" name="F3" type="passive"/>
+        <pin num="19" name="A1" type="passive"/>
+        <pin num="20" name="A2" type="passive"/>
+        <pin num="21" name="A3" type="passive"/>
+        <pin num="22" name="B1" type="passive"/>
+        <pin num="23" name="B2" type="passive"/>
+        <pin num="24" name="B3" type="passive"/>
+        <pin num="25" name="C1" type="passive"/>
+        <pin num="26" name="C2" type="passive"/>
+        <pin num="27" name="C3" type="passive"/>
+        <pin num="28" name="D1" type="passive"/>
+        <pin num="29" name="D2" type="passive"/>
+        <pin num="30" name="D3" type="passive"/>
+        <pin num="31" name="E1" type="passive"/>
+        <pin num="32" name="E2" type="passive"/>
+        <pin num="33" name="E3" type="passive"/>
+        <pin num="34" name="F1" type="passive"/>
+        <pin num="35" name="F2" type="passive"/>
+        <pin num="36" name="F3" type="passive"/>
+        <pin num="37" name="G1" type="passive"/>
+        <pin num="38" name="G2" type="passive"/>
+        <pin num="39" name="G3" type="passive"/>
+        <pin num="40" name="H1" type="passive"/>
+        <pin num="41" name="H2" type="passive"/>
+        <pin num="42" name="H3" type="passive"/>
+        <pin num="43" name="J1" type="passive"/>
+        <pin num="44" name="J2" type="passive"/>
+        <pin num="45" name="J3" type="passive"/>
+        <pin num="46" name="K1" type="passive"/>
+        <pin num="47" name="K2" type="passive"/>
+        <pin num="48" name="K3" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="device" part="D">
+      <description>Diode</description>
+      <footprints>
+        <fp>Diode_*</fp>
+        <fp>D-Pak_TO252AA</fp>
+        <fp>*SingleDiode</fp>
+        <fp>*_Diode_*</fp>
+        <fp>*SingleDiode*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">D</field>
+        <field name="Value">D</field>
+      </fields>
+      <pins>
+        <pin num="1" name="K" type="passive"/>
+        <pin num="2" name="A" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="device" part="D_Schottky">
+      <description>Diode schottky</description>
+      <footprints>
+        <fp>D-Pak_TO252AA</fp>
+        <fp>Diode_*</fp>
+        <fp>*SingleDiode</fp>
+        <fp>*SingleDiode*</fp>
+        <fp>*_Diode_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">D</field>
+        <field name="Value">D_Schottky</field>
+      </fields>
+      <pins>
+        <pin num="1" name="K" type="passive"/>
+        <pin num="2" name="A" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="miscellaneous" part="Hardware">
+      <fields>
+        <field name="Reference">Ha</field>
+        <field name="Value">Hardware</field>
+      </fields>
+    </libpart>
+    <libpart lib="device" part="INDUCTOR_SMALL">
+      <footprints>
+        <fp>Choke_*</fp>
+        <fp>*Coil*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">L</field>
+        <field name="Value">INDUCTOR_SMALL</field>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="input"/>
+        <pin num="2" name="2" type="input"/>
+      </pins>
+    </libpart>
+    <libpart lib="power_switches" part="ITS5215L">
+      <description>Dual highside switch 3,7A each</description>
+      <footprints>
+        <fp>PG-DSO-12</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">ITS5215L</field>
+      </fields>
+      <pins>
+        <pin num="1" name="GND" type="output"/>
+        <pin num="2" name="IN1" type="input"/>
+        <pin num="3" name="ST1" type="openCol"/>
+        <pin num="4" name="IN2" type="input"/>
+        <pin num="5" name="ST2" type="openCol"/>
+        <pin num="6" name="Vbb" type="power_in"/>
+        <pin num="7" name="NC" type="NotConnected"/>
+        <pin num="8" name="OUT2" type="power_out"/>
+        <pin num="9" name="NC" type="NotConnected"/>
+        <pin num="10" name="OUT1" type="power_out"/>
+        <pin num="11" name="NC" type="NotConnected"/>
+        <pin num="12" name="Vbb" type="power_in"/>
+        <pin num="tab" name="Vbb" type="power_in"/>
+      </pins>
+    </libpart>
+    <libpart lib="device" part="JUMPER">
+      <fields>
+        <field name="Reference">JP</field>
+        <field name="Value">JUMPER</field>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="regul" part="LD1117S33TR">
+      <aliases>
+        <alias>LD1117S33CTR</alias>
+        <alias>LD1117S12TR</alias>
+        <alias>LD1117S12CTR</alias>
+        <alias>LD1117S18TR</alias>
+        <alias>LD1117S18CTR</alias>
+        <alias>LD1117S25TR</alias>
+        <alias>LD1117S25CTR</alias>
+        <alias>LD1117S50TR</alias>
+        <alias>LD1117S50CTR</alias>
+      </aliases>
+      <description>800mA Fixed Low Drop Positive Voltage Regulator, Fixed Output 3.3V, SOT223</description>
+      <docs>http://www.st.com/st-web-ui/static/active/en/resource/technical/document/datasheet/CD00000544.pdf</docs>
+      <footprints>
+        <fp>SOT223</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">LD1117S33TR</field>
+        <field name="Footprint">SOT-223</field>
+      </fields>
+      <pins>
+        <pin num="1" name="GND" type="power_in"/>
+        <pin num="2" name="VO" type="power_out"/>
+        <pin num="3" name="VI" type="power_in"/>
+      </pins>
+    </libpart>
+    <libpart lib="device" part="LED">
+      <footprints>
+        <fp>LED-*</fp>
+        <fp>LED_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">D</field>
+        <field name="Value">LED</field>
+      </fields>
+      <pins>
+        <pin num="1" name="K" type="passive"/>
+        <pin num="2" name="A" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="airsuspension_controller-rescue" part="LM324AN-RESCUE-airsuspension_controller">
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">LM324AN-RESCUE-airsuspension_controller</field>
+      </fields>
+      <pins>
+        <pin num="1" name="~" type="output"/>
+        <pin num="2" name="-" type="input"/>
+        <pin num="3" name="+" type="input"/>
+        <pin num="4" name="V+" type="power_in"/>
+        <pin num="5" name="+" type="input"/>
+        <pin num="6" name="-" type="input"/>
+        <pin num="7" name="~" type="output"/>
+        <pin num="8" name="~" type="output"/>
+        <pin num="9" name="-" type="input"/>
+        <pin num="10" name="+" type="input"/>
+        <pin num="11" name="V-" type="power_in"/>
+        <pin num="12" name="+" type="input"/>
+        <pin num="13" name="-" type="input"/>
+        <pin num="14" name="~" type="output"/>
+      </pins>
+    </libpart>
+    <libpart lib="regul" part="MC34063">
+      <description>1.5A step up/down/inverting switching regulator</description>
+      <docs>http://www.onsemi.com/pub_link/Collateral/MC34063A-D.PDF</docs>
+      <footprints>
+        <fp>DIP*</fp>
+        <fp>SOIC*</fp>
+        <fp>DFN*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">MC34063</field>
+      </fields>
+      <pins>
+        <pin num="1" name="SwC" type="passive"/>
+        <pin num="2" name="SwE" type="passive"/>
+        <pin num="3" name="TC" type="input"/>
+        <pin num="4" name="GND" type="power_in"/>
+        <pin num="5" name="Vfb" type="input"/>
+        <pin num="6" name="Vin(VCC)" type="power_in"/>
+        <pin num="7" name="Ipk" type="input"/>
+        <pin num="8" name="DC" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="device" part="Q_NMOS_GDS">
+      <description>Transistor N-MOSFET (general)</description>
+      <fields>
+        <field name="Reference">Q</field>
+        <field name="Value">Q_NMOS_GDS</field>
+      </fields>
+      <pins>
+        <pin num="1" name="G" type="input"/>
+        <pin num="2" name="D" type="passive"/>
+        <pin num="3" name="S" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="device" part="Q_PMOS_GDS">
+      <description>Transistor P-MOSFET (general)</description>
+      <fields>
+        <field name="Reference">Q</field>
+        <field name="Value">Q_PMOS_GDS</field>
+      </fields>
+      <pins>
+        <pin num="1" name="G" type="input"/>
+        <pin num="2" name="D" type="passive"/>
+        <pin num="3" name="S" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="device" part="R">
+      <description>Resistor</description>
+      <footprints>
+        <fp>R_*</fp>
+        <fp>Resistor_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">R</field>
+        <field name="Value">R</field>
+      </fields>
+      <pins>
+        <pin num="1" name="~" type="passive"/>
+        <pin num="2" name="~" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="miscellaneous" part="SN65HVD1050D">
+      <description>1Mbit CAN tranciever</description>
+      <footprints>
+        <fp>soic8</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">SN65HVD1050D</field>
+      </fields>
+      <pins>
+        <pin num="1" name="TXD" type="input"/>
+        <pin num="2" name="GND" type="power_in"/>
+        <pin num="3" name="Vcc" type="power_in"/>
+        <pin num="4" name="RXD" type="output"/>
+        <pin num="5" name="Vref" type="output"/>
+        <pin num="6" name="CANL" type="output"/>
+        <pin num="7" name="CANH" type="output"/>
+        <pin num="8" name="S" type="input"/>
+      </pins>
+    </libpart>
+    <libpart lib="teensy" part="Teensy3.1">
+      <description>PJRC teensy arduino software compatible mini board</description>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">Teensy3.1</field>
+      </fields>
+      <pins>
+        <pin num="0" name="GND" type="power_in"/>
+        <pin num="1" name="Pin0_RX1_Touch" type="BiDi"/>
+        <pin num="2" name="Pin1_TX1_Touch" type="BiDi"/>
+        <pin num="3" name="Pin2_CS" type="BiDi"/>
+        <pin num="4" name="Pin3_CanTX_PWM" type="BiDi"/>
+        <pin num="5" name="Pin4_CanRX_PWM" type="BiDi"/>
+        <pin num="6" name="Pin5_TX1_PWM" type="BiDi"/>
+        <pin num="7" name="Pin6_CS_PWM" type="BiDi"/>
+        <pin num="8" name="Pin7_RX3_DOUT" type="BiDi"/>
+        <pin num="9" name="Pin8_TX3_DIN" type="BiDi"/>
+        <pin num="10" name="Pin9_RX2_CS_PWM" type="BiDi"/>
+        <pin num="11" name="Pin10_TX2_CS_PWM" type="BiDi"/>
+        <pin num="12" name="Pin11_TX2_DOUT" type="BiDi"/>
+        <pin num="13" name="Pin12_DIN" type="BiDi"/>
+        <pin num="14" name="VBat" type="power_in"/>
+        <pin num="15" name="3.3V_(100mA)" type="power_out"/>
+        <pin num="16" name="GND" type="power_in"/>
+        <pin num="17" name="Program" type="passive"/>
+        <pin num="18" name="A14_DAC" type="BiDi"/>
+        <pin num="19" name="Pin13_SCK" type="BiDi"/>
+        <pin num="20" name="Pin14_A0_SCK" type="BiDi"/>
+        <pin num="21" name="Pin15_A1_CS_Touch" type="BiDi"/>
+        <pin num="22" name="Pin16_A2_SCL0_Touch" type="BiDi"/>
+        <pin num="23" name="Pin17_A3_SDA0_Touch" type="BiDi"/>
+        <pin num="24" name="Pin18_A4_SDA0_Touch" type="BiDi"/>
+        <pin num="25" name="Pin19_A5_SCL0_Touch" type="BiDi"/>
+        <pin num="26" name="Pin20_A6_CS_PWM" type="BiDi"/>
+        <pin num="27" name="Pin21_A7_RX1_CS_PWM" type="BiDi"/>
+        <pin num="28" name="Pin22_A8_Touch_CS_PWM" type="BiDi"/>
+        <pin num="29" name="Pin23_A9_Touch_CS_PWM" type="BiDi"/>
+        <pin num="30" name="3.3V_(100mA)" type="power_out"/>
+        <pin num="31" name="AGND" type="input"/>
+        <pin num="32" name="Vin_(3.7V_to_5.5V)" type="input"/>
+        <pin num="33" name="A12" type="input"/>
+        <pin num="34" name="GND" type="power_in"/>
+        <pin num="35" name="Pin24" type="BiDi"/>
+        <pin num="36" name="Pin25_Touch_PWM" type="BiDi"/>
+        <pin num="37" name="Pin26_A15_RX2" type="BiDi"/>
+        <pin num="38" name="Pin27_A16" type="BiDi"/>
+        <pin num="39" name="Pin28_A17" type="BiDi"/>
+        <pin num="40" name="Pin29_A18_SCL1" type="BiDi"/>
+        <pin num="41" name="Pin30_A19_SDA1" type="BiDi"/>
+        <pin num="42" name="Pin31_A20_TX2" type="BiDi"/>
+        <pin num="43" name="Pin32_Touch_PWM" type="BiDi"/>
+        <pin num="44" name="Pin33_Touch" type="BiDi"/>
+        <pin num="45" name="3.3V_(100mA)" type="power_out"/>
+        <pin num="46" name="A13" type="input"/>
+        <pin num="47" name="A11" type="input"/>
+        <pin num="48" name="A10" type="input"/>
+        <pin num="49" name="AREF" type="input"/>
+        <pin num="50" name="VUSB" type="power_out"/>
+      </pins>
+    </libpart>
+    <libpart lib="device" part="VR">
+      <description>VARISTANCE</description>
+      <fields>
+        <field name="Reference">VR</field>
+        <field name="Value">VR</field>
+      </fields>
+      <pins>
+        <pin num="1" name="~" type="passive"/>
+        <pin num="2" name="~" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="device" part="ZENER">
+      <description>Diode zener</description>
+      <footprints>
+        <fp>D?</fp>
+        <fp>SO*</fp>
+        <fp>SM*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">D</field>
+        <field name="Value">ZENER</field>
+      </fields>
+      <pins>
+        <pin num="1" name="K" type="passive"/>
+        <pin num="2" name="A" type="passive"/>
+      </pins>
+    </libpart>
+  </libparts>
+  <libraries>
+    <library logical="cinch">
+      <uri>/home/fredrikjohansson/elektronik/CarTransporter/electronics/cinch.lib</uri>
+    </library>
+    <library logical="device">
+      <uri>/usr/share/kicad/library/device.lib</uri>
+    </library>
+    <library logical="power_switches">
+      <uri>/home/fredrikjohansson/elektronik/CarTransporter/electronics/power_switches.lib</uri>
+    </library>
+    <library logical="teensy">
+      <uri>/home/fredrikjohansson/elektronik/CarTransporter/electronics/teensy.lib</uri>
+    </library>
+    <library logical="transistors">
+      <uri>/usr/share/kicad/library/transistors.lib</uri>
+    </library>
+    <library logical="regul">
+      <uri>/usr/share/kicad/library/regul.lib</uri>
+    </library>
+    <library logical="miscellaneous">
+      <uri>/home/fredrikjohansson/elektronik/CarTransporter/electronics/miscellaneous.lib</uri>
+    </library>
+    <library logical="airsuspension_controller-cache">
+      <uri>/home/fredrikjohansson/elektronik/CarTransporter/electronics/airsuspension_controller-cache.lib</uri>
+    </library>
+    <library logical="airsuspension_controller-rescue">
+      <uri>/home/fredrikjohansson/elektronik/CarTransporter/electronics/airsuspension_controller-rescue.lib</uri>
+    </library>
+  </libraries>
+  <nets>
+    <net code="1" name="/+12V_IGN">
+      <node ref="conn1" pin="42"/>
+      <node ref="VR2" pin="1"/>
+      <node ref="conn1" pin="41"/>
+      <node ref="Q3" pin="2"/>
+    </net>
+    <net code="2" name="/RightHeightPot_5V">
+      <node ref="conn1" pin="12"/>
+      <node ref="F2" pin="1"/>
+    </net>
+    <net code="3" name="/Compressor_OUT">
+      <node ref="conn1" pin="25"/>
+      <node ref="U2" pin="1"/>
+      <node ref="conn1" pin="24"/>
+      <node ref="conn1" pin="26"/>
+      <node ref="U2" pin="5"/>
+      <node ref="conn1" pin="27"/>
+      <node ref="R6" pin="2"/>
+    </net>
+    <net code="4" name="/LeftDump_OUT">
+      <node ref="U3" pin="10"/>
+      <node ref="R18" pin="1"/>
+      <node ref="conn1" pin="33"/>
+    </net>
+    <net code="5" name="/AnalogSpare_5V">
+      <node ref="conn1" pin="45"/>
+      <node ref="F4" pin="1"/>
+    </net>
+    <net code="6" name="/CAN_HI">
+      <node ref="R53" pin="1"/>
+      <node ref="conn1" pin="13"/>
+      <node ref="U8" pin="7"/>
+    </net>
+    <net code="7" name="/CAN_LO">
+      <node ref="conn1" pin="16"/>
+      <node ref="R53" pin="2"/>
+      <node ref="U8" pin="6"/>
+    </net>
+    <net code="8" name="/Spare1_OUT">
+      <node ref="R23" pin="2"/>
+      <node ref="U4" pin="8"/>
+      <node ref="conn1" pin="34"/>
+    </net>
+    <net code="9" name="/AirDryer_OUT">
+      <node ref="R24" pin="1"/>
+      <node ref="U4" pin="10"/>
+      <node ref="conn1" pin="31"/>
+    </net>
+    <net code="10" name="/LeftSuck_OUT">
+      <node ref="U5" pin="10"/>
+      <node ref="R26" pin="1"/>
+      <node ref="conn1" pin="39"/>
+    </net>
+    <net code="11" name="/RightSuck_OUT">
+      <node ref="conn1" pin="38"/>
+      <node ref="U5" pin="8"/>
+      <node ref="R25" pin="2"/>
+    </net>
+    <net code="12" name="/LeftFill_OUT">
+      <node ref="R9" pin="1"/>
+      <node ref="conn1" pin="36"/>
+      <node ref="U1" pin="10"/>
+    </net>
+    <net code="13" name="/RightFill_OUT">
+      <node ref="R7" pin="2"/>
+      <node ref="conn1" pin="35"/>
+      <node ref="U1" pin="8"/>
+    </net>
+    <net code="14" name="/RightDump_OUT">
+      <node ref="R16" pin="2"/>
+      <node ref="U3" pin="8"/>
+      <node ref="conn1" pin="32"/>
+    </net>
+    <net code="15" name="/LeftPressure_5V">
+      <node ref="conn1" pin="3"/>
+      <node ref="F3" pin="1"/>
+    </net>
+    <net code="16" name="/SpareTemp_IN">
+      <node ref="conn1" pin="17"/>
+      <node ref="R48" pin="2"/>
+      <node ref="R46" pin="1"/>
+    </net>
+    <net code="17" name="/SpareTemp_5V">
+      <node ref="F8" pin="1"/>
+      <node ref="conn1" pin="18"/>
+    </net>
+    <net code="18" name="/CompressorTemp_IN">
+      <node ref="R40" pin="1"/>
+      <node ref="R41" pin="2"/>
+      <node ref="conn1" pin="14"/>
+    </net>
+    <net code="19" name="/CompressorTemp_5V">
+      <node ref="conn1" pin="15"/>
+      <node ref="F6" pin="1"/>
+    </net>
+    <net code="20" name="/CompressorPressure_5V">
+      <node ref="conn1" pin="48"/>
+      <node ref="F1" pin="1"/>
+    </net>
+    <net code="21" name="/CompressorPressure_IN">
+      <node ref="conn1" pin="47"/>
+      <node ref="R27" pin="2"/>
+    </net>
+    <net code="22" name="GND">
+      <node ref="VR2" pin="2"/>
+      <node ref="C17" pin="2"/>
+      <node ref="U9" pin="1"/>
+      <node ref="C19" pin="2"/>
+      <node ref="R61" pin="2"/>
+      <node ref="R54" pin="1"/>
+      <node ref="U11" pin="2"/>
+      <node ref="U11" pin="4"/>
+      <node ref="Q2" pin="2"/>
+      <node ref="R58" pin="2"/>
+      <node ref="C21" pin="2"/>
+      <node ref="R56" pin="2"/>
+      <node ref="C25" pin="2"/>
+      <node ref="Q5" pin="3"/>
+      <node ref="D5" pin="2"/>
+      <node ref="C20" pin="2"/>
+      <node ref="C10" pin="1"/>
+      <node ref="R46" pin="2"/>
+      <node ref="C18" pin="2"/>
+      <node ref="C22" pin="2"/>
+      <node ref="C14" pin="2"/>
+      <node ref="R30" pin="2"/>
+      <node ref="R45" pin="2"/>
+      <node ref="C7" pin="2"/>
+      <node ref="U6" pin="11"/>
+      <node ref="R38" pin="2"/>
+      <node ref="C8" pin="2"/>
+      <node ref="R32" pin="2"/>
+      <node ref="R36" pin="2"/>
+      <node ref="C11" pin="2"/>
+      <node ref="R40" pin="2"/>
+      <node ref="C16" pin="2"/>
+      <node ref="R43" pin="2"/>
+      <node ref="R55" pin="2"/>
+      <node ref="U8" pin="2"/>
+      <node ref="R5" pin="2"/>
+      <node ref="C9" pin="1"/>
+      <node ref="R52" pin="2"/>
+      <node ref="R50" pin="2"/>
+      <node ref="C15" pin="2"/>
+      <node ref="U7" pin="11"/>
+      <node ref="C12" pin="2"/>
+      <node ref="C13" pin="2"/>
+      <node ref="conn1" pin="4"/>
+      <node ref="U10" pin="34"/>
+      <node ref="conn1" pin="43"/>
+      <node ref="conn1" pin="46"/>
+      <node ref="conn1" pin="37"/>
+      <node ref="conn1" pin="1"/>
+      <node ref="conn1" pin="7"/>
+      <node ref="conn1" pin="40"/>
+      <node ref="D14" pin="2"/>
+      <node ref="U10" pin="0"/>
+      <node ref="U10" pin="31"/>
+      <node ref="conn1" pin="10"/>
+      <node ref="C24" pin="2"/>
+    </net>
+    <net code="23" name="/LeftPressure_IN">
+      <node ref="conn1" pin="2"/>
+      <node ref="R33" pin="2"/>
+    </net>
+    <net code="24" name="/AnalogSpare_IN">
+      <node ref="conn1" pin="44"/>
+      <node ref="R34" pin="2"/>
+    </net>
+    <net code="25" name="/RightPressure_5V">
+      <node ref="conn1" pin="6"/>
+      <node ref="F5" pin="1"/>
+    </net>
+    <net code="26" name="/RightPressure_IN">
+      <node ref="R39" pin="2"/>
+      <node ref="conn1" pin="5"/>
+    </net>
+    <net code="27" name="/LeftHeightPot_5V">
+      <node ref="F7" pin="1"/>
+      <node ref="conn1" pin="9"/>
+    </net>
+    <net code="28" name="/LeftHeightPot_IN">
+      <node ref="R47" pin="2"/>
+      <node ref="conn1" pin="8"/>
+    </net>
+    <net code="29" name="/RightHeightPot_IN">
+      <node ref="conn1" pin="11"/>
+      <node ref="R28" pin="2"/>
+    </net>
+    <net code="30" name="GNDPWR">
+      <node ref="R19" pin="1"/>
+      <node ref="C2" pin="2"/>
+      <node ref="VR1" pin="2"/>
+      <node ref="C1" pin="2"/>
+      <node ref="C3" pin="1"/>
+      <node ref="C5" pin="2"/>
+      <node ref="D11" pin="1"/>
+      <node ref="D6" pin="1"/>
+      <node ref="D10" pin="1"/>
+      <node ref="D7" pin="1"/>
+      <node ref="C4" pin="2"/>
+      <node ref="R3" pin="1"/>
+      <node ref="conn1" pin="30"/>
+      <node ref="Q1" pin="2"/>
+      <node ref="conn1" pin="28"/>
+      <node ref="R22" pin="1"/>
+      <node ref="R14" pin="1"/>
+      <node ref="D4" pin="1"/>
+      <node ref="D8" pin="1"/>
+      <node ref="D9" pin="1"/>
+      <node ref="D1" pin="1"/>
+      <node ref="C6" pin="2"/>
+      <node ref="D3" pin="1"/>
+      <node ref="conn1" pin="29"/>
+    </net>
+    <net code="31" name="+12V_bat">
+      <node ref="C2" pin="1"/>
+      <node ref="conn1" pin="19"/>
+      <node ref="U4" pin="tab"/>
+      <node ref="C5" pin="1"/>
+      <node ref="U4" pin="12"/>
+      <node ref="U4" pin="6"/>
+      <node ref="U5" pin="6"/>
+      <node ref="conn1" pin="21"/>
+      <node ref="conn1" pin="20"/>
+      <node ref="U3" pin="12"/>
+      <node ref="U3" pin="tab"/>
+      <node ref="C4" pin="1"/>
+      <node ref="U3" pin="6"/>
+      <node ref="conn1" pin="23"/>
+      <node ref="C1" pin="1"/>
+      <node ref="VR1" pin="1"/>
+      <node ref="U1" pin="tab"/>
+      <node ref="U1" pin="12"/>
+      <node ref="U5" pin="12"/>
+      <node ref="C3" pin="2"/>
+      <node ref="conn1" pin="22"/>
+      <node ref="U2" pin="tab"/>
+      <node ref="U2" pin="3"/>
+      <node ref="U1" pin="6"/>
+      <node ref="U5" pin="tab"/>
+      <node ref="C6" pin="1"/>
+    </net>
+    <net code="32" name="/5V power/+12V_IGN_SAFE">
+      <node ref="C19" pin="1"/>
+      <node ref="Q3" pin="3"/>
+      <node ref="R57" pin="2"/>
+      <node ref="D12" pin="1"/>
+      <node ref="U11" pin="6"/>
+      <node ref="C21" pin="1"/>
+    </net>
+    <net code="33" name="/Spare1_ON">
+      <node ref="U10" pin="29"/>
+      <node ref="U4" pin="4"/>
+    </net>
+    <net code="34" name="/LeftDump_ON">
+      <node ref="U3" pin="2"/>
+      <node ref="U10" pin="8"/>
+    </net>
+    <net code="35" name="/RightSuck_DIAG">
+      <node ref="U10" pin="38"/>
+      <node ref="U5" pin="5"/>
+      <node ref="R20" pin="1"/>
+    </net>
+    <net code="36" name="/LeftSuck_DIAG">
+      <node ref="R21" pin="1"/>
+      <node ref="U5" pin="3"/>
+      <node ref="U10" pin="37"/>
+    </net>
+    <net code="37" name="/RightSuck_ON">
+      <node ref="U5" pin="4"/>
+      <node ref="U10" pin="36"/>
+    </net>
+    <net code="38" name="/LeftSuck_ON">
+      <node ref="U5" pin="2"/>
+      <node ref="U10" pin="35"/>
+    </net>
+    <net code="39" name="/Spare1_DIAG">
+      <node ref="U10" pin="20"/>
+      <node ref="U4" pin="5"/>
+      <node ref="R15" pin="1"/>
+    </net>
+    <net code="40" name="/Airdryer_DIAG">
+      <node ref="R17" pin="1"/>
+      <node ref="U4" pin="3"/>
+      <node ref="U10" pin="2"/>
+    </net>
+    <net code="41" name="/RightDump_ON">
+      <node ref="U10" pin="19"/>
+      <node ref="U3" pin="4"/>
+    </net>
+    <net code="42" name="/Airdryer_ON">
+      <node ref="U10" pin="7"/>
+      <node ref="U4" pin="2"/>
+    </net>
+    <net code="43" name="/RightFill_DIAG">
+      <node ref="R1" pin="1"/>
+      <node ref="U10" pin="12"/>
+      <node ref="U1" pin="5"/>
+    </net>
+    <net code="44" name="/LeftFill_DIAG">
+      <node ref="U10" pin="3"/>
+      <node ref="R2" pin="1"/>
+      <node ref="U1" pin="3"/>
+    </net>
+    <net code="45" name="/RightFill_ON">
+      <node ref="U1" pin="4"/>
+      <node ref="U10" pin="11"/>
+    </net>
+    <net code="46" name="/LeftFill_ON">
+      <node ref="U10" pin="10"/>
+      <node ref="U1" pin="2"/>
+    </net>
+    <net code="47" name="/RightDump_DIAG">
+      <node ref="R12" pin="1"/>
+      <node ref="U3" pin="5"/>
+      <node ref="U10" pin="13"/>
+    </net>
+    <net code="48" name="/LeftDump_DIAG">
+      <node ref="R13" pin="1"/>
+      <node ref="U3" pin="3"/>
+      <node ref="U10" pin="9"/>
+    </net>
+    <net code="49" name="/CAN_RX">
+      <node ref="U8" pin="4"/>
+      <node ref="U10" pin="5"/>
+    </net>
+    <net code="50" name="/CAN_TX">
+      <node ref="U8" pin="1"/>
+      <node ref="U10" pin="4"/>
+    </net>
+    <net code="51" name="/CompressorPressure_3.3V">
+      <node ref="R29" pin="2"/>
+      <node ref="R30" pin="1"/>
+      <node ref="U10" pin="24"/>
+    </net>
+    <net code="52" name="/CompressorCurrent_3.3V">
+      <node ref="U10" pin="28"/>
+      <node ref="D5" pin="1"/>
+      <node ref="R10" pin="1"/>
+    </net>
+    <net code="53" name="/Compressor_ON">
+      <node ref="Q1" pin="1"/>
+      <node ref="U10" pin="6"/>
+    </net>
+    <net code="54" name="/Compressor_DIAG">
+      <node ref="U10" pin="1"/>
+      <node ref="R11" pin="2"/>
+      <node ref="Q2" pin="3"/>
+    </net>
+    <net code="55" name="/AnalogSpare_3.3V">
+      <node ref="R38" pin="1"/>
+      <node ref="R37" pin="2"/>
+      <node ref="U10" pin="27"/>
+    </net>
+    <net code="56" name="/LeftHeight_3.3V">
+      <node ref="R50" pin="1"/>
+      <node ref="R49" pin="2"/>
+      <node ref="U10" pin="26"/>
+    </net>
+    <net code="57" name="/CompressorTemp_3.3V">
+      <node ref="R44" pin="2"/>
+      <node ref="R45" pin="1"/>
+      <node ref="U10" pin="33"/>
+    </net>
+    <net code="58" name="/SpareTemp_3.3V">
+      <node ref="U10" pin="21"/>
+      <node ref="R52" pin="1"/>
+      <node ref="R51" pin="2"/>
+    </net>
+    <net code="59" name="/RightPressure_3.3V">
+      <node ref="U10" pin="22"/>
+      <node ref="R43" pin="1"/>
+      <node ref="R42" pin="2"/>
+    </net>
+    <net code="60" name="/LeftPressure_3.3V">
+      <node ref="U10" pin="23"/>
+      <node ref="R35" pin="2"/>
+      <node ref="R36" pin="1"/>
+    </net>
+    <net code="61" name="/RightHeight_3.3V">
+      <node ref="U10" pin="25"/>
+      <node ref="R32" pin="1"/>
+      <node ref="R31" pin="2"/>
+    </net>
+    <net code="62" name="Net-(D11-Pad2)">
+      <node ref="D11" pin="2"/>
+      <node ref="R26" pin="2"/>
+    </net>
+    <net code="63" name="Net-(U3-Pad11)">
+      <node ref="U3" pin="11"/>
+    </net>
+    <net code="64" name="Net-(U3-Pad9)">
+      <node ref="U3" pin="9"/>
+    </net>
+    <net code="65" name="Net-(U3-Pad7)">
+      <node ref="U3" pin="7"/>
+    </net>
+    <net code="66" name="Net-(R14-Pad2)">
+      <node ref="R14" pin="2"/>
+      <node ref="U3" pin="1"/>
+    </net>
+    <net code="67" name="Net-(U5-Pad9)">
+      <node ref="U5" pin="9"/>
+    </net>
+    <net code="68" name="Net-(U5-Pad7)">
+      <node ref="U5" pin="7"/>
+    </net>
+    <net code="69" name="Net-(R22-Pad2)">
+      <node ref="U5" pin="1"/>
+      <node ref="R22" pin="2"/>
+    </net>
+    <net code="70" name="Net-(U5-Pad11)">
+      <node ref="U5" pin="11"/>
+    </net>
+    <net code="71" name="Net-(D10-Pad2)">
+      <node ref="D10" pin="2"/>
+      <node ref="R25" pin="1"/>
+    </net>
+    <net code="72" name="+3.3V">
+      <node ref="C20" pin="1"/>
+      <node ref="U9" pin="2"/>
+      <node ref="R11" pin="1"/>
+      <node ref="R20" pin="2"/>
+      <node ref="R1" pin="2"/>
+      <node ref="R21" pin="2"/>
+      <node ref="R17" pin="2"/>
+      <node ref="R2" pin="2"/>
+      <node ref="R12" pin="2"/>
+      <node ref="R13" pin="2"/>
+      <node ref="R15" pin="2"/>
+    </net>
+    <net code="73" name="Net-(Q2-Pad1)">
+      <node ref="R54" pin="2"/>
+      <node ref="Q2" pin="1"/>
+      <node ref="R8" pin="1"/>
+    </net>
+    <net code="74" name="Net-(D6-Pad2)">
+      <node ref="D6" pin="2"/>
+      <node ref="R16" pin="1"/>
+    </net>
+    <net code="75" name="Net-(D7-Pad2)">
+      <node ref="R18" pin="2"/>
+      <node ref="D7" pin="2"/>
+    </net>
+    <net code="76" name="Net-(D1-Pad2)">
+      <node ref="D1" pin="2"/>
+      <node ref="R7" pin="1"/>
+    </net>
+    <net code="77" name="Net-(D4-Pad2)">
+      <node ref="R9" pin="2"/>
+      <node ref="D4" pin="2"/>
+    </net>
+    <net code="78" name="Net-(R3-Pad2)">
+      <node ref="U1" pin="1"/>
+      <node ref="R3" pin="2"/>
+    </net>
+    <net code="79" name="Net-(Q1-Pad3)">
+      <node ref="R4" pin="2"/>
+      <node ref="Q1" pin="3"/>
+    </net>
+    <net code="80" name="Net-(D8-Pad2)">
+      <node ref="R23" pin="1"/>
+      <node ref="D8" pin="2"/>
+    </net>
+    <net code="81" name="Net-(D9-Pad2)">
+      <node ref="R24" pin="2"/>
+      <node ref="D9" pin="2"/>
+    </net>
+    <net code="82" name="Net-(R19-Pad2)">
+      <node ref="R19" pin="2"/>
+      <node ref="U4" pin="1"/>
+    </net>
+    <net code="83" name="Net-(D3-Pad2)">
+      <node ref="R6" pin="1"/>
+      <node ref="D3" pin="2"/>
+    </net>
+    <net code="84" name="Net-(D2-Pad1)">
+      <node ref="R10" pin="2"/>
+      <node ref="R5" pin="1"/>
+      <node ref="D2" pin="1"/>
+      <node ref="U2" pin="4"/>
+    </net>
+    <net code="85" name="Net-(D2-Pad2)">
+      <node ref="D2" pin="2"/>
+      <node ref="R8" pin="2"/>
+    </net>
+    <net code="86" name="Net-(R4-Pad1)">
+      <node ref="R4" pin="1"/>
+      <node ref="U2" pin="2"/>
+    </net>
+    <net code="87" name="Net-(U1-Pad11)">
+      <node ref="U1" pin="11"/>
+    </net>
+    <net code="88" name="Net-(U1-Pad9)">
+      <node ref="U1" pin="9"/>
+    </net>
+    <net code="89" name="Net-(U1-Pad7)">
+      <node ref="U1" pin="7"/>
+    </net>
+    <net code="90" name="Net-(U4-Pad11)">
+      <node ref="U4" pin="11"/>
+    </net>
+    <net code="91" name="Net-(U4-Pad9)">
+      <node ref="U4" pin="9"/>
+    </net>
+    <net code="92" name="Net-(U4-Pad7)">
+      <node ref="U4" pin="7"/>
+    </net>
+    <net code="93" name="+5V">
+      <node ref="F8" pin="2"/>
+      <node ref="U7" pin="4"/>
+      <node ref="F6" pin="2"/>
+      <node ref="F7" pin="2"/>
+      <node ref="C18" pin="1"/>
+      <node ref="U9" pin="3"/>
+      <node ref="F3" pin="2"/>
+      <node ref="C10" pin="2"/>
+      <node ref="F2" pin="2"/>
+      <node ref="U10" pin="32"/>
+      <node ref="U6" pin="4"/>
+      <node ref="L2" pin="2"/>
+      <node ref="C25" pin="1"/>
+      <node ref="F4" pin="2"/>
+      <node ref="F1" pin="2"/>
+      <node ref="C9" pin="2"/>
+      <node ref="C17" pin="1"/>
+      <node ref="F5" pin="2"/>
+      <node ref="U8" pin="3"/>
+      <node ref="JP2" pin="2"/>
+    </net>
+    <net code="94" name="Net-(R51-Pad1)">
+      <node ref="U7" pin="14"/>
+      <node ref="U7" pin="13"/>
+      <node ref="R51" pin="1"/>
+    </net>
+    <net code="95" name="Net-(C12-Pad1)">
+      <node ref="R34" pin="1"/>
+      <node ref="U6" pin="12"/>
+      <node ref="C12" pin="1"/>
+    </net>
+    <net code="96" name="Net-(R37-Pad1)">
+      <node ref="R37" pin="1"/>
+      <node ref="U6" pin="14"/>
+      <node ref="U6" pin="13"/>
+    </net>
+    <net code="97" name="Net-(R44-Pad1)">
+      <node ref="R44" pin="1"/>
+      <node ref="U7" pin="6"/>
+      <node ref="U7" pin="7"/>
+    </net>
+    <net code="98" name="Net-(C14-Pad1)">
+      <node ref="U7" pin="5"/>
+      <node ref="R41" pin="1"/>
+      <node ref="C14" pin="1"/>
+    </net>
+    <net code="99" name="Net-(C8-Pad1)">
+      <node ref="C8" pin="1"/>
+      <node ref="U6" pin="5"/>
+      <node ref="R28" pin="1"/>
+    </net>
+    <net code="100" name="Net-(C16-Pad1)">
+      <node ref="U7" pin="12"/>
+      <node ref="C16" pin="1"/>
+      <node ref="R48" pin="1"/>
+    </net>
+    <net code="101" name="Net-(R31-Pad1)">
+      <node ref="R31" pin="1"/>
+      <node ref="U6" pin="7"/>
+      <node ref="U6" pin="6"/>
+    </net>
+    <net code="102" name="Net-(R35-Pad1)">
+      <node ref="R35" pin="1"/>
+      <node ref="U6" pin="8"/>
+      <node ref="U6" pin="9"/>
+    </net>
+    <net code="103" name="Net-(R29-Pad1)">
+      <node ref="R29" pin="1"/>
+      <node ref="U6" pin="2"/>
+      <node ref="U6" pin="1"/>
+    </net>
+    <net code="104" name="Net-(C7-Pad1)">
+      <node ref="R27" pin="1"/>
+      <node ref="C7" pin="1"/>
+      <node ref="U6" pin="3"/>
+    </net>
+    <net code="105" name="Net-(R49-Pad1)">
+      <node ref="U7" pin="9"/>
+      <node ref="R49" pin="1"/>
+      <node ref="U7" pin="8"/>
+    </net>
+    <net code="106" name="Net-(C13-Pad1)">
+      <node ref="R39" pin="1"/>
+      <node ref="U7" pin="3"/>
+      <node ref="C13" pin="1"/>
+    </net>
+    <net code="107" name="Net-(C15-Pad1)">
+      <node ref="U7" pin="10"/>
+      <node ref="C15" pin="1"/>
+      <node ref="R47" pin="1"/>
+    </net>
+    <net code="108" name="Net-(C11-Pad1)">
+      <node ref="C11" pin="1"/>
+      <node ref="R33" pin="1"/>
+      <node ref="U6" pin="10"/>
+    </net>
+    <net code="109" name="Net-(R42-Pad1)">
+      <node ref="R42" pin="1"/>
+      <node ref="U7" pin="2"/>
+      <node ref="U7" pin="1"/>
+    </net>
+    <net code="110" name="Net-(JP2-Pad1)">
+      <node ref="JP2" pin="1"/>
+      <node ref="R55" pin="1"/>
+      <node ref="U8" pin="8"/>
+    </net>
+    <net code="111" name="Net-(U8-Pad5)">
+      <node ref="U8" pin="5"/>
+    </net>
+    <net code="112" name="Net-(C22-Pad1)">
+      <node ref="C22" pin="1"/>
+      <node ref="U11" pin="3"/>
+    </net>
+    <net code="113" name="Net-(D13-Pad1)">
+      <node ref="Q5" pin="2"/>
+      <node ref="Q6" pin="1"/>
+      <node ref="D13" pin="1"/>
+    </net>
+    <net code="114" name="Net-(R58-Pad1)">
+      <node ref="R60" pin="2"/>
+      <node ref="R58" pin="1"/>
+      <node ref="U11" pin="5"/>
+    </net>
+    <net code="115" name="Net-(D12-Pad2)">
+      <node ref="D12" pin="2"/>
+      <node ref="Q3" pin="1"/>
+      <node ref="R56" pin="1"/>
+    </net>
+    <net code="116" name="Net-(R59-Pad2)">
+      <node ref="U11" pin="1"/>
+      <node ref="U11" pin="8"/>
+      <node ref="R59" pin="2"/>
+    </net>
+    <net code="117" name="Net-(Q4-Pad2)">
+      <node ref="R62" pin="2"/>
+      <node ref="Q4" pin="2"/>
+    </net>
+    <net code="118" name="Net-(C23-Pad2)">
+      <node ref="C23" pin="2"/>
+      <node ref="Q6" pin="3"/>
+      <node ref="L1" pin="1"/>
+      <node ref="D14" pin="1"/>
+    </net>
+    <net code="119" name="Net-(C23-Pad1)">
+      <node ref="R62" pin="1"/>
+      <node ref="C23" pin="1"/>
+      <node ref="D15" pin="1"/>
+    </net>
+    <net code="120" name="Net-(D15-Pad2)">
+      <node ref="U11" pin="7"/>
+      <node ref="R57" pin="1"/>
+      <node ref="D15" pin="2"/>
+      <node ref="Q6" pin="2"/>
+    </net>
+    <net code="121" name="Net-(Q4-Pad1)">
+      <node ref="Q4" pin="1"/>
+      <node ref="R59" pin="1"/>
+    </net>
+    <net code="122" name="Net-(D13-Pad2)">
+      <node ref="R61" pin="1"/>
+      <node ref="Q4" pin="3"/>
+      <node ref="D13" pin="2"/>
+      <node ref="Q5" pin="1"/>
+    </net>
+    <net code="123" name="Net-(C24-Pad1)">
+      <node ref="C24" pin="1"/>
+      <node ref="L2" pin="1"/>
+      <node ref="L1" pin="2"/>
+      <node ref="R60" pin="1"/>
+    </net>
+    <net code="124" name="Net-(U10-Pad17)">
+      <node ref="U10" pin="17"/>
+    </net>
+    <net code="125" name="Net-(U10-Pad45)">
+      <node ref="U10" pin="45"/>
+    </net>
+    <net code="126" name="Net-(U10-Pad30)">
+      <node ref="U10" pin="30"/>
+    </net>
+    <net code="127" name="Net-(U10-Pad16)">
+      <node ref="U10" pin="16"/>
+    </net>
+    <net code="128" name="Net-(U10-Pad15)">
+      <node ref="U10" pin="15"/>
+    </net>
+    <net code="129" name="Net-(U10-Pad18)">
+      <node ref="U10" pin="18"/>
+    </net>
+    <net code="130" name="Net-(U10-Pad40)">
+      <node ref="U10" pin="40"/>
+    </net>
+    <net code="131" name="Net-(U10-Pad43)">
+      <node ref="U10" pin="43"/>
+    </net>
+    <net code="132" name="Net-(U10-Pad44)">
+      <node ref="U10" pin="44"/>
+    </net>
+    <net code="133" name="Net-(U10-Pad46)">
+      <node ref="U10" pin="46"/>
+    </net>
+    <net code="134" name="Net-(U10-Pad47)">
+      <node ref="U10" pin="47"/>
+    </net>
+    <net code="135" name="Net-(U10-Pad48)">
+      <node ref="U10" pin="48"/>
+    </net>
+    <net code="136" name="Net-(U10-Pad49)">
+      <node ref="U10" pin="49"/>
+    </net>
+    <net code="137" name="Net-(U10-Pad50)">
+      <node ref="U10" pin="50"/>
+    </net>
+    <net code="138" name="Net-(U10-Pad39)">
+      <node ref="U10" pin="39"/>
+    </net>
+    <net code="139" name="Net-(U10-Pad14)">
+      <node ref="U10" pin="14"/>
+    </net>
+    <net code="140" name="Net-(U10-Pad42)">
+      <node ref="U10" pin="42"/>
+    </net>
+    <net code="141" name="Net-(U10-Pad41)">
+      <node ref="U10" pin="41"/>
+    </net>
+  </nets>
+</export>

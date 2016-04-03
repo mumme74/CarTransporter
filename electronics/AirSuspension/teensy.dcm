@@ -1,0 +1,7 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP Teensy3.1
+D PJRC teensy arduino software compatible mini board
+$ENDCMP
+#
+#End Doc Library

@@ -164,7 +164,7 @@ F 5 "2079420" H 3000 3250 60  0001 C CNN "farnell"
 	0    1    1    0   
 $EndComp
 Text GLabel 2500 2475 0    60   Input ~ 0
-+12V_bat_safe
++12V_power
 $Comp
 L C C?
 U 1 1 57012D23
@@ -719,7 +719,7 @@ Wire Wire Line
 Wire Wire Line
 	2250 1800 2250 1825
 Text GLabel 1475 1825 0    60   Input ~ 0
-+5V
++12V_power
 Wire Wire Line
 	1575 1825 1475 1825
 Wire Wire Line
@@ -734,7 +734,7 @@ Wire Wire Line
 Wire Wire Line
 	875  2125 875  2150
 Text GLabel 1675 4900 0    60   Input ~ 0
-+5V
++12V_power
 Text GLabel 1775 2025 2    60   Input ~ 0
 +3.3V
 Text Notes 850  1725 0    60   ~ 0
@@ -855,7 +855,7 @@ F 5 "2079420" H 8125 3225 60  0001 C CNN "farnell"
 	0    1    1    0   
 $EndComp
 Text GLabel 7625 2475 0    60   Input ~ 0
-+12V_bat_safe
++12V_power
 $Comp
 L C C?
 U 1 1 570313BF
@@ -1388,7 +1388,7 @@ Wire Wire Line
 Wire Wire Line
 	7375 1775 7375 1800
 Text GLabel 6600 1800 0    60   Input ~ 0
-+5V
++12V_power
 Wire Wire Line
 	6700 1800 6600 1800
 Wire Wire Line
@@ -1403,7 +1403,7 @@ Wire Wire Line
 Wire Wire Line
 	6000 2100 6000 2125
 Text GLabel 6800 4875 0    60   Input ~ 0
-+5V
++12V_power
 Text GLabel 6900 2000 2    60   Input ~ 0
 +3.3V
 Text Notes 5975 1700 0    60   ~ 0

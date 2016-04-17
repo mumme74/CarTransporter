@@ -38,7 +38,7 @@ EELAYER 25 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
-Sheet 2 5
+Sheet 2 6
 Title ""
 Date ""
 Rev ""
@@ -49,77 +49,29 @@ Comment3 ""
 Comment4 ""
 $EndDescr
 $Comp
-L 74LS11 U?
-U 1 1 5704BB2F
-P 2300 4425
-F 0 "U?" H 2300 4806 50  0000 C CNN
-F 1 "74LS11" H 2300 4715 50  0000 C CNN
-F 2 "" H 2300 4425 50  0000 C CNN
-F 3 "" H 2300 4425 50  0000 C CNN
-F 4 "CD74HC11M" H 2300 4425 60  0001 C CNN "part"
-F 5 "1739929" H 2300 4425 60  0001 C CNN "farnell"
-	1    2300 4425
-	1    0    0    -1  
-$EndComp
-$Comp
-L 74LS11 U?
-U 2 1 5704BCDC
-P 2300 5775
-F 0 "U?" H 2300 6156 50  0000 C CNN
-F 1 "74LS11" H 2300 6065 50  0000 C CNN
-F 2 "" H 2300 5775 50  0000 C CNN
-F 3 "" H 2300 5775 50  0000 C CNN
-	2    2300 5775
-	1    0    0    -1  
-$EndComp
-$Comp
-L 74LS11 U?
-U 3 1 5704BEA7
-P 5525 4400
-F 0 "U?" H 5525 4014 50  0000 C CNN
-F 1 "74LS11" H 5525 4105 50  0000 C CNN
-F 2 "" H 5525 4400 50  0000 C CNN
-F 3 "" H 5525 4400 50  0000 C CNN
-	3    5525 4400
-	-1   0    0    1   
-$EndComp
-$Comp
-L 74LS11 U?
-U 1 1 5704BFC1
-P 5525 5775
-F 0 "U?" H 5525 5389 50  0000 C CNN
-F 1 "74LS11" H 5525 5480 50  0000 C CNN
-F 2 "" H 5525 5775 50  0000 C CNN
-F 3 "" H 5525 5775 50  0000 C CNN
-F 4 "1739929" H 5525 5775 60  0001 C CNN "farnell"
-F 5 "CD74HC11M" H 5525 5775 60  0001 C CNN "part"
-	1    5525 5775
-	-1   0    0    1   
-$EndComp
-$Comp
 L 74LS00 U?
 U 1 1 5704D186
-P 850 5325
-F 0 "U?" V 775 5275 50  0000 L CNN
-F 1 "74LS00" V 900 5200 50  0000 L CNN
-F 2 "" H 850 5325 50  0000 C CNN
-F 3 "" H 850 5325 50  0000 C CNN
-F 4 "CD74HC03M" V 850 5325 60  0001 C CNN "part"
-F 5 "1749880" V 850 5325 60  0001 C CNN "farnell"
-	1    850  5325
-	0    1    1    0   
+P 1975 4775
+F 0 "U?" H 1875 4875 50  0000 L CNN
+F 1 "CD74HC03M" H 1750 4750 50  0000 L CNN
+F 2 "" H 1975 4775 50  0000 C CNN
+F 3 "" H 1975 4775 50  0000 C CNN
+F 4 "CD74HC03M" V 1975 4775 60  0001 C CNN "part"
+F 5 "1749880" V 1975 4775 60  0001 C CNN "farnell"
+	1    1975 4775
+	1    0    0    -1  
 $EndComp
 $Comp
 L 74LS00 U?
 U 2 1 570532D4
-P 6600 5325
-F 0 "U?" V 6500 5275 50  0000 L CNN
-F 1 "74LS00" V 6625 5200 50  0000 L CNN
-F 2 "" H 6600 5325 50  0000 C CNN
-F 3 "" H 6600 5325 50  0000 C CNN
-F 4 "CD74HC03M" V 6600 5325 60  0001 C CNN "part"
-	2    6600 5325
-	0    1    1    0   
+P 1975 5425
+F 0 "U?" H 1875 5525 50  0000 L CNN
+F 1 "CD74HC03M" H 1750 5400 50  0000 L CNN
+F 2 "" H 1975 5425 50  0000 C CNN
+F 3 "" H 1975 5425 50  0000 C CNN
+F 4 "CD74HC03M" V 1975 5425 60  0001 C CNN "part"
+	2    1975 5425
+	1    0    0    -1  
 $EndComp
 $Sheet
 S 7000 1350 1900 1875
@@ -136,246 +88,26 @@ F8 "RightRearHi-" I R 8900 2075 60
 F9 "RightRearLo-" I R 8900 1650 60 
 $EndSheet
 $Comp
-L 74LS11 U?
-U 3 1 57060289
-P 6300 2550
-F 0 "U?" H 6300 2931 50  0000 C CNN
-F 1 "74LS11" H 6300 2840 50  0000 C CNN
-F 2 "" H 6300 2550 50  0000 C CNN
-F 3 "" H 6300 2550 50  0000 C CNN
-	3    6300 2550
-	1    0    0    -1  
-$EndComp
-$Comp
-L 74LS11 U?
-U 2 1 57060767
-P 6325 1650
-F 0 "U?" H 6325 2031 50  0000 C CNN
-F 1 "74LS11" H 6325 1940 50  0000 C CNN
-F 2 "" H 6325 1650 50  0000 C CNN
-F 3 "" H 6325 1650 50  0000 C CNN
-	2    6325 1650
-	1    0    0    -1  
-$EndComp
-$Comp
-L 74LS11 U?
-U 1 1 57060D77
-P 9600 1650
-F 0 "U?" H 9600 1264 50  0000 C CNN
-F 1 "74LS11" H 9600 1355 50  0000 C CNN
-F 2 "" H 9600 1650 50  0000 C CNN
-F 3 "" H 9600 1650 50  0000 C CNN
-F 4 "1739929" H 9600 1650 60  0001 C CNN "farnell"
-F 5 "CD74HC11M" H 9600 1650 60  0001 C CNN "part"
-	1    9600 1650
-	-1   0    0    1   
-$EndComp
-$Comp
-L 74LS11 U?
-U 2 1 5706132C
-P 9600 2550
-F 0 "U?" H 9600 2164 50  0000 C CNN
-F 1 "74LS11" H 9600 2255 50  0000 C CNN
-F 2 "" H 9600 2550 50  0000 C CNN
-F 3 "" H 9600 2550 50  0000 C CNN
-	2    9600 2550
-	-1   0    0    1   
-$EndComp
-$Comp
 L 74LS00 U?
 U 3 1 570625EF
-P 5225 2100
-F 0 "U?" V 5125 2025 50  0000 L CNN
-F 1 "74LS00" V 5250 1975 50  0000 L CNN
-F 2 "" H 5225 2100 50  0000 C CNN
-F 3 "" H 5225 2100 50  0000 C CNN
-	3    5225 2100
-	0    1    1    0   
+P 5900 4825
+F 0 "U?" H 5850 4725 50  0000 L CNN
+F 1 "CD74HC03M" H 5675 4875 50  0000 L CNN
+F 2 "" H 5900 4825 50  0000 C CNN
+F 3 "" H 5900 4825 50  0000 C CNN
+	3    5900 4825
+	-1   0    0    1   
 $EndComp
 $Comp
 L 74LS00 U?
 U 4 1 5706623B
-P 10650 2100
-F 0 "U?" V 10550 2025 50  0000 L CNN
-F 1 "74LS00" V 10700 1950 50  0000 L CNN
-F 2 "" H 10650 2100 50  0000 C CNN
-F 3 "" H 10650 2100 50  0000 C CNN
-	4    10650 2100
-	0    1    1    0   
-$EndComp
-Wire Wire Line
-	3050 5350 2900 5350
-Wire Wire Line
-	2900 5350 2900 5775
-Wire Wire Line
-	2900 5775 3050 5775
-Wire Wire Line
-	2900 4425 3050 4425
-Wire Wire Line
-	3050 4875 2900 4875
-Wire Wire Line
-	2900 4875 2900 4425
-Wire Wire Line
-	1425 5625 1700 5625
-Wire Wire Line
-	1700 4275 1425 4275
-Wire Wire Line
-	1700 4425 1575 4425
-Wire Wire Line
-	1575 4425 1575 6125
-Wire Wire Line
-	1575 5775 1700 5775
-Connection ~ 1575 5775
-Wire Wire Line
-	750  4725 950  4725
-Wire Wire Line
-	1425 4275 1425 6300
-Connection ~ 1425 5625
-Wire Wire Line
-	1700 5925 850  5925
-Wire Wire Line
-	1700 4575 950  4575
-Wire Wire Line
-	4800 5350 4925 5350
-Wire Wire Line
-	4925 5350 4925 5775
-Wire Wire Line
-	4925 5775 4800 5775
-Wire Wire Line
-	4925 4400 4925 4875
-Wire Wire Line
-	4925 4875 4800 4875
-Wire Wire Line
-	4925 4400 4800 4400
-Wire Wire Line
-	6125 4400 6200 4400
-Wire Wire Line
-	6200 4400 6200 6250
-Wire Wire Line
-	6200 5775 6125 5775
-Connection ~ 6200 5775
-Wire Wire Line
-	6125 4250 6300 4250
-Wire Wire Line
-	6300 4250 6300 6450
-Wire Wire Line
-	6300 5625 6125 5625
-Connection ~ 6300 5625
-Wire Wire Line
-	6600 5925 6125 5925
-Wire Wire Line
-	6700 4725 6500 4725
-Wire Wire Line
-	6125 4550 6500 4550
-Wire Wire Line
-	6500 4550 6500 4725
-Wire Wire Line
-	950  4575 950  4725
-Wire Wire Line
-	6300 6450 6200 6450
-Wire Wire Line
-	1425 6300 1575 6300
-Wire Wire Line
-	9000 1650 9000 2075
-Wire Wire Line
-	9000 2075 8900 2075
-Wire Wire Line
-	9000 1650 8900 1650
-Wire Wire Line
-	9000 2550 9000 2950
-Wire Wire Line
-	9000 2950 8900 2950
-Wire Wire Line
-	9000 2550 8900 2550
-Wire Wire Line
-	6900 2550 6900 2950
-Wire Wire Line
-	6900 2950 7000 2950
-Wire Wire Line
-	7000 2550 6900 2550
-Wire Wire Line
-	6925 1650 6925 2075
-Wire Wire Line
-	6925 2075 7000 2075
-Wire Wire Line
-	7000 1650 6925 1650
-Wire Wire Line
-	5725 1500 5650 1500
-Wire Wire Line
-	5650 1500 5650 3250
-Wire Wire Line
-	5650 2400 5700 2400
-Connection ~ 5650 2400
-Wire Wire Line
-	5700 2550 5550 2550
-Wire Wire Line
-	5550 1650 5550 2975
-Wire Wire Line
-	5550 1650 5725 1650
-Wire Wire Line
-	5725 1800 5450 1800
-Wire Wire Line
-	5450 1500 5450 1800
-Wire Wire Line
-	4975 1500 5450 1500
-Connection ~ 5325 1500
-Connection ~ 5125 1500
-Wire Wire Line
-	5700 2700 5225 2700
-Connection ~ 5550 2550
-Wire Wire Line
-	10200 1500 10275 1500
-Wire Wire Line
-	10275 1500 10275 3325
-Wire Wire Line
-	10275 2400 10200 2400
-Wire Wire Line
-	10200 1650 10375 1650
-Wire Wire Line
-	10375 1650 10375 3250
-Wire Wire Line
-	10375 2550 10200 2550
-Wire Wire Line
-	10425 1800 10200 1800
-Wire Wire Line
-	10425 1050 10425 1800
-Wire Wire Line
-	10425 1500 10750 1500
-Wire Wire Line
-	10650 2700 10200 2700
-Connection ~ 10550 1500
-Connection ~ 10425 1500
-Connection ~ 10275 2400
-Wire Wire Line
-	10375 3250 10525 3250
-Wire Wire Line
-	10525 3250 10525 3325
-Connection ~ 10375 2550
-$Comp
-L 74LS11 U?
-U 3 1 5706CA6B
-P 9425 5225
-F 0 "U?" H 9425 5606 50  0000 C CNN
-F 1 "74LS11" H 9425 5515 50  0000 C CNN
-F 2 "" H 9425 5225 50  0000 C CNN
-F 3 "" H 9425 5225 50  0000 C CNN
-	3    9425 5225
-	1    0    0    -1  
-$EndComp
-NoConn ~ 10025 5225
-Wire Wire Line
-	8825 5075 8825 5375
-Connection ~ 8825 5225
-$Comp
-L GND #PWR?
-U 1 1 5706D8EF
-P 8825 5375
-F 0 "#PWR?" H 8825 5125 50  0001 C CNN
-F 1 "GND" H 8833 5202 50  0000 C CNN
-F 2 "" H 8825 5375 50  0000 C CNN
-F 3 "" H 8825 5375 50  0000 C CNN
-	1    8825 5375
-	1    0    0    -1  
+P 5900 5400
+F 0 "U?" H 5850 5300 50  0000 L CNN
+F 1 "CD74HC03M" H 5675 5450 50  0000 L CNN
+F 2 "" H 5900 5400 50  0000 C CNN
+F 3 "" H 5900 5400 50  0000 C CNN
+	4    5900 5400
+	-1   0    0    1   
 $EndComp
 $Comp
 L C C?
@@ -405,19 +137,14 @@ Text Label 2825 900  0    60   ~ 0
 VCC
 Text GLabel 1350 900  0    60   Input ~ 0
 +3.3V
-Wire Wire Line
-	1350 900  2825 900 
-Connection ~ 1425 900 
-Wire Wire Line
-	1425 1200 2850 1200
-Text GLabel 10275 3325 3    60   Input ~ 0
-RightRear_DIAG
-Text GLabel 10525 3325 3    60   Input ~ 0
-RightRear_Enable
-Text GLabel 5550 2975 0    60   Input ~ 0
-LeftRear_Enable
-Text GLabel 5650 3250 0    60   Input ~ 0
-LeftRear_DIAG
+Text GLabel 10375 1925 2    60   Input ~ 0
+~RightRear_CL
+Text GLabel 10200 3250 2    60   Input ~ 0
+RightRear_Loosen
+Text GLabel 5675 3250 0    60   Input ~ 0
+LeftRear_Loosen
+Text GLabel 5400 1925 0    60   Input ~ 0
+~LeftRear_CL
 $Sheet
 S 3050 4225 1750 1925
 U 570485E7
@@ -465,12 +192,6 @@ F 3 "" H 2700 1050 50  0000 C CNN
 	1    2700 1050
 	1    0    0    -1  
 $EndComp
-Connection ~ 1900 900 
-Connection ~ 2275 900 
-Connection ~ 2700 900 
-Connection ~ 1900 1200
-Connection ~ 2275 1200
-Connection ~ 2700 1200
 $Comp
 L LED D?
 U 1 1 5707E22E
@@ -603,46 +324,6 @@ F 3 "" H 3475 1900 50  0000 C CNN
 	1    3475 1900
 	0    1    1    0   
 $EndComp
-Wire Wire Line
-	3300 1800 3300 2025
-Wire Wire Line
-	3325 1900 3300 1900
-Connection ~ 3300 1900
-Wire Wire Line
-	2900 1800 2900 2025
-Wire Wire Line
-	2900 1900 2700 1900
-Connection ~ 2900 1900
-Wire Wire Line
-	1425 2725 1425 2950
-Wire Wire Line
-	1400 2850 1425 2850
-Connection ~ 1425 2850
-Wire Wire Line
-	1825 2725 1825 2950
-Wire Wire Line
-	1825 2850 1950 2850
-Connection ~ 1825 2850
-Wire Wire Line
-	1825 1800 1825 2025
-Wire Wire Line
-	1825 1900 1950 1900
-Connection ~ 1825 1900
-Wire Wire Line
-	1425 1800 1425 2025
-Wire Wire Line
-	1425 1900 1400 1900
-Connection ~ 1425 1900
-Wire Wire Line
-	3325 2725 3325 2950
-Wire Wire Line
-	3350 2850 3325 2850
-Connection ~ 3325 2850
-Wire Wire Line
-	2925 2725 2925 2950
-Wire Wire Line
-	2925 2850 2700 2850
-Connection ~ 2925 2850
 Text GLabel 3625 1900 3    60   Input ~ 0
 RightFrontMotor-
 Text GLabel 2700 1900 3    60   Input ~ 0
@@ -659,20 +340,446 @@ Text GLabel 1100 1900 3    60   Input ~ 0
 LeftFrontMotor+
 Text GLabel 1100 2850 3    60   Input ~ 0
 LeftRearMotor+
-Text GLabel 1575 6300 2    60   Input ~ 0
-LeftFront_DIAG
-Text GLabel 6200 6450 0    60   Input ~ 0
-RightFront_DIAG
-Text GLabel 1575 6125 2    60   Input ~ 0
-LeftFront_Enable
-Text GLabel 6200 6250 0    60   Input ~ 0
-RightFront_Enable
-Text GLabel 6700 4725 2    60   Input ~ 0
+Text GLabel 1375 4675 0    60   Input ~ 0
+~LeftFront_CL
+Text GLabel 6500 4725 2    60   Input ~ 0
+~RightFront_CL
+Text GLabel 1700 6050 0    60   Input ~ 0
+LeftFront_Loosen
+Text GLabel 6125 6050 2    60   Input ~ 0
+RightFront_Loosen
+Text GLabel 6125 4175 2    60   Input ~ 0
 RightFront_Tighten
-Text GLabel 950  4575 1    60   Input ~ 0
+Text GLabel 1700 4175 0    60   Input ~ 0
 LeftFront_Tighten
-Text GLabel 4975 1500 0    60   Input ~ 0
+Text GLabel 5675 1350 0    60   Input ~ 0
 LeftRear_Tighten
-Text GLabel 10425 1050 0    60   Input ~ 0
+Text GLabel 10200 1375 2    60   Input ~ 0
 RightRear_Tighten
+$Comp
+L 74LS08 U?
+U 1 1 57135EB3
+P 2300 4275
+F 0 "U?" H 2275 4400 50  0000 C CNN
+F 1 "74LV08D" H 2325 4275 50  0000 C CNN
+F 2 "" H 2300 4275 50  0000 C CNN
+F 3 "" H 2300 4275 50  0000 C CNN
+F 4 "1085354" H 2300 4275 60  0001 C CNN "farnell"
+F 5 "74LV08D" H 2300 4275 60  0001 C CNN "part"
+	1    2300 4275
+	1    0    0    -1  
+$EndComp
+$Comp
+L 74LS08 U?
+U 2 1 5713618B
+P 2300 5950
+F 0 "U?" H 2300 6050 50  0000 C CNN
+F 1 "74LV08D" H 2300 5925 50  0000 C CNN
+F 2 "" H 2300 5950 50  0000 C CNN
+F 3 "" H 2300 5950 50  0000 C CNN
+	2    2300 5950
+	1    0    0    -1  
+$EndComp
+Text GLabel 1375 5525 0    60   Input ~ 0
+~LeftFront_Reset
+Text Notes 7900 4225 0    60   ~ 0
+~SR~ latch tripped by overcurrent, must be reset by software\nCurrentLimit triggers the SR latch, the xx_DIAG is the output \nof this latch, is high when the latch has triggered.
+$Comp
+L 74LS08 U?
+U 3 1 5713C42D
+P 5525 4275
+F 0 "U?" H 5500 4175 50  0000 C CNN
+F 1 "74LV08D" H 5500 4300 50  0000 C CNN
+F 2 "" H 5525 4275 50  0000 C CNN
+F 3 "" H 5525 4275 50  0000 C CNN
+	3    5525 4275
+	-1   0    0    1   
+$EndComp
+$Comp
+L 74LS08 U?
+U 4 1 5713C5B9
+P 5525 5950
+F 0 "U?" H 5475 5825 50  0000 C CNN
+F 1 "74LV08D" H 5475 5925 50  0000 C CNN
+F 2 "" H 5525 5950 50  0000 C CNN
+F 3 "" H 5525 5950 50  0000 C CNN
+	4    5525 5950
+	-1   0    0    1   
+$EndComp
+Wire Wire Line
+	3050 5350 2900 5350
+Wire Wire Line
+	2900 5350 2900 5775
+Wire Wire Line
+	2900 5775 2900 5950
+Wire Wire Line
+	2900 5775 3050 5775
+Wire Wire Line
+	2900 4425 3050 4425
+Wire Wire Line
+	2900 4875 3050 4875
+Wire Wire Line
+	2900 4275 2900 4425
+Wire Wire Line
+	2900 4425 2900 4875
+Wire Wire Line
+	4800 5350 4925 5350
+Wire Wire Line
+	4925 5350 4925 5775
+Wire Wire Line
+	4925 5775 4925 5950
+Wire Wire Line
+	4925 5775 4800 5775
+Wire Wire Line
+	4925 4275 4925 4400
+Wire Wire Line
+	4925 4400 4925 4875
+Wire Wire Line
+	4925 4875 4800 4875
+Wire Wire Line
+	4925 4400 4800 4400
+Wire Wire Line
+	9000 1475 9000 1650
+Wire Wire Line
+	9000 1650 9000 2075
+Wire Wire Line
+	9000 2075 8900 2075
+Wire Wire Line
+	9000 1650 8900 1650
+Wire Wire Line
+	9000 2550 9000 2950
+Wire Wire Line
+	9000 2950 9000 3150
+Wire Wire Line
+	9000 2950 8900 2950
+Wire Wire Line
+	9000 2550 8900 2550
+Wire Wire Line
+	6875 2550 6875 2950
+Wire Wire Line
+	6875 2950 6875 3150
+Wire Wire Line
+	6875 2950 7000 2950
+Wire Wire Line
+	7000 2550 6875 2550
+Wire Wire Line
+	6875 1450 6875 1650
+Wire Wire Line
+	6875 1650 6875 2075
+Wire Wire Line
+	6875 2075 7000 2075
+Wire Wire Line
+	7000 1650 6875 1650
+Wire Wire Line
+	1350 900  1425 900 
+Wire Wire Line
+	1425 900  1900 900 
+Wire Wire Line
+	1900 900  2275 900 
+Wire Wire Line
+	2275 900  2700 900 
+Wire Wire Line
+	2700 900  2825 900 
+Connection ~ 1425 900 
+Wire Wire Line
+	1425 1200 1900 1200
+Wire Wire Line
+	1900 1200 2275 1200
+Wire Wire Line
+	2275 1200 2700 1200
+Wire Wire Line
+	2700 1200 2850 1200
+Connection ~ 1900 900 
+Connection ~ 2275 900 
+Connection ~ 2700 900 
+Connection ~ 1900 1200
+Connection ~ 2275 1200
+Connection ~ 2700 1200
+Wire Wire Line
+	3300 1800 3300 1900
+Wire Wire Line
+	3300 1900 3300 2025
+Wire Wire Line
+	3325 1900 3300 1900
+Connection ~ 3300 1900
+Wire Wire Line
+	2900 1800 2900 1900
+Wire Wire Line
+	2900 1900 2900 2025
+Wire Wire Line
+	2900 1900 2700 1900
+Connection ~ 2900 1900
+Wire Wire Line
+	1425 2725 1425 2850
+Wire Wire Line
+	1425 2850 1425 2950
+Wire Wire Line
+	1400 2850 1425 2850
+Connection ~ 1425 2850
+Wire Wire Line
+	1825 2725 1825 2850
+Wire Wire Line
+	1825 2850 1825 2950
+Wire Wire Line
+	1825 2850 1950 2850
+Connection ~ 1825 2850
+Wire Wire Line
+	1825 1800 1825 1900
+Wire Wire Line
+	1825 1900 1825 2025
+Wire Wire Line
+	1825 1900 1950 1900
+Connection ~ 1825 1900
+Wire Wire Line
+	1425 1800 1425 1900
+Wire Wire Line
+	1425 1900 1425 2025
+Wire Wire Line
+	1425 1900 1400 1900
+Connection ~ 1425 1900
+Wire Wire Line
+	3325 2725 3325 2850
+Wire Wire Line
+	3325 2850 3325 2950
+Wire Wire Line
+	3350 2850 3325 2850
+Connection ~ 3325 2850
+Wire Wire Line
+	2925 2725 2925 2850
+Wire Wire Line
+	2925 2850 2925 2950
+Wire Wire Line
+	2925 2850 2700 2850
+Connection ~ 2925 2850
+Wire Wire Line
+	2575 4775 2575 5175
+Wire Wire Line
+	2575 5175 1375 5175
+Wire Wire Line
+	1375 5175 1375 5325
+Wire Wire Line
+	1375 5325 1375 5325
+Wire Wire Line
+	1375 4875 1375 5050
+Wire Wire Line
+	1375 5050 2675 5050
+Wire Wire Line
+	2675 4525 2675 5050
+Wire Wire Line
+	2675 5050 2675 5425
+Wire Wire Line
+	2675 5425 2675 5700
+Wire Wire Line
+	2675 5425 2575 5425
+Wire Wire Line
+	2675 4525 1700 4525
+Wire Wire Line
+	1700 4525 1700 4375
+Connection ~ 2675 5050
+Wire Wire Line
+	2675 5700 1700 5700
+Wire Wire Line
+	1700 5700 1700 5850
+Connection ~ 2675 5425
+Connection ~ 2900 4425
+Connection ~ 2900 5775
+Connection ~ 4925 4400
+Connection ~ 4925 5775
+Wire Wire Line
+	5300 4825 5300 5175
+Wire Wire Line
+	5300 5175 6500 5175
+Wire Wire Line
+	6500 5175 6500 5300
+Wire Wire Line
+	6500 4925 6500 5075
+Wire Wire Line
+	6500 5075 5175 5075
+Wire Wire Line
+	5175 4525 5175 5075
+Wire Wire Line
+	5175 5075 5175 5400
+Wire Wire Line
+	5175 5400 5175 5700
+Wire Wire Line
+	5175 5400 5300 5400
+Wire Wire Line
+	5175 5700 6125 5700
+Wire Wire Line
+	6125 5700 6125 5850
+Connection ~ 5175 5400
+Wire Wire Line
+	5175 4525 6125 4525
+Wire Wire Line
+	6125 4525 6125 4375
+Connection ~ 5175 5075
+Text GLabel 6500 5500 2    60   Input ~ 0
+~RightFront_Reset
+$Comp
+L 74LS08 U?
+U 1 1 5713F73F
+P 6275 1450
+F 0 "U?" H 6275 1600 50  0000 C CNN
+F 1 "74LV08D" H 6250 1450 50  0000 C CNN
+F 2 "" H 6275 1450 50  0000 C CNN
+F 3 "" H 6275 1450 50  0000 C CNN
+F 4 "74LV08D" H 6275 1450 60  0001 C CNN "part"
+F 5 "1085354" H 6275 1450 60  0001 C CNN "farnell"
+	1    6275 1450
+	1    0    0    -1  
+$EndComp
+$Comp
+L 74LS08 U?
+U 2 1 5713F923
+P 6275 3150
+F 0 "U?" H 6225 3275 50  0000 C CNN
+F 1 "74LV08D" H 6200 3150 50  0000 C CNN
+F 2 "" H 6275 3150 50  0000 C CNN
+F 3 "" H 6275 3150 50  0000 C CNN
+	2    6275 3150
+	1    0    0    -1  
+$EndComp
+$Comp
+L 74LS08 U?
+U 3 1 5713F9E5
+P 9600 1475
+F 0 "U?" H 9600 1350 50  0000 C CNN
+F 1 "74LV08D" H 9625 1475 50  0000 C CNN
+F 2 "" H 9600 1475 50  0000 C CNN
+F 3 "" H 9600 1475 50  0000 C CNN
+	3    9600 1475
+	-1   0    0    1   
+$EndComp
+$Comp
+L 74LS08 U?
+U 4 1 5713FB8D
+P 9600 3150
+F 0 "U?" H 9575 3025 50  0000 C CNN
+F 1 "74LV08D" H 9575 3150 50  0000 C CNN
+F 2 "" H 9600 3150 50  0000 C CNN
+F 3 "" H 9600 3150 50  0000 C CNN
+	4    9600 3150
+	-1   0    0    1   
+$EndComp
+$Comp
+L 7400 U?
+U 1 1 57141A30
+P 6000 2025
+F 0 "U?" H 5975 2150 50  0000 C CNN
+F 1 "CD74HC03M" H 5975 2000 50  0000 C CNN
+F 2 "" H 6000 2025 50  0000 C CNN
+F 3 "" H 6000 2025 50  0000 C CNN
+F 4 "CD74HC03M" H 6000 2025 60  0001 C CNN "part"
+F 5 "1749880" H 6000 2025 60  0001 C CNN "farnell"
+	1    6000 2025
+	1    0    0    -1  
+$EndComp
+$Comp
+L 7400 U?
+U 2 1 57141B42
+P 6000 2600
+F 0 "U?" H 5975 2725 50  0000 C CNN
+F 1 "CD74HC03M" H 5975 2550 50  0000 C CNN
+F 2 "" H 6000 2600 50  0000 C CNN
+F 3 "" H 6000 2600 50  0000 C CNN
+F 4 "CD74HC03M" H 6000 2600 60  0001 C CNN "part"
+	2    6000 2600
+	1    0    0    -1  
+$EndComp
+$Comp
+L 7400 U?
+U 3 1 57141D9A
+P 9775 2025
+F 0 "U?" H 9750 1900 50  0000 C CNN
+F 1 "CD74HC03M" H 9775 2025 50  0000 C CNN
+F 2 "" H 9775 2025 50  0000 C CNN
+F 3 "" H 9775 2025 50  0000 C CNN
+F 4 "CD74HC03M" H 9775 2025 60  0001 C CNN "part"
+	3    9775 2025
+	-1   0    0    1   
+$EndComp
+$Comp
+L 7400 U?
+U 4 1 57141F56
+P 9775 2600
+F 0 "U?" H 9750 2475 50  0000 C CNN
+F 1 "CD74HC03M" H 9775 2625 50  0000 C CNN
+F 2 "" H 9775 2600 50  0000 C CNN
+F 3 "" H 9775 2600 50  0000 C CNN
+F 4 "CD74HC03M" H 9775 2600 60  0001 C CNN "part"
+	4    9775 2600
+	-1   0    0    1   
+$EndComp
+Wire Wire Line
+	6600 2025 6600 2350
+Wire Wire Line
+	6600 2350 5400 2350
+Wire Wire Line
+	5400 2350 5400 2500
+Wire Wire Line
+	5400 2125 5400 2275
+Wire Wire Line
+	5400 2275 6725 2275
+Wire Wire Line
+	6725 1700 6725 2275
+Wire Wire Line
+	6725 2275 6725 2600
+Wire Wire Line
+	6725 2600 6725 2900
+Wire Wire Line
+	6725 2600 6600 2600
+Wire Wire Line
+	6725 1700 5675 1700
+Wire Wire Line
+	5675 1700 5675 1550
+Connection ~ 6725 2275
+Wire Wire Line
+	6725 2900 5675 2900
+Wire Wire Line
+	5675 2900 5675 3050
+Connection ~ 6725 2600
+Connection ~ 6875 2950
+Connection ~ 6875 1650
+Text GLabel 5400 2700 0    60   Input ~ 0
+~LeftRear_Reset
+Wire Wire Line
+	9175 2025 9175 2350
+Wire Wire Line
+	9175 2350 10375 2350
+Wire Wire Line
+	10375 2350 10375 2500
+Wire Wire Line
+	10375 2125 10375 2275
+Wire Wire Line
+	10375 2275 9100 2275
+Wire Wire Line
+	9100 1750 9100 2275
+Wire Wire Line
+	9100 2275 9100 2600
+Wire Wire Line
+	9100 2600 9100 2900
+Wire Wire Line
+	9100 2600 9175 2600
+Wire Wire Line
+	9100 1750 10200 1750
+Wire Wire Line
+	10200 1750 10200 1575
+Connection ~ 9100 2275
+Wire Wire Line
+	9100 2900 10200 2900
+Wire Wire Line
+	10200 2900 10200 3050
+Connection ~ 9100 2600
+Connection ~ 9000 2950
+Connection ~ 9000 1650
+Text GLabel 10375 2700 2    60   Input ~ 0
+~RightRear_Reset
+Text GLabel 1375 5175 0    60   Input ~ 0
+LeftFront_DIAG
+Text GLabel 6500 5175 2    60   Input ~ 0
+RightFront_DIAG
+Text GLabel 5400 2350 0    60   Input ~ 0
+LeftRear_DIAG
+Text GLabel 10375 2350 2    60   Input ~ 0
+RightRear_DIAG
 $EndSCHEMATC

@@ -38,7 +38,7 @@ EELAYER 25 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
-Sheet 4 5
+Sheet 4 6
 Title ""
 Date ""
 Rev ""
@@ -1706,17 +1706,17 @@ Wire Wire Line
 Wire Wire Line
 	4050 4225 4050 4175
 Text GLabel 2275 5525 2    60   Input ~ 0
-LeftFront_DIAG
+~LeftFront_CL
 Text GLabel 3050 3975 3    60   Input ~ 0
 LeftFrontMotor+
 Text GLabel 3225 3975 3    60   Input ~ 0
 LeftFrontMotor-
 Text GLabel 875  2150 3    60   Input ~ 0
-LeftFront_DIAG
+~LeftFront_CL
 Text GLabel 7400 5500 2    60   Input ~ 0
-RightFront_DIAG
+~RightFront_CL
 Text GLabel 6000 2125 3    60   Input ~ 0
-RightFront_DIAG
+~RightFront_CL
 Text GLabel 8175 3950 3    60   Input ~ 0
 RightFrontMotor+
 Text GLabel 8350 3950 3    60   Input ~ 0

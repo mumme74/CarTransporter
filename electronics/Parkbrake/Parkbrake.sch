@@ -38,7 +38,7 @@ EELAYER 25 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
-Sheet 1 5
+Sheet 1 6
 Title ""
 Date ""
 Rev ""
@@ -51,22 +51,22 @@ $EndDescr
 $Comp
 L Conn48pin P1
 U 1 1 56FEAA1E
-P 1075 2225
-F 0 "P1" H 1000 3850 60  0000 L CNN
-F 1 "Conn48pin" H 900 3750 60  0000 L CNN
-F 2 "" H 1225 2525 60  0000 C CNN
-F 3 "" H 1225 2525 60  0000 C CNN
-	1    1075 2225
+P 2150 2225
+F 0 "P1" H 2075 3850 60  0000 L CNN
+F 1 "Conn48pin" H 1975 3750 60  0000 L CNN
+F 2 "" H 2300 2525 60  0000 C CNN
+F 3 "" H 2300 2525 60  0000 C CNN
+	1    2150 2225
 	1    0    0    -1  
 $EndComp
 $Sheet
-S 6500 2600 1525 1450
+S 8875 2600 1525 1450
 U 570483C1
 F0 "H-Bridge_logic" 60
 F1 "H-Bridge_logic.sch" 60
 $EndSheet
 $Sheet
-S 6500 1000 1525 850 
+S 8875 1000 1525 850 
 U 57088F10
 F0 "PowerRegulators" 60
 F1 "PowerRegulators.sch" 60
@@ -320,4 +320,121 @@ F 3 "" H 2725 6600 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 Connection ~ 2725 6100
+Connection ~ 2050 1025
+Wire Wire Line
+	1800 1025 1800 1325
+Wire Wire Line
+	2050 1025 2050 1175
+Connection ~ 1800 1175
+Connection ~ 1800 1025
+Wire Wire Line
+	1575 1025 2300 1025
+$Comp
+L GNDPWR #PWR?
+U 1 1 570235BF
+P 1575 1025
+F 0 "#PWR?" H 1575 825 50  0001 C CNN
+F 1 "GNDPWR" H 1582 1099 50  0000 C CNN
+F 2 "" H 1575 975 50  0000 C CNN
+F 3 "" H 1575 975 50  0000 C CNN
+	1    1575 1025
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2300 1475 1800 1475
+Wire Wire Line
+	2050 1475 2050 1325
+Wire Wire Line
+	2300 1175 2300 1475
+Connection ~ 2050 1475
+Connection ~ 2300 1325
+Wire Wire Line
+	2300 1175 2650 1175
+Text Label 2650 1175 0    60   ~ 0
++12V_Bat
+Wire Wire Line
+	1800 1625 2675 1625
+Connection ~ 2050 1625
+Connection ~ 2300 1625
+Wire Wire Line
+	1625 1775 2300 1775
+Connection ~ 2050 1775
+Connection ~ 1800 1775
+Wire Wire Line
+	1800 1925 2675 1925
+Connection ~ 2050 1925
+Connection ~ 2300 1925
+Wire Wire Line
+	1625 2075 2300 2075
+Connection ~ 2050 2075
+Connection ~ 1800 2075
+Wire Wire Line
+	1800 2225 2675 2225
+Connection ~ 2050 2225
+Connection ~ 2300 2225
+Wire Wire Line
+	1625 2375 2300 2375
+Connection ~ 2050 2375
+Connection ~ 1800 2375
+Wire Wire Line
+	1800 3025 2675 3025
+Connection ~ 2050 3025
+Connection ~ 2300 3025
+Wire Wire Line
+	1625 3175 2300 3175
+Connection ~ 2050 3175
+Connection ~ 1800 3175
+Text GLabel 2675 1625 2    60   Input ~ 0
+LeftFrontMotor+
+Text GLabel 1625 1775 0    60   Input ~ 0
+LeftFrontMotor-
+Text GLabel 2675 1925 2    60   Input ~ 0
+RightFrontMotor+
+Text GLabel 1625 2075 0    60   Input ~ 0
+RightFrontMotor-
+Text GLabel 2675 2225 2    60   Input ~ 0
+LeftRearMotor+
+Text GLabel 1625 2375 0    60   Input ~ 0
+LeftRearMotor-
+Text GLabel 2675 3025 2    60   Input ~ 0
+RightRearMotor+
+Text GLabel 1625 3175 0    60   Input ~ 0
+RightRearMotor-
+Wire Wire Line
+	2300 3325 2675 3325
+Text Label 2675 3325 0    60   ~ 0
++12V_IGN
+Wire Wire Line
+	2050 3325 2050 3250
+Wire Wire Line
+	2050 3250 2625 3250
+Wire Wire Line
+	2625 3250 2625 3150
+Wire Wire Line
+	2625 3150 3225 3150
+$Comp
+L GND #PWR?
+U 1 1 570245AD
+P 3225 3150
+F 0 "#PWR?" H 3225 2900 50  0001 C CNN
+F 1 "GND" H 3233 2977 50  0001 C CNN
+F 2 "" H 3225 3150 50  0000 C CNN
+F 3 "" H 3225 3150 50  0000 C CNN
+	1    3225 3150
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1800 3325 1625 3325
+Wire Wire Line
+	1800 3475 1625 3475
+Text GLabel 1625 3325 0    60   Input ~ 0
+CAN_HI
+Text GLabel 1625 3475 0    60   Input ~ 0
+CAN_LO
+$Sheet
+S 5675 2450 1250 1375
+U 570A3FC3
+F0 "microcontroller" 60
+F1 "microcontroller.sch" 60
+$EndSheet
 $EndSCHEMATC

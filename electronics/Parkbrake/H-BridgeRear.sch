@@ -38,7 +38,7 @@ EELAYER 25 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
-Sheet 3 5
+Sheet 3 6
 Title ""
 Date ""
 Rev ""
@@ -1706,7 +1706,7 @@ Wire Wire Line
 Wire Wire Line
 	4050 4225 4050 4175
 Text GLabel 2275 5525 2    60   Input ~ 0
-LeftRear_DIAG
+~LeftRear_CL
 Text GLabel 3050 3975 3    60   Input ~ 0
 LeftRearMotor+
 Text GLabel 3225 3975 3    60   Input ~ 0
@@ -1714,9 +1714,9 @@ LeftRearMotor-
 Text GLabel 2150 1750 1    60   Input ~ 0
 LeftRear_CS
 Text GLabel 875  2150 3    60   Input ~ 0
-LeftRear_DIAG
+~LeftRear_CL
 Text GLabel 6000 2125 3    60   Input ~ 0
-RightRear_DIAG
+~RightRear_CL
 Text GLabel 7275 1725 1    60   Input ~ 0
 RightRear_CS
 Text GLabel 8175 3950 3    60   Input ~ 0
@@ -1724,5 +1724,5 @@ RightRearMotor+
 Text GLabel 8350 3950 3    60   Input ~ 0
 RightRearMotor-
 Text GLabel 7400 5500 2    60   Input ~ 0
-RightRear_DIAG
+~RightRear_CL
 $EndSCHEMATC

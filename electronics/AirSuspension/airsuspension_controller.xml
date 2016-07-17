@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <export version="D">
   <design>
-    <source>/home/fredrikjohansson/elektronik/CarTransporter/electronics/airsuspension_controller.sch</source>
-    <date>lör  2 apr 2016 10:41:11</date>
-    <tool>Eeschema 0.201603210401+6634~43~ubuntu14.04.1-product</tool>
+    <source>/home/fredrikjohansson/elektronik/CarTransporter/electronics/AirSuspension/airsuspension_controller.sch</source>
+    <date>tor  5 maj 2016 13:39:20</date>
+    <tool>Eeschema 0.201604271216+6712~44~ubuntu14.04.1-product</tool>
     <sheet number="1" name="/" tstamps="/">
       <title_block>
         <title>ECU controller airsuspension</title>
@@ -1647,6 +1647,9 @@
       </pins>
     </libpart>
     <libpart lib="transistors" part="BSS138">
+      <aliases>
+        <alias>2N7002</alias>
+      </aliases>
       <description>50V Vds, 0.22A Id, N-Channel MOSFET, SOT-23</description>
       <docs>http://www.fairchildsemi.com/ds/BS/BSS138.pdf</docs>
       <footprints>
@@ -1655,7 +1658,7 @@
       <fields>
         <field name="Reference">Q</field>
         <field name="Value">BSS138</field>
-        <field name="Footprint">SOT-23</field>
+        <field name="Footprint">TO_SOT_Packages_SMD:SOT-23</field>
       </fields>
       <pins>
         <pin num="1" name="G" type="passive"/>
@@ -2122,32 +2125,32 @@
     </libpart>
   </libparts>
   <libraries>
-    <library logical="cinch">
-      <uri>/home/fredrikjohansson/elektronik/CarTransporter/electronics/cinch.lib</uri>
+    <library logical="regul">
+      <uri>/usr/share/kicad/library/regul.lib</uri>
     </library>
-    <library logical="device">
-      <uri>/usr/share/kicad/library/device.lib</uri>
+    <library logical="airsuspension_controller-rescue">
+      <uri>/home/fredrikjohansson/elektronik/CarTransporter/electronics/AirSuspension/airsuspension_controller-rescue.lib</uri>
+    </library>
+    <library logical="airsuspension_controller-cache">
+      <uri>/home/fredrikjohansson/elektronik/CarTransporter/electronics/AirSuspension/airsuspension_controller-cache.lib</uri>
+    </library>
+    <library logical="cinch">
+      <uri>/home/fredrikjohansson/elektronik/CarTransporter/electronics/AirSuspension/cinch.lib</uri>
+    </library>
+    <library logical="miscellaneous">
+      <uri>/home/fredrikjohansson/elektronik/CarTransporter/electronics/AirSuspension/miscellaneous.lib</uri>
     </library>
     <library logical="power_switches">
-      <uri>/home/fredrikjohansson/elektronik/CarTransporter/electronics/power_switches.lib</uri>
+      <uri>/home/fredrikjohansson/elektronik/CarTransporter/electronics/AirSuspension/power_switches.lib</uri>
     </library>
     <library logical="teensy">
-      <uri>/home/fredrikjohansson/elektronik/CarTransporter/electronics/teensy.lib</uri>
+      <uri>/home/fredrikjohansson/elektronik/CarTransporter/electronics/AirSuspension/teensy.lib</uri>
     </library>
     <library logical="transistors">
       <uri>/usr/share/kicad/library/transistors.lib</uri>
     </library>
-    <library logical="regul">
-      <uri>/usr/share/kicad/library/regul.lib</uri>
-    </library>
-    <library logical="miscellaneous">
-      <uri>/home/fredrikjohansson/elektronik/CarTransporter/electronics/miscellaneous.lib</uri>
-    </library>
-    <library logical="airsuspension_controller-cache">
-      <uri>/home/fredrikjohansson/elektronik/CarTransporter/electronics/airsuspension_controller-cache.lib</uri>
-    </library>
-    <library logical="airsuspension_controller-rescue">
-      <uri>/home/fredrikjohansson/elektronik/CarTransporter/electronics/airsuspension_controller-rescue.lib</uri>
+    <library logical="device">
+      <uri>/usr/share/kicad/library/device.lib</uri>
     </library>
   </libraries>
   <nets>

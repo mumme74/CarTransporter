@@ -739,4 +739,6 @@ F 5 "1282206" H 775 2475 60  0001 C CNN "farnell"
 	1    775  2475
 	1    0    0    -1  
 $EndComp
+Text Notes 2700 1875 0    60   ~ 0
+Begins on L\nEnds on Y
 $EndSCHEMATC

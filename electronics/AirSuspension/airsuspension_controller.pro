@@ -1,4 +1,4 @@
-update=lör 16 jul 2016 22:43:31
+update=tis 19 jul 2016 19:18:11
 version=1
 last_client=kicad
 [pcbnew]
@@ -63,3 +63,13 @@ LibName31=teensy
 LibName32=power_switches
 LibName33=miscellaneous
 LibName34=cinch
+[schematic_editor]
+version=1
+PageLayoutDescrFile=
+PlotDirectoryName=
+SubpartIdSeparator=0
+SubpartFirstId=65
+NetFmtName=
+SpiceForceRefPrefix=0
+SpiceUseNetNumbers=0
+LabSize=60

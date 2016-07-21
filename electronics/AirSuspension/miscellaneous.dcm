@@ -8,9 +8,49 @@ $CMP MIC2619
 D Boost converter 2.7 -7V to max 30v
 $ENDCMP
 #
+$CMP NCV1124
+D Dual VR sensor interface
+$ENDCMP
+#
 $CMP SN65HVD1050D
 D 1Mbit CAN tranciever
 K CAN
+$ENDCMP
+#
+$CMP STM32F373C8Tx
+D Core: ARM Cortex-M4 Package: LQFP48 Flash: 64KB Ram: 16KB Frequency: 72MHz Voltage: 2..3.6V IO-pins: 37
+K ARM Cortex-M4 STM32F3 STM32F373
+F http://www.st.com/st-web-ui/static/active/en/resource/technical/document/datasheet/DM00046749.pdf
+$ENDCMP
+#
+$CMP STM32F373CBTx
+D Core: ARM Cortex-M4 Package: LQFP48 Flash: 64KB Ram: 16KB Frequency: 72MHz Voltage: 2..3.6V IO-pins: 37
+K ARM Cortex-M4 STM32F3 STM32F373
+F http://www.st.com/st-web-ui/static/active/en/resource/technical/document/datasheet/DM00046749.pdf
+$ENDCMP
+#
+$CMP STM32F373CCTx
+D Core: ARM Cortex-M4 Package: LQFP48 Flash: 64KB Ram: 16KB Frequency: 72MHz Voltage: 2..3.6V IO-pins: 37
+K ARM Cortex-M4 STM32F3 STM32F373
+F http://www.st.com/st-web-ui/static/active/en/resource/technical/document/datasheet/DM00046749.pdf
+$ENDCMP
+#
+$CMP STM32F373R8Tx
+D Core: ARM Cortex-M4 Package: LQFP64 Flash: 64KB Ram: 16KB Frequency: 72MHz Voltage: 2..3.6V IO-pins: 52
+K ARM Cortex-M4 STM32F3 STM32F373
+F http://www.st.com/st-web-ui/static/active/en/resource/technical/document/datasheet/DM00046749.pdf
+$ENDCMP
+#
+$CMP STM32F373RBTx
+D Core: ARM Cortex-M4 Package: LQFP64 Flash: 64KB Ram: 16KB Frequency: 72MHz Voltage: 2..3.6V IO-pins: 52
+K ARM Cortex-M4 STM32F3 STM32F373
+F http://www.st.com/st-web-ui/static/active/en/resource/technical/document/datasheet/DM00046749.pdf
+$ENDCMP
+#
+$CMP STM32F373RCTx
+D Core: ARM Cortex-M4 Package: LQFP64 Flash: 64KB Ram: 16KB Frequency: 72MHz Voltage: 2..3.6V IO-pins: 52
+K ARM Cortex-M4 STM32F3 STM32F373
+F http://www.st.com/st-web-ui/static/active/en/resource/technical/document/datasheet/DM00046749.pdf
 $ENDCMP
 #
 $CMP ZXCT1082

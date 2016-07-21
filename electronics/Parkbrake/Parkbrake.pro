@@ -1,4 +1,4 @@
-update=sön  3 apr 2016 22:24:01
+update=ons 20 jul 2016 18:41:45
 version=1
 last_client=kicad
 [pcbnew]
@@ -63,3 +63,4 @@ LibName31=cinch
 LibName32=/home/fredrikjohansson/elektronik/CarTransporter/electronics/AirSuspension/miscellaneous
 LibName33=/home/fredrikjohansson/elektronik/CarTransporter/electronics/AirSuspension/teensy
 LibName34=/home/fredrikjohansson/elektronik/CarTransporter/electronics/AirSuspension/power_switches
+LibName35=stm32

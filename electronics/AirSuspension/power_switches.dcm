@@ -1,5 +1,9 @@
 EESchema-DOCLIB  Version 2.0
 #
+$CMP ADP3120A
+D Hi_Lo mosfet driver boost-buck
+$ENDCMP
+#
 $CMP BTS6133D
 D Highside powerswitch 33A
 $ENDCMP

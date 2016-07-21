@@ -33,12 +33,13 @@ LIBS:cinch
 LIBS:miscellaneous
 LIBS:teensy
 LIBS:power_switches
+LIBS:stm32
 LIBS:Parkbrake-cache
 EELAYER 25 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
-Sheet 2 6
+Sheet 2 10
 Title ""
 Date ""
 Rev ""
@@ -286,8 +287,10 @@ U 1 1 5707ED69
 P 1250 1900
 F 0 "R?" V 1457 1900 50  0000 C CNN
 F 1 "1k" V 1366 1900 50  0000 C CNN
-F 2 "" V 1180 1900 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805" V 1180 1900 50  0001 C CNN
 F 3 "" H 1250 1900 50  0000 C CNN
+F 4 "9332383" V 1250 1900 60  0001 C CNN "farnell"
+F 5 "MC01W080511K" V 1250 1900 60  0001 C CNN "part"
 	1    1250 1900
 	0    -1   -1   0   
 $EndComp
@@ -297,8 +300,10 @@ U 1 1 5707EF24
 P 1250 2850
 F 0 "R?" V 1043 2850 50  0000 C CNN
 F 1 "1k" V 1134 2850 50  0000 C CNN
-F 2 "" V 1180 2850 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805" V 1180 2850 50  0001 C CNN
 F 3 "" H 1250 2850 50  0000 C CNN
+F 4 "9332383" V 1250 2850 60  0001 C CNN "farnell"
+F 5 "MC01W080511K" V 1250 2850 60  0001 C CNN "part"
 	1    1250 2850
 	0    1    1    0   
 $EndComp
@@ -308,8 +313,10 @@ U 1 1 5707F028
 P 3500 2850
 F 0 "R?" V 3293 2850 50  0000 C CNN
 F 1 "1k" V 3384 2850 50  0000 C CNN
-F 2 "" V 3430 2850 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805" V 3430 2850 50  0001 C CNN
 F 3 "" H 3500 2850 50  0000 C CNN
+F 4 "9332383" V 3500 2850 60  0001 C CNN "farnell"
+F 5 "MC01W080511K" V 3500 2850 60  0001 C CNN "part"
 	1    3500 2850
 	0    1    1    0   
 $EndComp
@@ -319,8 +326,10 @@ U 1 1 5707F12F
 P 3475 1900
 F 0 "R?" V 3268 1900 50  0000 C CNN
 F 1 "1k" V 3359 1900 50  0000 C CNN
-F 2 "" V 3405 1900 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805" V 3405 1900 50  0001 C CNN
 F 3 "" H 3475 1900 50  0000 C CNN
+F 4 "9332383" V 3475 1900 60  0001 C CNN "farnell"
+F 5 "MC01W080511K" V 3475 1900 60  0001 C CNN "part"
 	1    3475 1900
 	0    1    1    0   
 $EndComp
@@ -381,7 +390,7 @@ F 3 "" H 2300 5950 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 Text GLabel 1375 5525 0    60   Input ~ 0
-~LeftFront_Reset
+Bridge_Disable
 Text Notes 7900 4225 0    60   ~ 0
 ~SR~ latch tripped by overcurrent, must be reset by software\nCurrentLimit triggers the SR latch, the xx_DIAG is the output \nof this latch, is high when the latch has triggered.
 $Comp
@@ -409,9 +418,7 @@ $EndComp
 Wire Wire Line
 	3050 5350 2900 5350
 Wire Wire Line
-	2900 5350 2900 5775
-Wire Wire Line
-	2900 5775 2900 5950
+	2900 5350 2900 5950
 Wire Wire Line
 	2900 5775 3050 5775
 Wire Wire Line
@@ -419,76 +426,48 @@ Wire Wire Line
 Wire Wire Line
 	2900 4875 3050 4875
 Wire Wire Line
-	2900 4275 2900 4425
-Wire Wire Line
-	2900 4425 2900 4875
+	2900 4275 2900 4875
 Wire Wire Line
 	4800 5350 4925 5350
 Wire Wire Line
-	4925 5350 4925 5775
-Wire Wire Line
-	4925 5775 4925 5950
+	4925 5350 4925 5950
 Wire Wire Line
 	4925 5775 4800 5775
 Wire Wire Line
-	4925 4275 4925 4400
-Wire Wire Line
-	4925 4400 4925 4875
+	4925 4275 4925 4875
 Wire Wire Line
 	4925 4875 4800 4875
 Wire Wire Line
 	4925 4400 4800 4400
 Wire Wire Line
-	9000 1475 9000 1650
-Wire Wire Line
-	9000 1650 9000 2075
+	9000 1475 9000 2075
 Wire Wire Line
 	9000 2075 8900 2075
 Wire Wire Line
 	9000 1650 8900 1650
 Wire Wire Line
-	9000 2550 9000 2950
-Wire Wire Line
-	9000 2950 9000 3150
+	9000 2550 9000 3150
 Wire Wire Line
 	9000 2950 8900 2950
 Wire Wire Line
 	9000 2550 8900 2550
 Wire Wire Line
-	6875 2550 6875 2950
-Wire Wire Line
-	6875 2950 6875 3150
+	6875 2550 6875 3150
 Wire Wire Line
 	6875 2950 7000 2950
 Wire Wire Line
 	7000 2550 6875 2550
 Wire Wire Line
-	6875 1450 6875 1650
-Wire Wire Line
-	6875 1650 6875 2075
+	6875 1450 6875 2075
 Wire Wire Line
 	6875 2075 7000 2075
 Wire Wire Line
 	7000 1650 6875 1650
 Wire Wire Line
-	1350 900  1425 900 
-Wire Wire Line
-	1425 900  1900 900 
-Wire Wire Line
-	1900 900  2275 900 
-Wire Wire Line
-	2275 900  2700 900 
-Wire Wire Line
-	2700 900  2825 900 
+	1350 900  2825 900 
 Connection ~ 1425 900 
 Wire Wire Line
-	1425 1200 1900 1200
-Wire Wire Line
-	1900 1200 2275 1200
-Wire Wire Line
-	2275 1200 2700 1200
-Wire Wire Line
-	2700 1200 2850 1200
+	1425 1200 2850 1200
 Connection ~ 1900 900 
 Connection ~ 2275 900 
 Connection ~ 2700 900 
@@ -496,58 +475,42 @@ Connection ~ 1900 1200
 Connection ~ 2275 1200
 Connection ~ 2700 1200
 Wire Wire Line
-	3300 1800 3300 1900
-Wire Wire Line
-	3300 1900 3300 2025
+	3300 1800 3300 2025
 Wire Wire Line
 	3325 1900 3300 1900
 Connection ~ 3300 1900
 Wire Wire Line
-	2900 1800 2900 1900
-Wire Wire Line
-	2900 1900 2900 2025
+	2900 1800 2900 2025
 Wire Wire Line
 	2900 1900 2700 1900
 Connection ~ 2900 1900
 Wire Wire Line
-	1425 2725 1425 2850
-Wire Wire Line
-	1425 2850 1425 2950
+	1425 2725 1425 2950
 Wire Wire Line
 	1400 2850 1425 2850
 Connection ~ 1425 2850
 Wire Wire Line
-	1825 2725 1825 2850
-Wire Wire Line
-	1825 2850 1825 2950
+	1825 2725 1825 2950
 Wire Wire Line
 	1825 2850 1950 2850
 Connection ~ 1825 2850
 Wire Wire Line
-	1825 1800 1825 1900
-Wire Wire Line
-	1825 1900 1825 2025
+	1825 1800 1825 2025
 Wire Wire Line
 	1825 1900 1950 1900
 Connection ~ 1825 1900
 Wire Wire Line
-	1425 1800 1425 1900
-Wire Wire Line
-	1425 1900 1425 2025
+	1425 1800 1425 2025
 Wire Wire Line
 	1425 1900 1400 1900
 Connection ~ 1425 1900
 Wire Wire Line
-	3325 2725 3325 2850
-Wire Wire Line
-	3325 2850 3325 2950
+	3325 2725 3325 2950
 Wire Wire Line
 	3350 2850 3325 2850
 Connection ~ 3325 2850
 Wire Wire Line
-	2925 2725 2925 2850
-Wire Wire Line
-	2925 2850 2925 2950
+	2925 2725 2925 2950
 Wire Wire Line
 	2925 2850 2700 2850
 Connection ~ 2925 2850
@@ -558,17 +521,11 @@ Wire Wire Line
 Wire Wire Line
 	1375 5175 1375 5325
 Wire Wire Line
-	1375 5325 1375 5325
-Wire Wire Line
 	1375 4875 1375 5050
 Wire Wire Line
 	1375 5050 2675 5050
 Wire Wire Line
-	2675 4525 2675 5050
-Wire Wire Line
-	2675 5050 2675 5425
-Wire Wire Line
-	2675 5425 2675 5700
+	2675 4525 2675 5700
 Wire Wire Line
 	2675 5425 2575 5425
 Wire Wire Line
@@ -596,11 +553,7 @@ Wire Wire Line
 Wire Wire Line
 	6500 5075 5175 5075
 Wire Wire Line
-	5175 4525 5175 5075
-Wire Wire Line
-	5175 5075 5175 5400
-Wire Wire Line
-	5175 5400 5175 5700
+	5175 4525 5175 5700
 Wire Wire Line
 	5175 5400 5300 5400
 Wire Wire Line
@@ -614,7 +567,7 @@ Wire Wire Line
 	6125 4525 6125 4375
 Connection ~ 5175 5075
 Text GLabel 6500 5500 2    60   Input ~ 0
-~RightFront_Reset
+Bridge_Disable
 $Comp
 L 74LS08 U?
 U 1 1 5713F73F
@@ -721,11 +674,7 @@ Wire Wire Line
 Wire Wire Line
 	5400 2275 6725 2275
 Wire Wire Line
-	6725 1700 6725 2275
-Wire Wire Line
-	6725 2275 6725 2600
-Wire Wire Line
-	6725 2600 6725 2900
+	6725 1700 6725 2900
 Wire Wire Line
 	6725 2600 6600 2600
 Wire Wire Line
@@ -741,7 +690,7 @@ Connection ~ 6725 2600
 Connection ~ 6875 2950
 Connection ~ 6875 1650
 Text GLabel 5400 2700 0    60   Input ~ 0
-~LeftRear_Reset
+Bridge_Disable
 Wire Wire Line
 	9175 2025 9175 2350
 Wire Wire Line
@@ -753,11 +702,7 @@ Wire Wire Line
 Wire Wire Line
 	10375 2275 9100 2275
 Wire Wire Line
-	9100 1750 9100 2275
-Wire Wire Line
-	9100 2275 9100 2600
-Wire Wire Line
-	9100 2600 9100 2900
+	9100 1750 9100 2900
 Wire Wire Line
 	9100 2600 9175 2600
 Wire Wire Line
@@ -773,7 +718,7 @@ Connection ~ 9100 2600
 Connection ~ 9000 2950
 Connection ~ 9000 1650
 Text GLabel 10375 2700 2    60   Input ~ 0
-~RightRear_Reset
+Bridge_Disable
 Text GLabel 1375 5175 0    60   Input ~ 0
 LeftFront_DIAG
 Text GLabel 6500 5175 2    60   Input ~ 0

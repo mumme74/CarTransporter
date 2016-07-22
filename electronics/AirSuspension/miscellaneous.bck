@@ -12,6 +12,16 @@ $CMP NCV1124
 D Dual VR sensor interface
 $ENDCMP
 #
+$CMP NX3008CBKS
+D 30V Vds, 350mA Id, Dual MOSFET, SOT-363
+K Dual N-Channel P-Channel MOSFET
+F http://www.farnell.com/datasheets/1511987.pdf?_ga=1.186145257.1195575114.1468508068
+$ENDCMP
+#
+$CMP R_net
+D Resitor network
+$ENDCMP
+#
 $CMP SN65HVD1050D
 D 1Mbit CAN tranciever
 K CAN
@@ -31,6 +41,24 @@ $ENDCMP
 #
 $CMP STM32F373CCTx
 D Core: ARM Cortex-M4 Package: LQFP48 Flash: 64KB Ram: 16KB Frequency: 72MHz Voltage: 2..3.6V IO-pins: 37
+K ARM Cortex-M4 STM32F3 STM32F373
+F http://www.st.com/st-web-ui/static/active/en/resource/technical/document/datasheet/DM00046749.pdf
+$ENDCMP
+#
+$CMP STM32F373R8Tx
+D Core: ARM Cortex-M4 Package: LQFP64 Flash: 64KB Ram: 16KB Frequency: 72MHz Voltage: 2..3.6V IO-pins: 52
+K ARM Cortex-M4 STM32F3 STM32F373
+F http://www.st.com/st-web-ui/static/active/en/resource/technical/document/datasheet/DM00046749.pdf
+$ENDCMP
+#
+$CMP STM32F373RBTx
+D Core: ARM Cortex-M4 Package: LQFP64 Flash: 64KB Ram: 16KB Frequency: 72MHz Voltage: 2..3.6V IO-pins: 52
+K ARM Cortex-M4 STM32F3 STM32F373
+F http://www.st.com/st-web-ui/static/active/en/resource/technical/document/datasheet/DM00046749.pdf
+$ENDCMP
+#
+$CMP STM32F373RCTx
+D Core: ARM Cortex-M4 Package: LQFP64 Flash: 64KB Ram: 16KB Frequency: 72MHz Voltage: 2..3.6V IO-pins: 52
 K ARM Cortex-M4 STM32F3 STM32F373
 F http://www.st.com/st-web-ui/static/active/en/resource/technical/document/datasheet/DM00046749.pdf
 $ENDCMP

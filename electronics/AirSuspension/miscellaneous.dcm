@@ -12,6 +12,21 @@ $CMP NCV1124
 D Dual VR sensor interface
 $ENDCMP
 #
+$CMP NX3008CBKS
+D 30V Vds, 350mA Id, Dual MOSFET, SOT-363
+K Dual N-Channel P-Channel MOSFET
+F http://www.farnell.com/datasheets/1511987.pdf?_ga=1.186145257.1195575114.1468508068
+$ENDCMP
+#
+$CMP R_net
+D Resitor network
+$ENDCMP
+#
+$CMP Rnet4
+D Resistor network
+K Rn DEV
+$ENDCMP
+#
 $CMP SN65HVD1050D
 D 1Mbit CAN tranciever
 K CAN

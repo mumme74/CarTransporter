@@ -1,4 +1,6 @@
 (fp_lib_table
   (lib (name cinch)(type KiCad)(uri "$(KIPRJMOD)/cinch.pretty")(options "")(descr ""))
   (lib (name kicad_lib)(type KiCad)(uri /home/fredrikjohansson/elektronik/CarTransporter/electronics/AirSuspension/kicad_lib.pretty)(options "")(descr ""))
+  (lib (name SOT363)(type KiCad)(uri "$(KIPRJMOD)/myfootprints.pretty")(options "")(descr ""))
+  (lib (name myfootprints)(type KiCad)(uri "$(KIPRJMOD)/myfootprints.pretty")(options "")(descr ""))
 )

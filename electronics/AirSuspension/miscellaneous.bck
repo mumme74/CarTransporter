@@ -22,6 +22,11 @@ $CMP R_net
 D Resitor network
 $ENDCMP
 #
+$CMP Rnet4
+D Resistor network
+K Rn DEV
+$ENDCMP
+#
 $CMP SN65HVD1050D
 D 1Mbit CAN tranciever
 K CAN

@@ -313,13 +313,13 @@ Text GLabel 2050 2125 0    60   Input ~ 0
 RR_wheelsensor_in-
 Text GLabel 2050 2025 0    60   Input ~ 0
 RR_wheelsensor_in+
-Text GLabel 2025 3375 0    60   Input ~ 0
-Parkbrake_indicator_lamp
-Text GLabel 2025 3075 0    60   Input ~ 0
-BrakeLights
-Text GLabel 2025 3225 0    60   Input ~ 0
-ParkbrakeSwitch_non_invert
 Text GLabel 2025 3525 0    60   Input ~ 0
+Parkbrake_indicator_lamp
+Text GLabel 2025 3375 0    60   Input ~ 0
+BrakeLights
+Text GLabel 2025 3075 0    60   Input ~ 0
+ParkbrakeSwitch_non_invert
+Text GLabel 2025 3225 0    60   Input ~ 0
 ~ParkbrakeSwitch_inverted
 Text GLabel 3125 2125 2    60   Input ~ 0
 R_wheelsensor_out-

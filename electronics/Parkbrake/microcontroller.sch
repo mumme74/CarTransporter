@@ -401,7 +401,7 @@ F 3 "" H 2825 7425 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 Text GLabel 2825 6925 1    60   Input ~ 0
-3.3V
++3.3V
 $Sheet
 S 700  7100 1625 500 
 U 5791CEF6

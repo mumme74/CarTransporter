@@ -1,0 +1,8 @@
+Warn : deprecated option: -p/--pipe. Use '-c "gdb_port pipe; log_output openocd.log"' instead.
+embedded:startup.tcl:60: Error: Can't find openocd.cfg
+in procedure 'script' 
+at file "embedded:startup.tcl", line 60
+Error: Debug Adapter has to be specified, see "interface" command
+embedded:startup.tcl:60: Error: 
+in procedure 'script' 
+at file "embedded:startup.tcl", line 60

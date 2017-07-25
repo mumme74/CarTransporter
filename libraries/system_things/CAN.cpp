@@ -355,6 +355,7 @@ void CAN::ControllerBase::loop()
   CAN_message_t msg;
   msg.timeout = 0; // no wait when recieving
   while(m_can.read(msg)) {
+    Serial.println("can msg");
     senderIds senderId = static_cast<senderIds>(msg.id & senderIdMask);
 
     switch(msg.id & msgTypeMask) {
@@ -380,7 +381,7 @@ void CAN::ControllerBase::loop()
         break;
       default:
         // can never get here as msgTypeMask filter all bits but 2
-        //Serial.print("in default");
+        Serial.print("Can id err:");Serial.println(msg.id);
         return;
     }
   }

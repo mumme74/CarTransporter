@@ -51,10 +51,10 @@ AnalogIn leftHeightDrv(leftHeightAD_pin, 100, 4096 - 100, 25, &leftHeight_PID),
        rightPressureDrv(rightPressureAD_pin, 800, 4070, 8, &rightPressure_PID),
        systemPressureDrv(systemPressureAD_pin, 800, 4070, 4, &systemPressure_PID),
        compressorTempDrv(compressorTempAD_pin, 300, 4096 -300, 1, &compressorTemp_PID);
-/*
-Ntc compressorNtc(2000, 3960, 5000, 25, 4096); // sensor AVX  NI24MA0502H-- 12bits AD precision
-TempIn compressorTemp(compressorTempAD_pin, 300, 4096 - 300, 1, &compressorNtc, PIDs::compressorTemp);
-*/
+
+//Ntc compressorNtc(2000, 3960, 5000, 25, 4096); // sensor AVX  NI24MA0502H-- 12bits AD precision
+//TempIn compressorTemp(compressorTempAD_pin, 300, 4096 - 300, 1, &compressorNtc, PIDs::compressorTemp);
+
 // AirFeed, compressor and airdryer statemachine
 AirFeed airFeedStateMachine(&airFeedState_PID, &compressorDrv, &airdryerDrv,
                             &systemPressure_PID, &compressorTemp_PID);
@@ -72,11 +72,13 @@ HeightController heightStateMachine(&leftFillDrv,  &leftDumpDrv,  &leftSuckDrv,
 // communication controller
 CAN::IOController canIO;
 
+
+
 //The setup function is called once at startup of the sketch
 void setup()
 {
   Serial.begin(115200);
-
+  //Serial.begin(9600);
   measure.initForCompressor();
 
   // build PID table
@@ -123,19 +125,31 @@ void setup()
   heightStateMachine.init();
 
   canIO.init();
+  
 
+}
+
+void testloop() {
+  pinMode(13, OUTPUT);
+ 
+  digitalWrite(13, HIGH);   // set the LED on
+  delay(100);              // wait for a second
+  digitalWrite(13, LOW);    // set the LED off
+  delay(100);              // wait for a second
 }
 
 // The loop function is called in an endless loop
 void loop()
 {
-  Serial.print("loop:");Serial.println(millis(),DEC);
-
   static uint32_t lastErrCheck = millis();
-  if (lastErrCheck + 1000 < millis()){
+  
+  if (lastErrCheck + 999 < millis()){
+  
+    Serial.print("loop:");Serial.println( millis() - lastErrCheck,DEC);
+  
     // check each second
     lastErrCheck = millis();
-
+    
     DTC *dtc = nullptr;
 
     // error check output drivers

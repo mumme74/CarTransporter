@@ -167,17 +167,17 @@ struct CAN_DTC_send : public CAN_message_t
 class ControllerBase
 {
 protected:
-  FlexCAN m_can;
-  uint8_t m_senderId;
-  virtual void _recievedCommand(CAN_message_t *msg, senderIds senderId, msgIdsCommand msgId) = 0;
-  virtual void _recievedError(CAN_message_t *msg, senderIds senderId, msgIdsError msgId) = 0;
-  virtual void _recievedUpdate(CAN_message_t *msg, senderIds senderId, msgIdsUpdate msgId);
-  virtual void _recievedDiagnose(CAN_message_t *msg, senderIds senderId, msgIdsDiag msgId);
-  bool sendDTC(DTC *dtc, msgIdsError msgId);
+  FlexCAN       m_can;
+  uint8_t       m_senderId;
+  virtual void  _recievedCommand(CAN_message_t *msg, senderIds senderId, msgIdsCommand msgId) = 0;
+  virtual void  _recievedError(CAN_message_t *msg, senderIds senderId, msgIdsError msgId) = 0;
+  virtual void  _recievedUpdate(CAN_message_t *msg, senderIds senderId, msgIdsUpdate msgId);
+  virtual void  _recievedDiagnose(CAN_message_t *msg, senderIds senderId, msgIdsDiag msgId);
+  bool          sendDTC(DTC *dtc, msgIdsError msgId);
   CAN_message_t _buildDTC_Msg(DTC *dtc) const;
-  void _init_CAN_message_t(CAN_message_t *msg, uint16_t timeout = 0) const;
-  void _parseID(uint16_t id, uint16_t &targetNode, uint16_t &action) const;
-  uint16_t _normalizeAction(uint16_t action) const;
+  void          _init_CAN_message_t(CAN_message_t *msg, uint16_t timeout = 0) const;
+  void          _parseID(uint16_t id, uint16_t &targetNode, uint16_t &action) const;
+  uint16_t      _normalizeAction(uint16_t action) const;
 
 public:
   static const uint32_t baudRate = 250000;

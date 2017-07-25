@@ -101,3 +101,6 @@ $RECYCLE.BIN/
 $*.sch
 .bak
 
+#eclipse
+.dep
+build/

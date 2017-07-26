@@ -89,8 +89,8 @@ static SPIEepromFileConfig icfg = {
  */
 static void printfileinfo(BaseSequentialStream *chp, EepromFileStream *efsp) {
   chprintf(chp, "size = %u, position = %u, barrier_low = %u, barrier_hi = %u\r\n",
-           chFileStreamGetSize(efsp),
-           chFileStreamGetPosition(efsp),
+           fileStreamGetSize(efsp),
+           fileStreamGetPosition(efsp),
            efsp->cfg->barrier_low,
            efsp->cfg->barrier_hi);
   chThdSleepMilliseconds(100);
@@ -100,10 +100,10 @@ static void printfileinfo(BaseSequentialStream *chp, EepromFileStream *efsp) {
  * Fills eeprom area with pattern, than read it back and compare
  */
 static void pattern_fill(EepromFileStream *EfsTest, uint8_t pattern) {
-  uint32_t i = 0;
-  uint32_t status = 0;
-  uint32_t pos = 0;
-  uint32_t len = chFileStreamGetSize(EfsTest);
+  msg_t i = 0;
+  msg_t status = 0;
+  msg_t pos = 0;
+  msg_t len = fileStreamGetSize(EfsTest);
 
   /* fill buffer with pattern */
   for (i = 0; i < len; i++)
@@ -111,27 +111,27 @@ static void pattern_fill(EepromFileStream *EfsTest, uint8_t pattern) {
 
   /* move to begin of test area */
   pos = 0;
-  chFileStreamSeek(EfsTest, pos);
-  if (pos != chFileStreamGetPosition(EfsTest))
-    chDbgPanic("file seek error");
+  fileStreamSeek(EfsTest, pos);
+  if (pos != fileStreamGetPosition(EfsTest))
+    chSysHalt("file seek error");
 
   /* write */
-  status = chFileStreamWrite(EfsTest, referencebuf, len);
+  status = fileStreamWrite(EfsTest, referencebuf, len);
   if (status != len)
-    chDbgPanic("write failed");
+    chSysHalt("write failed");
 
   /* check */
-  pos = chFileStreamGetPosition(EfsTest);
+  pos = fileStreamGetPosition(EfsTest);
   if (pos != len)
-    chDbgPanic("writing error");
+    chSysHalt("writing error");
 
   pos = 0;
-  chFileStreamSeek(EfsTest, pos);
-  status = chFileStreamRead(EfsTest, checkbuf, len);
+  fileStreamSeek(EfsTest, pos);
+  status = fileStreamRead(EfsTest, checkbuf, len);
   if (status != len)
-    chDbgPanic("reading back failed");
+    chSysHalt("reading back failed");
   if (memcmp(referencebuf, checkbuf, len) != 0)
-    chDbgPanic("veryfication failed");
+    chSysHalt("veryfication failed");
 }
 
 /**
@@ -146,14 +146,14 @@ static void pattern_fill(EepromFileStream *EfsTest, uint8_t pattern) {
  */
 static void overflow_check(uint32_t b1, uint32_t b2, uint32_t b3, uint32_t b4,
                            uint32_t istart, uint32_t ilen,
-                           uint8_t pattern, bool_t pat_autoinc,
+                           uint8_t pattern, bool pat_autoinc,
                            BaseSequentialStream *chp) {
 
   uint32_t status, i, n;
   EepromFileStream *iefs;
   EepromFileStream *oefs;
 
-  chDbgCheck(ilen < (b4 - b1), "sequences more than length of outer file can not be verified");
+  chDbgAssert(ilen < (b4 - b1), "sequences more than length of outer file can not be verified");
 
   chprintf(chp, "b1=%u, b2=%u, b3=%u, b4=%u, istart=%u, ilen=%u, ",
            b1, b2, b3, b4, istart, ilen);
@@ -201,37 +201,37 @@ static void overflow_check(uint32_t b1, uint32_t b2, uint32_t b3, uint32_t b4,
 
   /* now write check buffer content into inner file */
   chThdSleepMilliseconds(20);
-  chFileStreamSeek(iefs, istart);
-  status = chFileStreamWrite(iefs, checkbuf, ilen);
+  fileStreamSeek(iefs, istart);
+  status = fileStreamWrite(iefs, checkbuf, ilen);
 
   if ((istart + ilen) > (b3 - b2)) { /* data must be clamped */
     if (status != (b3 - b2 - istart))
-      chDbgPanic("not all data written or overflow ocrred");
+      chSysHalt("not all data written or overflow ocrred");
   }
   else {   /* data fitted in file */
     if (status != ilen)
-      chDbgPanic("not all data written or overflow ocrred");
+      chSysHalt("not all data written or overflow ocrred");
   }
 
   /* read outer file and compare content with reference buffer */
   memset(checkbuf, 0x00, b4 - b1);
-  chFileStreamSeek(oefs, 0);
-  status = chFileStreamRead(oefs, checkbuf, b4 - b1);
+  fileStreamSeek(oefs, 0);
+  status = fileStreamRead(oefs, checkbuf, b4 - b1);
   if (status != (b4 - b1))
-    chDbgPanic("reading back failed");
+    chSysHalt("reading back failed");
   if (memcmp(referencebuf, checkbuf, b4 - b1) != 0)
-    chDbgPanic("verification failed");
+    chSysHalt("verification failed");
 
-  chFileStreamClose(oefs);
-  chFileStreamClose(iefs);
+  fileStreamClose(oefs);
+  fileStreamClose(iefs);
   OK();
 }
 
 /**
  *
  */
-static WORKING_AREA(waEepromTestThread, 1024);
-static msg_t EepromTestThread(void *ctx) {
+//static THD_WORKING_AREA(waEepromTestThread, 1024);
+static THD_FUNCTION(EepromTestThread, *ctx) {
 
   BaseSequentialStream *chp = (BaseSequentialStream *)ctx;
   EepromFileStream *oefs;
@@ -248,30 +248,30 @@ static msg_t EepromTestThread(void *ctx) {
   printfileinfo(chp, oefs);
   chprintf(chp, "test fill with 0xFF");
   pattern_fill(oefs, 0xFF);
-  if (chThdShouldTerminate()) {
+  if (chThdShouldTerminateX()) {
     goto END;
   }
   OK();
   chprintf(chp, "test fill with 0xAA");
   pattern_fill(oefs, 0xAA);
-  if (chThdShouldTerminate()) {
+  if (chThdShouldTerminateX()) {
     goto END;
   }
   OK();
   chprintf(chp, "test fill with 0x55");
   pattern_fill(oefs, 0x55);
-  if (chThdShouldTerminate()) {
+  if (chThdShouldTerminateX()) {
     goto END;
   }
   OK();
   chprintf(chp, "test fill with 0x00");
   pattern_fill(oefs, 0x00);
-  if (chThdShouldTerminate()) {
+  if (chThdShouldTerminateX()) {
     goto END;
   }
   OK();
   chprintf(chp, "Closing file");
-  chFileStreamClose(oefs);
+  fileStreamClose(oefs);
   OK();
 
 
@@ -287,113 +287,113 @@ static msg_t EepromTestThread(void *ctx) {
   chprintf(chp, "    Linear barriers testing.\r\n");
   chThdSleepMilliseconds(20);
   overflow_check( b1, b2, b3, b4, istart, ilen, pattern, FALSE, chp);
-  if (chThdShouldTerminate()) {
+  if (chThdShouldTerminateX()) {
     goto END;
   }
   pattern++;
   overflow_check( b1, b2, b3, b4, istart + 1, ilen - 1, pattern, FALSE, chp);
-  if (chThdShouldTerminate()) {
+  if (chThdShouldTerminateX()) {
     goto END;
   }
   pattern++;
   overflow_check( b1, b2, b3, b4, istart + 1, ilen, pattern, FALSE, chp);
-  if (chThdShouldTerminate()) {
+  if (chThdShouldTerminateX()) {
     goto END;
   }
   pattern++;
   overflow_check( b1, b2, b3, b4, istart + 1, ilen + 23, pattern, FALSE, chp);
-  if (chThdShouldTerminate()) {
+  if (chThdShouldTerminateX()) {
     goto END;
   }
   pattern++;
   overflow_check( b1, b2 - 1, b3 + 1, b4, istart, ilen, pattern,  FALSE, chp);
-  if (chThdShouldTerminate()) {
+  if (chThdShouldTerminateX()) {
     goto END;
   }
   pattern++;
   overflow_check( b1, b2 - 2, b3 + 2, b4, istart + 2, ilen, pattern,  FALSE, chp);
-  if (chThdShouldTerminate()) {
+  if (chThdShouldTerminateX()) {
     goto END;
   }
   pattern++;
   overflow_check( b1, b2 - 1, b3 + 1, b4, istart + 1, ilen + 23, pattern,  FALSE, chp);
-  if (chThdShouldTerminate()) {
+  if (chThdShouldTerminateX()) {
     goto END;
   }
   pattern++;
   overflow_check( b1, b2 - 2, b3 + 2, b4, istart + 1, ilen + 23, pattern,  FALSE, chp);
-  if (chThdShouldTerminate()) {
+  if (chThdShouldTerminateX()) {
     goto END;
   }
   pattern++;
   overflow_check( b1, b2 + 2, b3 - 3, b4, istart + 2, ilen, pattern, FALSE,  chp);
-  if (chThdShouldTerminate()) {
+  if (chThdShouldTerminateX()) {
     goto END;
   }
   pattern++;
 
 
   overflow_check( b1, b2, b2 + 1, b4, istart, ilen, pattern,  FALSE,  chp);
-  if (chThdShouldTerminate()) {
+  if (chThdShouldTerminateX()) {
     goto END;
   }
   pattern++;
   overflow_check( b1, b2, b2 + 2, b4, istart, ilen, pattern, FALSE, chp);
-  if (chThdShouldTerminate()) {
+  if (chThdShouldTerminateX()) {
     goto END;
   }
   pattern++;
   overflow_check( b1, b2, b2 + 3, b4, istart, ilen, pattern, FALSE, chp);
-  if (chThdShouldTerminate()) {
+  if (chThdShouldTerminateX()) {
     goto END;
   }
   pattern++;
 
 
   overflow_check( b1, b2 + 1, b2 + 2, b4, istart, ilen, pattern, FALSE, chp);
-  if (chThdShouldTerminate()) {
+  if (chThdShouldTerminateX()) {
     goto END;
   }
   pattern++;
   overflow_check( b1, b2 + 1, b2 + 3, b4, istart, ilen, pattern, FALSE, chp);
-  if (chThdShouldTerminate()) {
+  if (chThdShouldTerminateX()) {
     goto END;
   }
   pattern++;
   overflow_check( b1, b2 + 1, b2 + 4, b4, istart, ilen, pattern, FALSE, chp);
-  if (chThdShouldTerminate()) {
+  if (chThdShouldTerminateX()) {
     goto END;
   }
   pattern++;
 
   overflow_check( b1, b2 - 1, b2,     b4, istart, ilen, pattern, FALSE, chp);
-  if (chThdShouldTerminate()) {
+  if (chThdShouldTerminateX()) {
     goto END;
   }
   pattern++;
   overflow_check( b1, b2 - 1, b2 + 1, b4, istart, ilen, pattern, FALSE, chp);
-  if (chThdShouldTerminate()) {
+  if (chThdShouldTerminateX()) {
     goto END;
   }
   pattern++;
   overflow_check( b1, b2 - 1, b2 + 2, b4, istart, ilen, pattern, FALSE, chp);
-  if (chThdShouldTerminate()) {
+  if (chThdShouldTerminateX()) {
     goto END;
   }
   pattern++;
 
   overflow_check( b1, b2 - 1, b2 + 1, b4, istart + 1, ilen, pattern, FALSE, chp);
-  if (chThdShouldTerminate()) {
+  if (chThdShouldTerminateX()) {
     goto END;
   }
   pattern++;
   overflow_check( b1, b2 - 1, b2 + 2, b4, istart + 1, ilen, pattern, FALSE, chp);
-  if (chThdShouldTerminate()) {
+  if (chThdShouldTerminateX()) {
     goto END;
   }
   pattern++;
   overflow_check( b1, b2 - 1, b2 + 3, b4, istart + 1, ilen, pattern, FALSE, chp);
-  if (chThdShouldTerminate()) {
+  if (chThdShouldTerminateX()) {
     goto END;
   }
   pattern++;
@@ -404,34 +404,33 @@ static msg_t EepromTestThread(void *ctx) {
   ocfg.barrier_low  = TEST_AREA_START;
   ocfg.barrier_hi   = TEST_AREA_END;
   oefs = SPIEepromFileOpen(&ofile, &ocfg, EepromFindDevice(EEPROM_DRIVER_NAME));
-  chFileStreamSeek(oefs, 0);
+  fileStreamSeek(oefs, 0);
   EepromWriteByte(oefs, 0x11);
   EepromWriteHalfword(oefs, 0x2222);
   EepromWriteWord(oefs, 0x33333333);
-  chFileStreamSeek(oefs, 0);
+  fileStreamSeek(oefs, 0);
   if (EepromReadByte(oefs) != 0x11)
-    chDbgPanic("");
+    chSysHalt("");
   if (EepromReadHalfword(oefs) != 0x2222)
-    chDbgPanic("");
+    chSysHalt("");
   if (EepromReadWord(oefs) != 0x33333333)
-    chDbgPanic("");
-  chFileStreamClose(oefs);
+    chSysHalt("");
+  fileStreamClose(oefs);
   OK();
 
   chprintf(chp, "All tests passed successfully.\r\n");
 END:
   chThdExit(0);
-  return 0;
 }
 
 void eeprom_cmd_test(BaseSequentialStream *chp, int argc, char *argv[]) {
-  Thread *tp;
+  thread_t *tp;
   (void)argc;
   (void)argv;
 
-  tp = chThdCreateFromHeap(NULL, sizeof(waEepromTestThread),
-                           NORMALPRIO, EepromTestThread,
-                           chp);
+  tp = chThdCreateFromHeap(NULL, THD_WORKING_AREA_SIZE(1024),
+                           "EepromTestThread", NORMALPRIO,
+                           (tfunc_t)EepromTestThread, chp);
   if (tp == NULL) {
     chprintf(chp, "Out of memory\r\n");
     return;

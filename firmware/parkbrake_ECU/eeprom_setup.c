@@ -18,6 +18,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define EEPROM_DRV_USE_24XX TRUE
+#define EEPROM_DRV_USE_25XX TRUE
+
+#define EEPROM_PAGE_SIZE        32          /* page size in bytes. Consult datasheet. */
+#define EEPROM_SIZE             2048        /* total amount of memory in bytes */
+#define EEPROM_SPID             SPID1       /* ChibiOS SPI driver used to communicate with EEPROM */
+#define EEPROM_WRITE_TIME_MS    10          /* time to write one page in ms. Consult datasheet! */
+#define EEPROM_DRIVER_NAME      "25xx"
+
 #include "eeprom.h"
 #include "ch.h"
 #include "hal.h"
@@ -69,7 +78,7 @@
  * Maximum speed SPI configuration (2MHz, CPHA=0, CPOL=0, MSb first).
  * CPOL=0 (SCK) low at idle, CPHA=0 (Reads bit at clock rising edge)
  */
-static const SPIConfig spiCfg = {
+static const SPIConfig SPI1Config = {
     // SPI complete callback
     NULL,
     // -------------------------------------
@@ -89,8 +98,16 @@ static const SPIConfig spiCfg = {
     SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0 // signifies 8bit transfers
 };
 
-
-
+SPIEepromFileConfig dtcFileConfig = {
+   4,
+   100,
+   EEPROM_SIZE,
+   EEPROM_PAGE_SIZE,
+   MS2ST(EEPROM_WRITE_TIME_MS),
+   &EEPROM_SPID,
+   &SPI1Config
+};
+SPIEepromFileStream dtcFile;
 
 
 
@@ -99,8 +116,9 @@ static const SPIConfig spiCfg = {
 // -----------------------------------------------------------------------------------
 // begin API functions
 
-void ee_init()
+void ee_initEeprom(void)
 {
-    // init SPI
+    // init EEprom files
+    SPIEepromFileOpen(&dtcFile, &dtcFileConfig, EepromFindDevice(EEPROM_DRIVER_NAME));
 }
 

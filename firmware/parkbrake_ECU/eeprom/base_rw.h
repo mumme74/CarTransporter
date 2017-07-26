@@ -25,11 +25,11 @@
 
 #include "eeprom/eeprom.h"
 
-fileoffset_t eepfs_getsize(void *ip);
-fileoffset_t eepfs_getposition(void *ip);
-fileoffset_t eepfs_lseek(void *ip, fileoffset_t offset);
-uint32_t eepfs_close(void *ip);
-int eepfs_geterror(void *ip);
+msg_t eepfs_getsize(void *ip);
+msg_t eepfs_getposition(void *ip);
+msg_t eepfs_lseek(void *ip, fileoffset_t offset);
+msg_t eepfs_close(void *ip);
+msg_t eepfs_geterror(void *ip);
 msg_t eepfs_put(void *ip, uint8_t b);
 msg_t eepfs_get(void *ip);
 

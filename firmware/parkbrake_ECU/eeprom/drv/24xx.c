@@ -100,7 +100,7 @@ Note:
  */
 
 /**
- * @brief     Calculates requred timeout.
+ * @brief     Calculates required timeout.
  */
 static systime_t calc_timeout(I2CDriver *i2cp, size_t txbytes, size_t rxbytes) {
   const uint32_t bitsinbyte = 10;
@@ -122,10 +122,10 @@ static systime_t calc_timeout(I2CDriver *i2cp, size_t txbytes, size_t rxbytes) {
 static msg_t eeprom_read(const I2CEepromFileConfig *eepcfg,
                          uint32_t offset, uint8_t *data, size_t len) {
 
-  msg_t status = RDY_RESET;
+  msg_t status = MSG_RESET;
   systime_t tmo = calc_timeout(eepcfg->i2cp, 2, len);
 
-  chDbgCheck(((len <= eepcfg->size) && ((offset + len) <= eepcfg->size)),
+  chDbgAssert(((len <= eepcfg->size) && ((offset + len) <= eepcfg->size)),
              "out of device bounds");
 
   eeprom_split_addr(eepcfg->write_buf, (offset + eepcfg->barrier_low));
@@ -156,12 +156,12 @@ static msg_t eeprom_read(const I2CEepromFileConfig *eepcfg,
  */
 static msg_t eeprom_write(const I2CEepromFileConfig *eepcfg, uint32_t offset,
                           const uint8_t *data, size_t len) {
-  msg_t status = RDY_RESET;
+  msg_t status = MSG_RESET;
   systime_t tmo = calc_timeout(eepcfg->i2cp, (len + 2), 0);
 
-  chDbgCheck(((len <= eepcfg->size) && ((offset + len) <= eepcfg->size)),
+  chDbgAssert(((len <= eepcfg->size) && ((offset + len) <= eepcfg->size)),
              "out of device bounds");
-  chDbgCheck((((offset + eepcfg->barrier_low) / eepcfg->pagesize) ==
+  chDbgAssert((((offset + eepcfg->barrier_low) / eepcfg->pagesize) ==
               (((offset + eepcfg->barrier_low) + len - 1) / eepcfg->pagesize)),
              "data can not be fitted in single page");
 
@@ -203,13 +203,13 @@ static size_t __clamp_size(void *ip, size_t n) {
  */
 static void __fitted_write(void *ip, const uint8_t *data, size_t len, uint32_t *written) {
 
-  msg_t status = RDY_RESET;
+  msg_t status = MSG_RESET;
 
-  chDbgCheck(len != 0, "something broken in hi level part");
+  chDbgAssert(len != 0, "something broken in hi level part");
 
   status = eeprom_write(((I2CEepromFileStream *)ip)->cfg,
                         eepfs_getposition(ip), data, len);
-  if (status == RDY_OK) {
+  if (status == MSG_OK) {
     *written += len;
     eepfs_lseek(ip, eepfs_getposition(ip) + len);
   }
@@ -230,7 +230,7 @@ static size_t write(void *ip, const uint8_t *bp, size_t n) {
   uint32_t firstpage;
   uint32_t lastpage;
 
-  chDbgCheck((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL), "write");
+  chDbgAssert((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL), "write");
 
   if (n == 0)
     return 0;
@@ -286,9 +286,9 @@ static size_t write(void *ip, const uint8_t *bp, size_t n) {
  * of read bytes.
  */
 static size_t read(void *ip, uint8_t *bp, size_t n) {
-  msg_t status = RDY_OK;
+  msg_t status = MSG_OK;
 
-  chDbgCheck((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL), "read");
+  chDbgAssert((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL), "read");
 
   if (n == 0)
     return 0;
@@ -328,7 +328,7 @@ static size_t read(void *ip, uint8_t *bp, size_t n) {
   /* call low level function */
   status  = eeprom_read(((I2CEepromFileStream *)ip)->cfg,
                         eepfs_getposition(ip), bp, n);
-  if (status != RDY_OK)
+  if (status != MSG_OK)
     return 0;
   else {
     eepfs_lseek(ip, (eepfs_getposition(ip) + n));

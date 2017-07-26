@@ -22,45 +22,12 @@
 #include "hal.h"
 
 #include "sensors.h"
-#include "eeprom.h"
+#include "eeprom_setup.h"
 
 static void pwmpcb(PWMDriver *pwmp);
-static void adccb(ADCDriver *adcp, adcsample_t *buffer, size_t n);
-static void spicb(SPIDriver *spip);
 
-/* Total number of channels to be sampled by a single ADC operation.*/
-#define ADC_GRP1_NUM_CHANNELS   2
 
-/* Depth of the conversion buffer, channels are sampled four times each.*/
-#define ADC_GRP1_BUF_DEPTH      4
 
-/*
- * ADC samples buffer.
- */
-static adcsample_t samples[ADC_GRP1_NUM_CHANNELS * ADC_GRP1_BUF_DEPTH];
-
-/*
- * ADC conversion group.
- * Mode:        Linear buffer, 4 samples of 2 channels, SW triggered.
- * Channels:    IN11   (48 cycles sample time)
- *              Sensor (192 cycles sample time)
- */
-static const ADCConversionGroup adcgrpcfg = {
-  FALSE,
-  ADC_GRP1_NUM_CHANNELS,
-  adccb,
-  NULL,
-  /* HW dependent part.*/
-  {{
-  0,
-  ADC_CR2_SWSTART,
-  ADC_SMPR1_SMP_AN11(ADC_SAMPLE_56) | ADC_SMPR1_SMP_SENSOR(ADC_SAMPLE_144),
-  0,
-  ADC_SQR1_NUM_CH(ADC_GRP1_NUM_CHANNELS),
-  0,
-  ADC_SQR3_SQ2_N(ADC_CHANNEL_IN11) | ADC_SQR3_SQ1_N(ADC_CHANNEL_SENSOR)
-  }}
-};
 
 /*
  * PWM configuration structure.
@@ -81,19 +48,6 @@ static PWMConfig pwmcfg = {
   0, 0
 };
 
-/*
- * SPI configuration structure.
- * Maximum speed (12MHz), CPHA=0, CPOL=0, 16bits frames, MSb transmitted first.
- * The slave select line is the pin GPIOA_SPI1NSS on the port GPIOA.
- */
-static const SPIConfig spicfg = {
-  spicb,
-  /* HW dependent part.*/
-  GPIOB,
-  12,
-  SPI_CR1_DFF,
-  0
-};
 
 /*
  * PWM cyclic callback.
@@ -107,50 +61,7 @@ static void pwmpcb(PWMDriver *pwmp) {
      will be executed in parallel to the current PWM cycle and will
      terminate before the next PWM cycle.*/
   chSysLockFromISR();
-  adcStartConversionI(&ADCD1, &adcgrpcfg, samples, ADC_GRP1_BUF_DEPTH);
-  chSysUnlockFromISR();
-}
-
-/*
- * ADC end conversion callback.
- * The PWM channels are reprogrammed using the latest ADC samples.
- * The latest samples are transmitted into a single SPI transaction.
- */
-void adccb(ADCDriver *adcp, adcsample_t *buffer, size_t n) {
-
-  (void) buffer; (void) n;
-  /* Note, only in the ADC_COMPLETE state because the ADC driver fires an
-     intermediate callback when the buffer is half full.*/
-  if (adcp->state == ADC_COMPLETE) {
-    adcsample_t avg_ch1, avg_ch2;
-
-    /* Calculates the average values from the ADC samples.*/
-    avg_ch1 = (samples[0] + samples[2] + samples[4] + samples[6]) / 4;
-    avg_ch2 = (samples[1] + samples[3] + samples[5] + samples[7]) / 4;
-
-    chSysLockFromISR();
-
-    /* Changes the channels pulse width, the change will be effective
-       starting from the next cycle.*/
-    pwmEnableChannelI(&PWMD4, 0, PWM_FRACTION_TO_WIDTH(&PWMD4, 4096, avg_ch1));
-    pwmEnableChannelI(&PWMD4, 3, PWM_FRACTION_TO_WIDTH(&PWMD4, 4096, avg_ch2));
-
-    /* SPI slave selection and transmission start.*/
-    spiSelectI(&SPID2);
-    spiStartSendI(&SPID2, ADC_GRP1_NUM_CHANNELS * ADC_GRP1_BUF_DEPTH, samples);
-
-    chSysUnlockFromISR();
-  }
-}
-
-/*
- * SPI end transfer callback.
- */
-static void spicb(SPIDriver *spip) {
-
-  /* On transfer end just releases the slave select line.*/
-  chSysLockFromISR();
-  spiUnselectI(spip);
+  //adcStartConversionI(&ADCD1, &adcgrpcfg, samples, ADC_GRP1_BUF_DEPTH);
   chSysUnlockFromISR();
 }
 
@@ -164,9 +75,9 @@ static THD_FUNCTION(Thread1, arg) {
   (void)arg;
   chRegSetThreadName("blinker");
   while (TRUE) {
-    palSetPad(GPIOD, GPIOD_LED3);       /* Orange.  */
+    palSetPad(GPIOC, GPIOC_INDICATOR_ON);
     chThdSleepMilliseconds(500);
-    palClearPad(GPIOD, GPIOD_LED3);     /* Orange.  */
+    palClearPad(GPIOC, GPIOC_INDICATOR_ON);
     chThdSleepMilliseconds(500);
   }
 }
@@ -186,53 +97,15 @@ int main(void) {
   halInit();
   chSysInit();
 
-  /*
-   * Activates the serial driver 1 using the driver default configuration.
-   * PA2(TX) and PA3(RX) are routed to USART2.
-   */
-  sdStart(&SD2, NULL);
-  palSetPadMode(GPIOA, 2, PAL_MODE_ALTERNATE(7));
-  palSetPadMode(GPIOA, 3, PAL_MODE_ALTERNATE(7));
-
-  /*
-   * If the user button is pressed after the reset then the test suite is
-   * executed immediately before activating the various device drivers in
-   * order to not alter the benchmark scores.
-   */
-  if (palReadPad(GPIOA, GPIOA_BUTTON))
-      test_execute((BaseSequentialStream*)&SD2);
-
-  /*
-   * Initializes the SPI driver 2. The SPI2 signals are routed as follow:
-   * PB12 - NSS.
-   * PB13 - SCK.
-   * PB14 - MISO.
-   * PB15 - MOSI.
-   */
-  spiStart(&SPID2, &spicfg);
-  palSetPad(GPIOB, 12);
-  palSetPadMode(GPIOB, 12, PAL_MODE_OUTPUT_PUSHPULL |
-                           PAL_STM32_OSPEED_HIGHEST);           /* NSS.     */
-  palSetPadMode(GPIOB, 13, PAL_MODE_ALTERNATE(5) |
-                           PAL_STM32_OSPEED_HIGHEST);           /* SCK.     */
-  palSetPadMode(GPIOB, 14, PAL_MODE_ALTERNATE(5));              /* MISO.    */
-  palSetPadMode(GPIOB, 15, PAL_MODE_ALTERNATE(5) |
-                           PAL_STM32_OSPEED_HIGHEST);           /* MOSI.    */
-
-  /*
-   * Initializes the ADC driver 1 and enable the thermal sensor.
-   * The pin PC0 on the port GPIOC is programmed as analog input.
-   */
-  adcStart(&ADCD1, NULL);
-  adcSTM32EnableTSVREFE();
-  palSetPadMode(GPIOC, 1, PAL_MODE_INPUT_ANALOG);
+  sen_initSensors();
+  ee_initEeprom();
 
   /*
    * Initializes the PWM driver 4, routes the TIM4 outputs to the board LEDs.
    */
-  pwmStart(&PWMD4, &pwmcfg);
-  palSetPadMode(GPIOD, GPIOD_LED4, PAL_MODE_ALTERNATE(2));  /* Green.   */
-  palSetPadMode(GPIOD, GPIOD_LED6, PAL_MODE_ALTERNATE(2));  /* Blue.    */
+  //pwmStart(&PWMD4, &pwmcfg);
+  //palSetPadMode(GPIOD, GPIOD_LED4, PAL_MODE_ALTERNATE(2));  /* Green.   */
+  //palSetPadMode(GPIOD, GPIOD_LED6, PAL_MODE_ALTERNATE(2));  /* Blue.    */
 
   /*
    * Creates the example thread.
@@ -246,8 +119,6 @@ int main(void) {
    * driver 2.
    */
   while (TRUE) {
-    if (palReadPad(GPIOA, GPIOA_BUTTON))
-      test_execute((BaseSequentialStream*)&SD2);
     chThdSleepMilliseconds(500);
   }
 }

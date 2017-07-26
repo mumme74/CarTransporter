@@ -28,6 +28,7 @@
 
 #include "ch.h"
 #include "hal.h"
+#include <string.h>
 
 #include "eeprom/eeprom.h"
 
@@ -40,7 +41,7 @@ const EepromDevice *EepromFindDevice(const char *name) {
   int i;
   const EepromDevice *drv;
 
-  chDbgCheck(name != NULL, "EepromFindDevice");
+  chDbgAssert(name != NULL, "EepromFindDevice");
 
   for (i = 0; i < EEPROM_DRV_TABLE_SIZE; i++) {
     drv = __eeprom_drv_table[i];
@@ -61,12 +62,12 @@ EepromFileStream *EepromFileOpen(EepromFileStream *efs,
                                  const EepromFileConfig *eepcfg,
                                  const EepromDevice *eepdev) {
 
-  chDbgCheck((efs != NULL) && (eepcfg != NULL) && (eepdev != NULL) &&
+  chDbgAssert((efs != NULL) && (eepcfg != NULL) && (eepdev != NULL) &&
              (eepdev->efsvmt != NULL), "EepromFileOpen");
-  chDbgCheck(efs->vmt != eepdev->efsvmt, "file allready opened");
-  chDbgCheck(eepcfg->barrier_hi > eepcfg->barrier_low, "wrong barriers")
-  chDbgCheck(eepcfg->pagesize < eepcfg->size, "pagesize can not be lager than EEPROM size")
-  chDbgCheck(eepcfg->barrier_hi <= eepcfg->size, "barrier out of bounds")
+  chDbgAssert(efs->vmt != eepdev->efsvmt, "file allready opened");
+  chDbgAssert(eepcfg->barrier_hi > eepcfg->barrier_low, "wrong barriers");
+  chDbgAssert(eepcfg->pagesize < eepcfg->size, "pagesize can not be lager than EEPROM size");
+  chDbgAssert(eepcfg->barrier_hi <= eepcfg->size, "barrier out of bounds");
 
   efs->vmt      = eepdev->efsvmt;
   efs->cfg      = eepcfg;
@@ -78,35 +79,35 @@ EepromFileStream *EepromFileOpen(EepromFileStream *efs,
 uint8_t EepromReadByte(EepromFileStream *efs) {
 
   uint8_t buf;
-  chFileStreamRead(efs, &buf, sizeof(buf));
+  fileStreamRead(efs, &buf, sizeof(buf));
   return buf;
 }
 
 uint16_t EepromReadHalfword(EepromFileStream *efs) {
 
   uint16_t buf;
-  chFileStreamRead(efs, (uint8_t *)&buf, sizeof(buf));
+  fileStreamRead(efs, (uint8_t *)&buf, sizeof(buf));
   return buf;
 }
 
 uint32_t EepromReadWord(EepromFileStream *efs) {
 
   uint32_t buf;
-  chFileStreamRead(efs, (uint8_t *)&buf, sizeof(buf));
+  fileStreamRead(efs, (uint8_t *)&buf, sizeof(buf));
   return buf;
 }
 
 size_t EepromWriteByte(EepromFileStream *efs, uint8_t data) {
 
-  return chFileStreamWrite(efs, &data, sizeof(data));
+  return fileStreamWrite(efs, &data, sizeof(data));
 }
 
 size_t EepromWriteHalfword(EepromFileStream *efs, uint16_t data) {
 
-  return chFileStreamWrite(efs, (uint8_t *)&data, sizeof(data));
+  return fileStreamWrite(efs, (uint8_t *)&data, sizeof(data));
 }
 
 size_t EepromWriteWord(EepromFileStream *efs, uint32_t data) {
 
-  return chFileStreamWrite(efs, (uint8_t *)&data, sizeof(data));
+  return fileStreamWrite(efs, (uint8_t *)&data, sizeof(data));
 }

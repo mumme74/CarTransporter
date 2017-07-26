@@ -100,10 +100,10 @@ include $(CHIBIOS)/os/hal/osal/rt/osal.mk
 include $(CHIBIOS)/os/rt/rt.mk
 include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
 # Other files (optional).
-include $(CHIBIOS)/test/rt/test.mk
+include eeprom/eeprom.mk
 
 # Define linker script file here
-LDSCRIPT= STM32F37xB.ld
+LDSCRIPT= STM32F373xB.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -114,9 +114,10 @@ CSRC = $(STARTUPSRC) \
        $(HALSRC) \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
-       $(TESTSRC) \
+       $(EEPROMSRC) \
+       $(EEPROMDEVSRC) \
        sensors.c \
-       eeprom.c \
+       eeprom_setup.c \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
@@ -155,8 +156,8 @@ INCDIR = $(CHIBIOS)/os/license \
          $(HALINC) \
          $(PLATFORMINC) \
          $(BOARDINC) \
-         $(TESTINC) \
-         $(CHIBIOS)/os/various
+         $(CHIBIOS)/os/various \
+         $(EEPROMINC)
 
 #
 # Project, sources and paths

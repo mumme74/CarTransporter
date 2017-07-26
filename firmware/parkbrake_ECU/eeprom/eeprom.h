@@ -31,6 +31,7 @@
 
 #include "ch.h"
 #include "hal.h"
+#include "hal_files.h"
 
 #include "eeprom/drvconf.h"
 
@@ -54,7 +55,7 @@ typedef struct {
  * @brief   @p EepromFileStream specific data.
  */
 #define _eeprom_file_stream_data                                            \
-  _base_file_stream_data                                                    \
+  _file_stream_data                                                    \
   uint32_t                    errors;                                       \
   uint32_t                    position;                                     \
 
@@ -64,7 +65,7 @@ typedef struct {
  * @brief   @p EepromFileStream virtual methods table.
  */
 struct EepromFilelStreamVMT {
-  _base_file_stream_methods
+  _file_stream_methods
 };
 
 /**

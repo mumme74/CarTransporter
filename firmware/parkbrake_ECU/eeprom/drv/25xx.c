@@ -54,6 +54,8 @@ Note:
 
 #if EEPROM_DRV_USE_25XX || defined(__DOXYGEN__)
 
+#define EEPROM_DEV_25XX "25XX"
+
 /**
  * @name Commands of 25XX chip.
  * @{
@@ -117,7 +119,7 @@ static void ll_25xx_transmit_receive(const SPIEepromFileConfig *eepcfg,
  * @param[in] eepcfg   pointer to configuration structure of eeprom file.
  * @return @p true on busy.
  */
-static bool_t ll_eeprom_is_busy(const SPIEepromFileConfig *eepcfg) {
+static bool ll_eeprom_is_busy(const SPIEepromFileConfig *eepcfg) {
 
   uint8_t cmd = CMD_RDSR;
   uint8_t stat;
@@ -196,14 +198,14 @@ static msg_t ll_eeprom_read(const SPIEepromFileConfig *eepcfg, uint32_t offset,
   uint8_t txbuff[4];
   uint8_t txlen;
 
-  chDbgCheck(((len <= eepcfg->size) && ((offset + len) <= eepcfg->size)),
+  chDbgAssert(((len <= eepcfg->size) && ((offset + len) <= eepcfg->size)),
              "out of device bounds");
 
   txlen = ll_eeprom_prepare_seq(txbuff, eepcfg->size, CMD_READ,
                                 (offset + eepcfg->barrier_low));
   ll_25xx_transmit_receive(eepcfg, txbuff, txlen, data, len);
 
-  return RDY_OK;
+  return MSG_OK;
 }
 
 /**
@@ -223,9 +225,9 @@ static msg_t ll_eeprom_write(const SPIEepromFileConfig *eepcfg, uint32_t offset,
   uint8_t txlen;
   systime_t now;
 
-  chDbgCheck(((len <= eepcfg->size) && ((offset + len) <= eepcfg->size)),
+  chDbgAssert(((len <= eepcfg->size) && ((offset + len) <= eepcfg->size)),
              "out of device bounds");
-  chDbgCheck((((offset + eepcfg->barrier_low) / eepcfg->pagesize) ==
+  chDbgAssert((((offset + eepcfg->barrier_low) / eepcfg->pagesize) ==
               (((offset + eepcfg->barrier_low) + len - 1) / eepcfg->pagesize)),
              "data can not be fitted in single page");
 
@@ -249,10 +251,10 @@ static msg_t ll_eeprom_write(const SPIEepromFileConfig *eepcfg, uint32_t offset,
 #endif
 
   /* Wait until EEPROM process data. */
-  now = chTimeNow();
+  now = chVTGetSystemTime();
   while (ll_eeprom_is_busy(eepcfg)) {
-    if ((chTimeNow() - now) > eepcfg->write_time) {
-      return RDY_TIMEOUT;
+    if ((chVTGetSystemTime() - now) > eepcfg->write_time) {
+      return MSG_TIMEOUT;
     }
 
     chThdYield();
@@ -260,7 +262,7 @@ static msg_t ll_eeprom_write(const SPIEepromFileConfig *eepcfg, uint32_t offset,
 
   /* Lock array preventing unexpected access */
   ll_eeprom_lock(eepcfg);
-  return RDY_OK;
+  return MSG_OK;
 }
 
 /**
@@ -268,7 +270,7 @@ static msg_t ll_eeprom_write(const SPIEepromFileConfig *eepcfg, uint32_t offset,
  */
 static size_t __clamp_size(void *ip, size_t n) {
 
-  if ((eepfs_getposition(ip) + n) > eepfs_getsize(ip))
+  if ((eepfs_getposition(ip) + (msg_t)n) > eepfs_getsize(ip))
     return eepfs_getsize(ip) - eepfs_getposition(ip);
   else
     return n;
@@ -279,13 +281,13 @@ static size_t __clamp_size(void *ip, size_t n) {
  */
 static void __fitted_write(void *ip, const uint8_t *data, size_t len, uint32_t *written) {
 
-  msg_t status = RDY_RESET;
+  msg_t status = MSG_RESET;
 
-  chDbgCheck(len != 0, "something broken in hi level part");
+  chDbgAssert(len != 0, "something broken in hi level part");
 
   status = ll_eeprom_write(((SPIEepromFileStream *)ip)->cfg,
                            eepfs_getposition(ip), data, len);
-  if (status == RDY_OK) {
+  if (status == MSG_OK) {
     *written += len;
     eepfs_lseek(ip, eepfs_getposition(ip) + len);
   }
@@ -306,7 +308,7 @@ static size_t write(void *ip, const uint8_t *bp, size_t n) {
   uint32_t firstpage;
   uint32_t lastpage;
 
-  chDbgCheck((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL), "write");
+  chDbgAssert((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL), "write");
 
   if (n == 0)
     return 0;
@@ -360,9 +362,9 @@ static size_t write(void *ip, const uint8_t *bp, size_t n) {
  */
 static size_t read(void *ip, uint8_t *bp, size_t n) {
 
-  msg_t status = RDY_OK;
+  msg_t status = MSG_OK;
 
-  chDbgCheck((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL), "read");
+  chDbgAssert((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL), "read");
 
   if (n == 0)
     return 0;
@@ -374,7 +376,7 @@ static size_t read(void *ip, uint8_t *bp, size_t n) {
   /* call low level function */
   status = ll_eeprom_read(((SPIEepromFileStream *)ip)->cfg,
                           eepfs_getposition(ip), bp, n);
-  if (status != RDY_OK)
+  if (status != MSG_OK)
     return 0;
   else {
     eepfs_lseek(ip, (eepfs_getposition(ip) + n));
@@ -395,6 +397,7 @@ static const struct EepromFilelStreamVMT vmt = {
 };
 
 EepromDevice eepdev_25xx = {
+  EEPROM_DEV_25XX,
   &vmt
 };
 

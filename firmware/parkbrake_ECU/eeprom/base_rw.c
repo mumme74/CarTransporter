@@ -28,11 +28,11 @@
 
 #include "eeprom/base_rw.h"
 
-fileoffset_t eepfs_getsize(void *ip) {
+msg_t eepfs_getsize(void *ip) {
 
   uint32_t h, l;
 
-  chDbgCheck((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL) &&
+  chDbgAssert((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL) &&
              (((EepromFileStream *)ip)->cfg != NULL), "eepfs_getsize");
 
   h = ((EepromFileStream *)ip)->cfg->barrier_hi;
@@ -40,19 +40,19 @@ fileoffset_t eepfs_getsize(void *ip) {
   return  h - l;
 }
 
-fileoffset_t eepfs_getposition(void *ip) {
+msg_t eepfs_getposition(void *ip) {
 
-  chDbgCheck((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL),
+  chDbgAssert((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL),
              "eepfs_getposition");
 
   return ((EepromFileStream *)ip)->position;
 }
 
-fileoffset_t eepfs_lseek(void *ip, fileoffset_t offset) {
+msg_t eepfs_lseek(void *ip, fileoffset_t offset) {
 
   uint32_t size;
 
-  chDbgCheck((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL),
+  chDbgAssert((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL),
              "eepfs_lseek");
 
   size = eepfs_getsize(ip);
@@ -62,9 +62,9 @@ fileoffset_t eepfs_lseek(void *ip, fileoffset_t offset) {
   return offset;
 }
 
-uint32_t eepfs_close(void *ip) {
+msg_t eepfs_close(void *ip) {
 
-  chDbgCheck((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL),
+  chDbgAssert((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL),
              "eepfs_close");
 
   ((EepromFileStream *)ip)->errors   = FILE_OK;
@@ -74,9 +74,9 @@ uint32_t eepfs_close(void *ip) {
   return FILE_OK;
 }
 
-int eepfs_geterror(void *ip) {
+msg_t eepfs_geterror(void *ip) {
 
-  chDbgCheck((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL),
+  chDbgAssert((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL),
              "eepfs_geterror");
   return ((EepromFileStream *)ip)->errors;
 }

@@ -18,8 +18,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef EEPROM_H_
-#define EEPROM_H_
+#ifndef EEPROM_SETUP_H_
+#define EEPROM_SETUP_H_
 
 /**
  * Driver init for Atmel SPI EEProm  AT25080 -> AT25640
@@ -27,6 +27,9 @@
  */
 
 
+void ee_initEeprom(void);
 
 
-#endif /* EEPROM_H_ */
+
+
+#endif /* EEPROM_SETUP_H_ */

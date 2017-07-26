@@ -71,7 +71,7 @@ typedef struct {
 
 /**
  * Open I2C EEPROM IC as file and return pointer to the file stream object
- * @note      Fucntion allways successfully open file. All checking makes
+ * @note      Function always successfully open file. All checking makes
  *            in read/write functions.
  */
 #define I2CEepromFileOpen(efs, eepcfg, eepdev) \

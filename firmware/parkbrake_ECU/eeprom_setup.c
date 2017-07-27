@@ -18,16 +18,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define EEPROM_DRV_USE_24XX TRUE
 #define EEPROM_DRV_USE_25XX TRUE
 
 #define EEPROM_PAGE_SIZE        32          /* page size in bytes. Consult datasheet. */
 #define EEPROM_SIZE             2048        /* total amount of memory in bytes */
 #define EEPROM_SPID             SPID1       /* ChibiOS SPI driver used to communicate with EEPROM */
 #define EEPROM_WRITE_TIME_MS    10          /* time to write one page in ms. Consult datasheet! */
-#define EEPROM_DRIVER_NAME      "25xx"
+#define EEPROM_DRIVER_NAME      25
 
-#include "eeprom.h"
+#include "hal_eeprom.h"
+#include "eeprom_setup.h"
 #include "ch.h"
 #include "hal.h"
 
@@ -37,12 +37,12 @@
 // instructions start with MSB first
 
 // Instruction set EEPROM
-#define WREN  0b00000110U  // write enable
+/*#define WREN  0b00000110U  // write enable
 #define WRDI  0b00000100U  // write disable
 #define RDSR  0b00000101U  // read status register
 #define WRSR  0b00000001U  // write status register
 #define READ  0b00000011U  // read from memory array
-#define WRITE 0b00000010U  // write to memory array
+#define WRITE 0b00000010U  // write to memory array*/
 
 /**
  * Status register, ALL bits are 1 when writing!
@@ -63,14 +63,22 @@
  */
 
 // masks for Status register
-#define NRDY 0b00000001U
+/*#define NRDY 0b00000001U
 #define WEN  0b00000010U
 #define BP0  0b00000100U
 #define BP1  0b00001000U
-#define WPEN 0b10000000U
+#define WPEN 0b10000000U*/
+
+// -----------------------------------------------------------------------------------
+// begin global exported symbols
+
+// fill settings with sensible default
+uint16_t settings[S_EOF];
 
 // -----------------------------------------------------------------------------------
 // begin private function prototypes
+
+void initSettings(void);
 
 // ------------------------------------------------------------------------------------
 // begin config section
@@ -78,7 +86,7 @@
  * Maximum speed SPI configuration (2MHz, CPHA=0, CPOL=0, MSb first).
  * CPOL=0 (SCK) low at idle, CPHA=0 (Reads bit at clock rising edge)
  */
-static const SPIConfig SPI1Config = {
+static const SPIConfig spiConfig = {
     // SPI complete callback
     NULL,
     // -------------------------------------
@@ -98,18 +106,72 @@ static const SPIConfig SPI1Config = {
     SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0 // signifies 8bit transfers
 };
 
+SPIEepromFileConfig stateConfig = {
+    0, // start adress
+    3, // 4 bytes for state flags
+    EEPROM_SIZE,
+    EEPROM_PAGE_SIZE,
+    MS2ST(EEPROM_WRITE_TIME_MS),
+    &EEPROM_SPID,
+    &spiConfig
+};
+static SPIEepromFileStream stateFileStream;
+EepromFileStream *stateFile = NULL;
+
+SPIEepromFileConfig settingsConfig = {
+    4, // start adress
+    104, // end adress gives us maximum of 50 settings
+    EEPROM_SIZE,
+    EEPROM_PAGE_SIZE,
+    MS2ST(EEPROM_WRITE_TIME_MS),
+    &EEPROM_SPID,
+    &spiConfig
+};
+static SPIEepromFileStream settingsFileStream;
+static EepromFileStream *settingsFile = NULL;
+
 SPIEepromFileConfig dtcFileConfig = {
-   4,
-   100,
+   105, // start adress
+   1029, // end address
    EEPROM_SIZE,
    EEPROM_PAGE_SIZE,
    MS2ST(EEPROM_WRITE_TIME_MS),
    &EEPROM_SPID,
-   &SPI1Config
+   &spiConfig
 };
-SPIEepromFileStream dtcFile;
+static SPIEepromFileStream dtcFileStream;
+EepromFileStream *dtcFile = NULL;
 
 
+// ----------------------------------------------------------------------------------
+// begin private functions for this module
+void initSettings(void)
+{
+    // fill settings with sensible defaults
+    // release
+    settings[S_TimeRevupRelease]           = 150; // ms
+    settings[S_TimeContinueAfterFreed]     = 300; // ms
+    settings[S_CurrentFreeThreshold]       = 5000; //mA
+    settings[S_CurrentRevupMaxRelease]     = 20000; // mA
+    settings[S_CurrentMaxRelease]          = 15000; // mA
+    // tighten
+    settings[S_TimeRevupTighten]           = 50; // ms
+    settings[S_TimeContinueAfterTightened] = 100; // ms
+    settings[S_CurrentTightenedThreshold]  = 15000; // mA
+    settings[S_CurrentMaxTighten]          = 18000; // mA
+    settings[S_CurrentRevupMaxTighten]     = 19000; // mA
+
+    // fill from eeprom
+    msg_t i;
+    for (i = 0; i < S_EOF; ++i) {
+        msg_t pos = i * sizeof(settings[0]);
+        if (fileStreamSeek(settingsFile, pos) == pos) {
+            uint16_t vlu = EepromReadHalfword(settingsFile);
+            if (vlu > 0)
+                settings[i] = vlu;
+        }
+    }
+}
 
 
 
@@ -119,6 +181,19 @@ SPIEepromFileStream dtcFile;
 void ee_initEeprom(void)
 {
     // init EEprom files
-    SPIEepromFileOpen(&dtcFile, &dtcFileConfig, EepromFindDevice(EEPROM_DRIVER_NAME));
+    dtcFile = SPIEepromFileOpen(&dtcFileStream, &dtcFileConfig, EepromFindDevice(EEPROM_DRIVER_NAME));
+    stateFile = SPIEepromFileOpen(&stateFileStream, &stateConfig, EepromFindDevice(EEPROM_DRIVER_NAME));
+    settingsFile = SPIEepromFileOpen(&settingsFileStream, &settingsConfig, EepromFindDevice(EEPROM_DRIVER_NAME));
+
+    // settings
+    initSettings();
+}
+
+void ee_saveSetting(settings_e settingsIdx)
+{
+    msg_t pos = settingsIdx * sizeof(settings[0]);
+    if (fileStreamSeek(settingsFile, pos) == pos) {
+        EepromWriteHalfword(settingsFile, settings[settingsIdx]);
+    }
 }
 

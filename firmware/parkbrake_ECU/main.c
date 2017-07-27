@@ -23,47 +23,7 @@
 
 #include "sensors.h"
 #include "eeprom_setup.h"
-
-static void pwmpcb(PWMDriver *pwmp);
-
-
-
-
-/*
- * PWM configuration structure.
- * Cyclic callback enabled, channels 1 and 4 enabled without callbacks,
- * the active state is a logic one.
- */
-static PWMConfig pwmcfg = {
-  10000,                                    /* 10KHz PWM clock frequency.   */
-  10000,                                    /* PWM period 1S (in ticks).    */
-  pwmpcb,
-  {
-    {PWM_OUTPUT_ACTIVE_HIGH, NULL},
-    {PWM_OUTPUT_DISABLED, NULL},
-    {PWM_OUTPUT_DISABLED, NULL},
-    {PWM_OUTPUT_ACTIVE_HIGH, NULL}
-  },
-  /* HW dependent part.*/
-  0, 0
-};
-
-
-/*
- * PWM cyclic callback.
- * A new ADC conversion is started.
- */
-static void pwmpcb(PWMDriver *pwmp) {
-
-  (void)pwmp;
-
-  /* Starts an asynchronous ADC conversion operation, the conversion
-     will be executed in parallel to the current PWM cycle and will
-     terminate before the next PWM cycle.*/
-  chSysLockFromISR();
-  //adcStartConversionI(&ADCD1, &adcgrpcfg, samples, ADC_GRP1_BUF_DEPTH);
-  chSysUnlockFromISR();
-}
+#include "control.h"
 
 /*
  * This is a periodic thread that does absolutely nothing except flashing
@@ -97,8 +57,14 @@ int main(void) {
   halInit();
   chSysInit();
 
+#ifdef DEBUG_MODE
+  // set up debug channel on serial out
+  sdStart(&SD1, NULL);
+#endif
+
   sen_initSensors();
   ee_initEeprom();
+  ctrl_init();
 
   /*
    * Initializes the PWM driver 4, routes the TIM4 outputs to the board LEDs.

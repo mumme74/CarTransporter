@@ -20,6 +20,8 @@
 #ifndef SENSORS_H
 #define SENSORS_H
 
+#include "ch.h"
+
 /*
  * The parkbrake ECU has:
  *
@@ -39,7 +41,21 @@
 #define TIGHTEN_CMD_SIG palReadPad(GPIOF, GPIOF_TIGHTEN_CMD_SIG)
 #define RELEASE_CMD_SIG palReadPad(GPIOF, GPIOF_RELEASE_CMD_SIG)
 
+#define EVENT_FLAG_ADC_BACKGROUND 1U
+#define EVENT_FLAG_ADC_REARAXLE 2U
+#define EVENT_FLAG_ADC_FRONTAXLE 4U
+
 // this module has prefix sen_
+
+
+typedef enum {
+    StopAll = 0,
+    StartAll = 1,
+    StopFront = 2,
+    StartFront = 4,
+    StopRear = 5,
+    StartRear = 6,
+} sen_measure;
 
 typedef struct {
     // motorcurrents i milliamps
@@ -64,20 +80,17 @@ typedef struct {
 
 } sen_button_t;
 
+extern event_source_t sen_AdcMeasured;
+extern event_source_t sen_MsgHandlerThd;
+
 // shared sensor info, should only be readable everywhere except sensors.c
 extern const sen_motor_currents_t sen_motorCurrents;
 extern const sen_voltages_t       sen_voltages;
 extern const int8_t               sen_chipTemperature;
 
+
 void sen_initSensors(void);
 // clears previous measurment (should be called when starting a Tighten or Loosen sequence)
-void sen_clearMotorCurrents(void);
-
-// these 2 should be called from PWM interrupt
-// call this when front motors have current (at PWM high pulse)
-void sen_measureFrontCurrentI(void);
-// same as above but for rear axle
-void sen_measureRearCurrentI(void);
 
 // diagnose wheelsensor circuits
 int sen_diagWheelSensors(void);

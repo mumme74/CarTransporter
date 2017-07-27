@@ -30,6 +30,20 @@
 
 #include "mcuconf.h"
 
+#define HAL_USE_COMMUNITY TRUE
+#define HAL_USE_EEPROM TRUE
+#define EEPROM_USE_EE25XX TRUE
+
+
+#ifdef DEBUG_MODE
+#include <string.h>
+#define DEBUG_OUT(msg) sdAsynchronousWrite(&SD1, (uint8_t*)msg, strlen(msg))
+#else
+#define DEBUG_OUT(msg)
+#endif
+
+#define SERIAL_DEFAULT_BITRATE 115200
+
 /**
  * @brief   Enables the PAL subsystem.
  */

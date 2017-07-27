@@ -424,7 +424,7 @@
  * @note    This debug option is not currently compatible with the
  *          tickless mode.
  */
-#ifdef DEBUG_MODE
+#if 0 && DEBUG_MODE
 #define CH_DBG_THREADS_PROFILING            TRUE
 #else
 #define CH_DBG_THREADS_PROFILING            FALSE

@@ -81,14 +81,16 @@ endif
 ##############################################################################
 # Project, sources and paths
 #
+PROJECT = parkbrake
 
 # debug and trace modes here
 # comment out when release mode 
-CFLAGS += " -DDEBUG_MODE "
-CFLAGS += " -DTRACE_MODE "
+C_EXTRAFLAGS += -DDEBUG_MODE=yes
+C_EXTRAFLAGS += -DTRACE_MODE=yes
 
 # Imported source files and paths
 CHIBIOS = $(HOME)/workspace/ChibiOS_17.6.0
+CHIBIOS_CONTRIB = $(CHIBIOS)/community
 # Startup files.
 include $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC/mk/startup_stm32f3xx.mk
 # HAL-OSAL files (optional).
@@ -100,7 +102,9 @@ include $(CHIBIOS)/os/hal/osal/rt/osal.mk
 include $(CHIBIOS)/os/rt/rt.mk
 include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
 # Other files (optional).
-include eeprom/eeprom.mk
+#include eeprom/eeprom.mk
+include $(CHIBIOS_CONTRIB)/os/hal/hal.mk
+include $(CHIBIOS)/os/hal/lib/streams/streams.mk
 
 # Define linker script file here
 LDSCRIPT= STM32F373xB.ld
@@ -114,10 +118,10 @@ CSRC = $(STARTUPSRC) \
        $(HALSRC) \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
-       $(EEPROMSRC) \
-       $(EEPROMDEVSRC) \
+       $(STREAMSSRC) \
        sensors.c \
        eeprom_setup.c \
+       control.c \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
@@ -156,8 +160,8 @@ INCDIR = $(CHIBIOS)/os/license \
          $(HALINC) \
          $(PLATFORMINC) \
          $(BOARDINC) \
-         $(CHIBIOS)/os/various \
-         $(EEPROMINC)
+         $(STREAMSINC) \
+         $(CHIBIOS)/os/various
 
 #
 # Project, sources and paths
@@ -207,7 +211,7 @@ CPPWARN = -Wall -Wextra -Wundef
 #
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS =
+UDEFS = $(C_EXTRAFLAGS)
 
 # Define ASM defines here
 UADEFS =

@@ -35,6 +35,7 @@
 
 #define BACKGROUND_TIMER_MS 250
 
+
 // --------------------------------------------------------------------
 // start function prototypes
 
@@ -55,6 +56,9 @@ static void portF_CallbackFalling(EXTDriver *extp, expchannel_t channel);
 static void bridgeCurrents(uint16_t *left_ma, uint16_t *right_ma);
 static void backgroundTimerCallback(void);
 
+static void clearFrontCurrents(void);
+static void clearRearCurrents(void);
+
 
 // ---------------------------------------------------------------
 // start globally shared variables
@@ -63,11 +67,15 @@ const sen_motor_currents_t sen_motorCurrents = { 0, 0, 0, 0, 0, 0, 0, 0 };
 const sen_voltages_t       sen_voltages = { 0, 0 };
 const int8_t               sen_chipTemperature = 0;
 
+event_source_t sen_AdcMeasured,
+               sen_MsgHandlerThd;
+
 
 // -----------------------------------------------------------------
 // start private static objects declarations needed by this file
 
 static virtual_timer_t backgroundTimer;
+static thread_t *handlerp;
 
 
 // a buffer for bridge current sense, one measurement for each axle so we can toggle current
@@ -283,6 +291,9 @@ static void bridgeFrontAdcCallback(ADCDriver *adcp, adcsample_t *buffer, size_t 
         if (m->maxRightFront < right_ma)
             m->maxRightFront = right_ma;
         chSysUnlockFromISR();
+
+        // notify our subscribers
+        chEvtBroadcastFlagsI(&sen_AdcMeasured, EVENT_FLAG_ADC_FRONTAXLE);
     }
 }
 
@@ -309,6 +320,9 @@ static void bridgeRearAdcCallback(ADCDriver *adcp, adcsample_t *buffer, size_t n
         if (m->maxRightRear < right_ma)
             m->maxRightRear = right_ma;
         chSysUnlockFromISR();
+
+        // notify our subscribers
+        chEvtBroadcastFlagsI(&sen_AdcMeasured, EVENT_FLAG_ADC_REARAXLE);
     }
 }
 
@@ -358,6 +372,10 @@ static void backgroundAdcCallback(ADCDriver *adcp, adcsample_t *buffer, size_t n
         v->ignVolt = ignMilliVolt;
         *t = temp;
         chSysUnlockFromISR();
+
+
+        // notify our subscribers
+        chEvtBroadcastFlagsI(&sen_AdcMeasured, EVENT_FLAG_ADC_BACKGROUND);
     }
 }
 
@@ -442,26 +460,7 @@ static void bridgeCurrents(uint16_t *left_ma, uint16_t *right_ma)
 }
 
 
-// -------------------------------------------------------------------
-// begin API functions
-
-// call to init adc
-void sen_initSensors(void)
-{
-    sen_clearMotorCurrents();
-    adcStart(&ADCD1, NULL); // warmup ADC...
-    adcSTM32EnableTSVREFE(); // enable chip temp measurements
-
-    // start a background loop to read voltages, temp
-    chVTSet(&backgroundTimer, MS2ST(BACKGROUND_TIMER_MS),
-             (void*)backgroundTimerCallback, NULL);
-
-    // start external interupts (from digital pins)
-    extStart(&EXTD1, &extConfig);
-}
-
-// clears previous measurement
-void sen_clearMotorCurrents(void)
+static void clearFrontCurrents(void)
 {
     sen_motor_currents_t *m;
     m = (sen_motor_currents_t *)&sen_motorCurrents;
@@ -469,29 +468,143 @@ void sen_clearMotorCurrents(void)
     chSysLock();
     m->leftFront = 0;
     m->rightFront = 0;
+    m->maxLeftFront = 0;
+    m->maxRightFront = 0;
+    chSysUnlock();
+}
+
+static void clearRearCurrents(void)
+{
+    sen_motor_currents_t *m;
+    m = (sen_motor_currents_t *)&sen_motorCurrents;
+
+    chSysLock();
     m->leftRear = 0;
     m->rightRear = 0;
     m->maxLeftRear = 0;
     m->maxRightRear = 0;
-    m->maxLeftFront = 0;
-    m->maxRightRear = 0;
     chSysUnlock();
 }
 
-void sen_measureFrontCurrentI(void)
+// ---------------------------------------------------------------------
+// start thread
+
+static THD_WORKING_AREA(waHandlerThd, 128);
+static THD_FUNCTION(handlerThd, arg)
 {
-    // this function implicitly aborts any current conversions
-    chSysLockFromISR();
-    adcStartConversionI(&ADCD1, &adcBridgeFrontCfg, bridgeAdcBuf, ADC_BRIDGE_BUF_DEPTH);
-    chSysUnlockFromISR();
+    (void) arg;
+    chRegSetThreadName("sensorThread");
+
+    static event_listener_t evtMsg;
+    static const uint8_t ADC_EVT = 0,
+                         MSG_EVT = 1;
+
+    // listen to ADC events for currents
+    event_listener_t evtAdc;
+    chEvtRegisterMaskWithFlags(&sen_AdcMeasured, &evtAdc, EVENT_MASK(ADC_EVT),
+                  EVENT_FLAG_ADC_REARAXLE | EVENT_FLAG_ADC_FRONTAXLE);
+    // listen to msgs to this thread to change action
+    chEvtRegisterMask(&sen_MsgHandlerThd, &evtMsg, EVENT_MASK(MSG_EVT));
+
+    msg_t msg;
+    eventmask_t evt;
+    sen_measure action = StopAll;
+    systime_t timeout = TIME_INFINITE;
+
+    while (TRUE) {
+        // wait for a event to occur, either a new action or ADC finished
+        // or don't wait at all if a new action needs to be done
+        evt = chEvtWaitAnyTimeout(EVENT_MASK(ADC_EVT) | EVENT_MASK(MSG_EVT), timeout);
+        if ((evt | EVENT_MASK(ADC_EVT)) || evt == 0){
+            // we get here each time ADC has finished OR when a new action needs to be done (timeout==0)
+            switch (action) {
+            case StopAll:
+                // no current to measure, restart background timer
+                chVTSet(&backgroundTimer, MS2ST(BACKGROUND_TIMER_MS),
+                        (void*)backgroundTimerCallback, NULL);
+                break;
+            case StartFront:
+                adcStartConversion(&ADCD1, &adcBridgeFrontCfg, bridgeAdcBuf, ADC_BRIDGE_BUF_DEPTH);
+                break;
+            case StartRear:
+                adcStartConversion(&ADCD1, &adcBridgeRearCfg, bridgeAdcBuf, ADC_BRIDGE_BUF_DEPTH);
+                break;
+            case StartAll: {
+                // rationale here is to alternate between each axle
+                eventflags_t wasFlg = chEvtGetAndClearFlags(&evtAdc);
+                if (wasFlg & EVENT_FLAG_ADC_REARAXLE)
+                    adcStartConversion(&ADCD1, &adcBridgeFrontCfg, bridgeAdcBuf, ADC_BRIDGE_BUF_DEPTH);
+                else if (wasFlg & EVENT_FLAG_ADC_FRONTAXLE)
+                    adcStartConversion(&ADCD1, &adcBridgeRearCfg, bridgeAdcBuf, ADC_BRIDGE_BUF_DEPTH);
+                // else it was a background adc finished in which case we do nothing
+            }   break;
+            default:
+                break; // do nothing as that stops the ADC measuring loop
+            }
+
+        } else if (evt | EVENT_MASK(MSG_EVT)) {
+            sen_measure newAction = (sen_measure)msg;
+            if (action == StartFront && newAction == StartRear) {
+                clearRearCurrents();
+                action = StartAll;
+            } else if (action == StartRear && newAction == StartFront) {
+                clearFrontCurrents();
+                action = StartAll;
+            } else if (action == StartAll && newAction == StopRear) {
+                action = StartFront;
+            } else if (action == StartAll && newAction == StopFront) {
+                action = StartRear;
+            } else if (newAction == StartAll) {
+                clearRearCurrents();
+                clearFrontCurrents();
+                action = StartAll;
+            } else {
+                action = newAction;
+            }
+
+            // stop background timer if set
+            if (action != StopAll && chVTIsArmed(&backgroundTimer))
+                chVTReset(&backgroundTimer);
+
+            // don't wait for a event to occur on next loop
+            timeout = TIME_IMMEDIATE;
+            continue;
+        }
+
+        // restore so we wait for next event to occur
+        timeout = TIME_INFINITE;
+
+    } // thread loop
 }
 
-void sen_measureRearCurrentI(void)
+
+
+
+// -------------------------------------------------------------------
+// begin API functions
+
+// call to init adc
+void sen_initSensors(void)
 {
-    // this function implicitly aborts any current conversions
-    chSysLockFromISR();
-    adcStartConversionI(&ADCD1, &adcBridgeRearCfg, bridgeAdcBuf, ADC_BRIDGE_BUF_DEPTH);
-    chSysUnlockFromISR();
+    clearFrontCurrents();
+    clearRearCurrents();
+    adcStart(&ADCD1, NULL); // warmup ADC...
+    adcSTM32EnableTSVREFE(); // enable chip temp. measurements
+
+    // start a background loop to read voltages, temp.
+    chVTSet(&backgroundTimer, MS2ST(BACKGROUND_TIMER_MS),
+             (void*)backgroundTimerCallback, NULL);
+
+    // start external interrupts (from digital pins)
+    extStart(&EXTD1, &extConfig);
+
+    // initialize our event source
+    chEvtObjectInit(&sen_AdcMeasured);
+    chEvtObjectInit(&sen_MsgHandlerThd);
+
+    // initialize and start handler thread
+    handlerp = chThdCreateStatic(&waHandlerThd, 128, NORMALPRIO+10, handlerThd, NULL);
+    chThdStart(handlerp);
 }
 
 // diagnose wheelsensor circuits

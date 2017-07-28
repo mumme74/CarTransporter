@@ -34,6 +34,7 @@
 #define BRIDGE_ENABLE \
     chVTReset(&bridgeDisableTimer); \
     palClearPad(GPIOB, GPIOB_Bridge_Disable); \
+    palSetPad(GPIOC, GPIOC_uC_SET_POWER);
 
 
 #define MAILBOX_SIZE 2
@@ -57,8 +58,8 @@ static uint32_t stateFlags = 0;
 // ------------------------------------------------------------------------------------
 // function prototypes and local variable
 static void saveState(uint32_t state, ctrl_wheels wheel);
-static bool releaseWheel(uint8_t pin, volatile const uint16_t *currentp, eventflags_t adcAvtFlag);
-static bool tightenWheel(uint8_t pin, volatile const uint16_t *currentp, eventflags_t adcAvtFlag);
+static msg_t releaseWheel(uint8_t pin, volatile const uint16_t *currentp, eventflags_t adcAvtFlag);
+static msg_t tightenWheel(uint8_t pin, volatile const uint16_t *currentp, eventflags_t adcAvtFlag);
 
 static mailbox_t mbLF, mbLR, mbRF, mbRR;
 
@@ -96,6 +97,8 @@ void bridgeDisableTimerCallback(void *arg)
     (void)arg;
 
     palSetPad(GPIOB, GPIOB_Bridge_Disable);
+    palClearPad(GPIOC, GPIOC_uC_SET_POWER);
+
     // stop current measurement, resume background checks
     chEvtBroadcastFlags(&sen_MsgHandlerThd, (eventflags_t)StopAll);
 }
@@ -150,16 +153,18 @@ static THD_FUNCTION(wheelHandler, args)
         ctrl_states action = (ctrl_states)chMBFetch(info->mb, *info->mb_queue, TIME_INFINITE);
 
         // listen to currents to perform this action
-        chEvtRegisterMaskWithFlags(&sen_AdcMeasured, &adcEvt,
-                               EVENT_MASK(0), info->evtReceiveFlag);
+        chEvtRegisterMaskWithFlags(&sen_measuredEvts, &adcEvt,
+                                   EVENT_MASK(0), info->evtReceiveFlag);
 
+        msg_t res;
         switch (action) {
         case Releasing:
             // tell sensor module to start measure currents
             chEvtBroadcastFlags(&sen_MsgHandlerThd, info->adcMeasure);
             // do the action
-            if (!releaseWheel(GPIOC_RightFront_Loosen, info->motorcurrent,
-                              info->evtReceiveFlag))
+            res = releaseWheel(GPIOC_RightFront_Loosen, info->motorcurrent,
+                              info->evtReceiveFlag);
+            if (res != MSG_OK)
             {
 #ifdef DEBUG_MODE
                 char buf[35];
@@ -174,8 +179,9 @@ static THD_FUNCTION(wheelHandler, args)
             break;
         case Tightening:
             chEvtBroadcastFlags(&sen_MsgHandlerThd, (eventflags_t)StartFront);
-            if (!tightenWheel(GPIOC_RightFront_Tighten, info->motorcurrent,
-                              EVENT_FLAG_ADC_FRONTAXLE))
+            res = tightenWheel(GPIOC_RightFront_Tighten, info->motorcurrent,
+                    EVENT_FLAG_ADC_FRONTAXLE);
+            if (res != MSG_OK)
             {
 #ifdef DEBUG_MODE
                 char buf[35];
@@ -193,8 +199,8 @@ static THD_FUNCTION(wheelHandler, args)
         // else nothing
         }
 
-        // unregister so we dont fill up queue by other old measurements
-        chEvtUnregister(&sen_AdcMeasured, &adcEvt);
+        // unregister so we don't fill up queue by other old measurements
+        chEvtUnregister(&sen_measuredEvts, &adcEvt);
 
         // when done we start a timer which eventually disables the bridge
         // we don't want to do that in this instant as there maight be other wheels that are still
@@ -224,11 +230,11 @@ static void saveState(uint32_t state, ctrl_wheels wheel)
 }
 
 
-static bool releaseWheel(uint8_t pin, volatile const uint16_t *currentp, eventflags_t adcAvtFlag)
+static msg_t releaseWheel(uint8_t pin, volatile const uint16_t *currentp, eventflags_t adcAvtFlag)
 {
     BRIDGE_ENABLE;
     palSetPad(GPIOC, pin);
-    bool success = true;
+    msg_t success = MSG_OK;
 
     systime_t curOffTime = 0,
               maxTime = MS2ST(2000),
@@ -239,22 +245,27 @@ static bool releaseWheel(uint8_t pin, volatile const uint16_t *currentp, eventfl
     while (maxTime > chVTGetSystemTime()) {
         chThdSleep(curOffTime); // nap a little (emulates PWM low)
         // measure current
-        eventflags_t flg = chEvtWaitOneTimeout(adcAvtFlag, US2ST(700));
+        eventflags_t flg = chEvtWaitOneTimeout(adcAvtFlag | EVENT_FLAG_BRIDGE_DIAG_PINS,
+                                               US2ST(700));
         if (flg == 0) { // timeout check
             DEBUG_OUT("ADC error releasing");
+            success = false;
+            break;
+        } else if (flg & EVENT_FLAG_BRIDGE_DIAG_PINS) {
+            DEBUG_OUT("Hardware current limit tripped");
             success = false;
             break;
         }
 
         uint16_t maxCurrent;
 
-        // at first the current is allowed to higher due to release force, (buildup torque)
+        // at first the current is allowed to be higher due to release force, (buildup torque)
         if (chVTGetSystemTime() < revupTime)
             maxCurrent = settings[S_CurrentRevupMaxRelease];
         else
             maxCurrent = settings[S_CurrentMaxRelease];
 
-        // compare currents from the newly measured current (as we have been released from )
+        // compare currents from the newly measured current (as we have been released from pad)
         if (*currentp > maxCurrent) {
             // overCurrent protection
             palClearPad(GPIOC, pin);
@@ -283,11 +294,11 @@ static bool releaseWheel(uint8_t pin, volatile const uint16_t *currentp, eventfl
 
 // NOTE these to functions could possibly be merged,
 // but special case them for now until we now if it can be generalized enough
-static bool tightenWheel(uint8_t pin, volatile const uint16_t *currentp, eventflags_t adcAvtFlag)
+static msg_t tightenWheel(uint8_t pin, volatile const uint16_t *currentp, eventflags_t adcAvtFlag)
 {
     BRIDGE_ENABLE;
     palSetPad(GPIOC, pin);
-    bool success = true;
+    msg_t success = MSG_OK;
 
     systime_t curOffTime = 0,
            maxTime = MS2ST(2000),
@@ -298,9 +309,14 @@ static bool tightenWheel(uint8_t pin, volatile const uint16_t *currentp, eventfl
     while (maxTime > chVTGetSystemTime()) {
         chThdSleep(curOffTime); // nap a little (emulates PWM low)
         // measure current
-        eventflags_t flg = chEvtWaitOneTimeout(adcAvtFlag, US2ST(700));
+        eventflags_t flg = chEvtWaitOneTimeout(adcAvtFlag | EVENT_FLAG_BRIDGE_DIAG_PINS,
+                                               US2ST(700));
         if (flg == 0) { // timeout check
             DEBUG_OUT("ADC error tightening");
+            success = false;
+            break;
+        } else if (flg & EVENT_FLAG_BRIDGE_DIAG_PINS) {
+            DEBUG_OUT("Hardware current limit tripped");
             success = false;
             break;
         }
@@ -381,10 +397,7 @@ void ctrl_setStateAll(ctrl_states state)
 
 void ctrl_setStateAxle(ctrl_states state, ctrl_axles axle)
 {
-    if (state != Releasing && state != Tightening)
-        return;
-    if (axle > RearAxle)
-        return;
+    chDbgAssert(axle > RearAxle, "Invalid axle");
 
     if  (axle == RearAxle) {
         ctrl_setStateWheel(state, LeftRear);
@@ -398,9 +411,11 @@ void ctrl_setStateAxle(ctrl_states state, ctrl_axles axle)
 // set on a single wheel
 void ctrl_setStateWheel(ctrl_states state, ctrl_wheels wheel)
 {
-    if (state != Releasing && state != Tightening)
-        return;
-    if (wheel > RightRear || state == STATE_MASK(wheel))
+    chDbgAssert(state != Releasing && state != Tightening, "Invalid state");
+    chDbgAssert(wheel > RightRear, "Invalid wheel");
+
+    // wheel is already at this state
+    if (state == STATE_MASK(wheel))
         return;
 
     // if we have gotten here we good, save new state!

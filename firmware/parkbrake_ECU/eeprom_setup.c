@@ -75,6 +75,8 @@
 // fill settings with sensible default
 uint16_t settings[S_EOF];
 
+event_source_t ee_settingsChanged;
+
 // -----------------------------------------------------------------------------------
 // begin private function prototypes
 
@@ -147,6 +149,9 @@ EepromFileStream *dtcFile = NULL;
 // begin private functions for this module
 void initSettings(void)
 {
+    // a event for settings
+    chEvtObjectInit(&ee_settingsChanged);
+
     // fill settings with sensible defaults
     // release
     settings[S_TimeRevupRelease]           = 150; // ms
@@ -160,6 +165,16 @@ void initSettings(void)
     settings[S_CurrentTightenedThreshold]  = 15000; // mA
     settings[S_CurrentMaxTighten]          = 18000; // mA
     settings[S_CurrentRevupMaxTighten]     = 19000; // mA
+
+    // vehicle settings
+    settings[S_RimDiameter]                = 17; // in inches
+    settings[S_TireThread]                 = 225; // in mm
+    settings[S_TireProfile]                = 65; // in percent
+
+    // user settings
+
+    // hardware error prevents this functionality
+    // settings[S_AutoTighten]                = 1;
 
     // fill from eeprom
     msg_t i;
@@ -194,6 +209,7 @@ void ee_saveSetting(settings_e settingsIdx)
     msg_t pos = settingsIdx * sizeof(settings[0]);
     if (fileStreamSeek(settingsFile, pos) == pos) {
         EepromWriteHalfword(settingsFile, settings[settingsIdx]);
+        chEvtBroadcastFlags(&ee_settingsChanged, (eventflags_t)settingsIdx);
     }
 }
 

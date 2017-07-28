@@ -24,23 +24,8 @@
 #include "sensors.h"
 #include "eeprom_setup.h"
 #include "control.h"
+#include "button_logic.h"
 
-/*
- * This is a periodic thread that does absolutely nothing except flashing
- * a LED.
- */
-static THD_WORKING_AREA(waThread1, 128);
-static THD_FUNCTION(Thread1, arg) {
-
-  (void)arg;
-  chRegSetThreadName("blinker");
-  while (TRUE) {
-    palSetPad(GPIOC, GPIOC_INDICATOR_ON);
-    chThdSleepMilliseconds(500);
-    palClearPad(GPIOC, GPIOC_INDICATOR_ON);
-    chThdSleepMilliseconds(500);
-  }
-}
 
 /*
  * Application entry point.
@@ -61,30 +46,14 @@ int main(void) {
   // set up debug channel on serial out
   sdStart(&SD1, NULL);
 #endif
-
-  sen_initSensors();
+  // eeprom should be first as other modules depend on its settings
   ee_initEeprom();
+  sen_initSensors();
   ctrl_init();
+  btn_initButtonLogic();
 
-  /*
-   * Initializes the PWM driver 4, routes the TIM4 outputs to the board LEDs.
-   */
-  //pwmStart(&PWMD4, &pwmcfg);
-  //palSetPadMode(GPIOD, GPIOD_LED4, PAL_MODE_ALTERNATE(2));  /* Green.   */
-  //palSetPadMode(GPIOD, GPIOD_LED6, PAL_MODE_ALTERNATE(2));  /* Blue.    */
 
-  /*
-   * Creates the example thread.
-   */
-  chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
-
-  /*
-   * Normal main() thread activity, in this demo it does nothing except
-   * sleeping in a loop and check the button state, when the button is
-   * pressed the test procedure is launched with output on the serial
-   * driver 2.
-   */
   while (TRUE) {
-    chThdSleepMilliseconds(500);
+    chThdSleep(S2ST(500)); // do nothing loop, let the kernel handle it for us
   }
 }

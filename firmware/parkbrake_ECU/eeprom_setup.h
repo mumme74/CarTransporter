@@ -21,6 +21,8 @@
 #ifndef EEPROM_SETUP_H_
 #define EEPROM_SETUP_H_
 
+#include "ch.h"
+
 /**
  * Driver init for Atmel SPI EEProm  AT25080 -> AT25640
  * CarTransporter Parkbrake uses AT25160 (2048bytes)
@@ -73,6 +75,22 @@ typedef enum {
     // The maximum allowed current before current limit steps in
     S_CurrentMaxTighten = 9,
 
+    // ---------------------------------------------------------------
+    // user settings
+    //S_AutoTighten = 10, Hardware error prevents it from working
+
+    // how many pulses ABS sensor generates at one wheel revolution
+    S_PulsesPerRevolution = 11,
+
+    // rim diameter in inches (like on a tire 225 / 17 R 65) this would be 17
+    S_RimDiameter = 12,
+
+    // Tire width in mm (like on a tire 225 / 17 R 65) this would be 225
+    S_TireThread = 13,
+
+    // Tire Profile in percent (like on a tire 225 / 17 R 65) this would be 65
+    S_TireProfile = 14,
+
     // maximum 50 settings!
 
     // END marker
@@ -86,8 +104,12 @@ extern EepromFileStream *dtcFile;
 
 extern uint16_t settings[S_EOF];
 
+extern event_source_t ee_settingsChanged;
+
+
 // initializes this module
 void ee_initEeprom(void);
+
 // save current setting for idx in eeprom
 void ee_saveSetting(settings_e settingIdx);
 

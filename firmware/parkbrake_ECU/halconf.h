@@ -35,13 +35,6 @@
 #define EEPROM_USE_EE25XX TRUE
 
 
-#ifdef DEBUG_MODE
-#include <string.h>
-#define DEBUG_OUT(msg) sdAsynchronousWrite(&SD1, (uint8_t*)msg, strlen(msg))
-#else
-#define DEBUG_OUT(msg)
-#endif
-
 #define SERIAL_DEFAULT_BITRATE 115200
 
 /**
@@ -62,7 +55,7 @@
  * @brief   Enables the CAN subsystem.
  */
 #if !defined(HAL_USE_CAN) || defined(__DOXYGEN__)
-#define HAL_USE_CAN                 FALSE
+#define HAL_USE_CAN                 TRUE
 #endif
 
 /**
@@ -125,7 +118,7 @@
  * @brief   Enables the PWM subsystem.
  */
 #if !defined(HAL_USE_PWM) || defined(__DOXYGEN__)
-#define HAL_USE_PWM                 TRUE
+#define HAL_USE_PWM                 FALSE
 #endif
 
 /**

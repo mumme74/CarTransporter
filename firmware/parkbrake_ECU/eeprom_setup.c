@@ -30,6 +30,7 @@
 #include "eeprom_setup.h"
 #include "ch.h"
 #include "hal.h"
+#include "debug.h"
 
 
 // max 2.1MHz when3.3V

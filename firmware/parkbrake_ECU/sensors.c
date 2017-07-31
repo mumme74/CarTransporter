@@ -24,9 +24,7 @@
 #include "eeprom_setup.h"
 #include <math.h> // for M_PI symbol
 
-#ifdef DEBUG_MODE
-#include "chprintf.h"
-#endif
+#include "debug.h"
 
 // --------- start definitions ------------------------
 // NOTE ! changing these values must be accompanied by changing
@@ -85,8 +83,7 @@ static thread_t *adcHandlerp,
                 *pollInputsp,
                 *settingsHandlerp;
 
-// how many tooths the ABS wheel has
-static uint16_t pulsesPerRevolution = 60;
+// wheel circumference used to calculate speed. Can be set by settings from eeprom
 static uint16_t wheelCircumference = 2000; // in mm
 
 // a buffer for bridge current sense, one measurement for each axle so we can toggle current

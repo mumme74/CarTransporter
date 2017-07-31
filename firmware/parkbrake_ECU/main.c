@@ -25,6 +25,7 @@
 #include "eeprom_setup.h"
 #include "control.h"
 #include "button_logic.h"
+#include "can.h"
 
 
 /*
@@ -51,6 +52,7 @@ int main(void) {
   sen_initSensors();
   ctrl_init();
   btn_initButtonLogic();
+  can_init();
 
 
   while (TRUE) {

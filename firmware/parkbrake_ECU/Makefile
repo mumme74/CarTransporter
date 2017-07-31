@@ -123,6 +123,8 @@ CSRC = $(STARTUPSRC) \
        eeprom_setup.c \
        control.c \
        button_logic.c \
+       tmr_capture.c \
+       can.c \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global

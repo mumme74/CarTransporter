@@ -109,7 +109,7 @@
  * GPT driver system settings.
  */
 #define STM32_GPT_USE_TIM2                  FALSE
-#define STM32_GPT_USE_TIM3                  TRUE
+#define STM32_GPT_USE_TIM3                  FALSE
 #define STM32_GPT_USE_TIM4                  FALSE
 #define STM32_GPT_USE_TIM5                  FALSE
 #define STM32_GPT_USE_TIM6                  FALSE
@@ -142,7 +142,7 @@
  * ICU driver system settings.
  */
 #define STM32_ICU_USE_TIM2                  FALSE
-#define STM32_ICU_USE_TIM3                  FALSE
+#define STM32_ICU_USE_TIM3                  TRUE /* actually used in homegrown driver tmr_compare.c */
 #define STM32_ICU_USE_TIM4                  FALSE
 #define STM32_ICU_USE_TIM5                  FALSE
 #define STM32_ICU_TIM2_IRQ_PRIORITY         7
@@ -154,7 +154,7 @@
  * PWM driver system settings.
  */
 #define STM32_PWM_USE_TIM2                  FALSE
-#define STM32_PWM_USE_TIM3                  TRUE
+#define STM32_PWM_USE_TIM3                  FALSE
 #define STM32_PWM_USE_TIM4                  FALSE
 #define STM32_PWM_USE_TIM5                  FALSE
 #define STM32_PWM_TIM2_IRQ_PRIORITY         7

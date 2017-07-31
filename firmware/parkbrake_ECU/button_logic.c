@@ -11,6 +11,7 @@
 #include "sensors.h"
 #include "control.h"
 #include "eeprom_setup.h" // for settings
+#include "debug.h"
 
 
 #define BTN_ACTIVATE_OK (SEN_BUTTON_SIG && !SEN_BUTTON_INV_SIG)

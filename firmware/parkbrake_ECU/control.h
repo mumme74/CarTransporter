@@ -21,9 +21,10 @@ typedef enum {
     Released = 1,
     Tightening = 2,
     Releasing = 3,
-    ServiceState = 4, // when we need to change brake pads etc
+    InServiceState = 4, // when we need to change brake pads etc
+    SetServiceState = 5,
     ErrorState = 8
-} ctrl_states ;
+} ctrl_states;
 
 typedef enum {
     LeftFront = 0,

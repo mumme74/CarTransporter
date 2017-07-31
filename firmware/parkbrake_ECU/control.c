@@ -11,9 +11,7 @@
 #include "hal_eeprom.h"
 #include "eeprom_setup.h"
 #include "sensors.h"
-#ifdef DEBUG_MODE
-#include "chprintf.h"
-#endif
+#include "debug.h"
 
 
 /**
@@ -57,9 +55,25 @@ static uint32_t stateFlags = 0;
 
 // ------------------------------------------------------------------------------------
 // function prototypes and local variable
+
+typedef struct {
+    const char *threadName;
+    mailbox_t *mb;
+    msg_t **mb_queue;
+    uint8_t evtReceiveFlag;
+    sen_measure adcMeasure;
+    volatile const uint16_t *motorcurrent;
+    const char *abbreviation;
+    ctrl_wheels wheel;
+    uint8_t releasePin;
+    uint8_t tightenPin;
+
+} wheelthreadinfo_t;
+
+
 static void saveState(uint32_t state, ctrl_wheels wheel);
-static msg_t releaseWheel(uint8_t pin, volatile const uint16_t *currentp, eventflags_t adcAvtFlag);
-static msg_t tightenWheel(uint8_t pin, volatile const uint16_t *currentp, eventflags_t adcAvtFlag);
+static msg_t releaseWheel(wheelthreadinfo_t *info);
+static msg_t tightenWheel(wheelthreadinfo_t *info);
 
 static mailbox_t mbLF, mbLR, mbRF, mbRR;
 
@@ -76,17 +90,6 @@ static thread_t *lfThdp,
                 *rfThdp,
                 *rrThdp;
 
-typedef struct {
-    const char *threadName;
-    mailbox_t *mb;
-    msg_t **mb_queue;
-    uint8_t evtReceiveFlag;
-    sen_measure adcMeasure;
-    volatile const uint16_t *motorcurrent;
-    const char *abbreviation;
-    ctrl_wheels wheel;
-
-} wheelthreadinfo_t;
 
 // ------------------------------------------------------------------------------------
 // begin callbacks
@@ -121,19 +124,23 @@ void saveStateTimerCallback(void *arg)
 // some thread local info
 wheelthreadinfo_t lfInfo = {
     "leftFrontThread", &mbLF, (msg_t**)&mbLF_queue, EVENT_FLAG_ADC_FRONTAXLE,
-    StartFront, &sen_motorCurrents.leftFront, "LF", LeftFront
+    StartFront, &sen_motorCurrents.leftFront, "LF", LeftFront,
+    GPIOC_LeftFront_Loosen, GPIOC_LeftFront_Tighten
 };
 wheelthreadinfo_t rfInfo = {
     "rightFrontThread", &mbRF, (msg_t**)&mbRF_queue, EVENT_FLAG_ADC_FRONTAXLE,
-    StartFront, &sen_motorCurrents.rightFront, "RF", RightFront
+    StartFront, &sen_motorCurrents.rightFront, "RF", RightFront,
+    GPIOC_RightFront_Loosen, GPIOC_RightFront_Tighten
 };
 wheelthreadinfo_t lrInfo = {
     "leftRearThread", &mbLR, (msg_t**)&mbLR_queue, EVENT_FLAG_ADC_REARAXLE,
-    StartRear, &sen_motorCurrents.leftRear, "LR", LeftRear
+    StartRear, &sen_motorCurrents.leftRear, "LR", LeftRear,
+    GPIOC_LeftRear_Loosen, GPIOC_LeftRear_Tighten
 };
 wheelthreadinfo_t rrInfo = {
     "rightRearThread", &mbRR, (msg_t**)&mbRR_queue, EVENT_FLAG_ADC_REARAXLE,
-    StartRear, &sen_motorCurrents.rightRear, "RR", RightRear
+    StartRear, &sen_motorCurrents.rightRear, "RR", RightRear,
+    GPIOC_RightRear_Loosen, GPIOC_RightRear_Tighten
 };
 
 // we create 4 copies of this thread, one for each wheel
@@ -162,15 +169,10 @@ static THD_FUNCTION(wheelHandler, args)
             // tell sensor module to start measure currents
             chEvtBroadcastFlags(&sen_MsgHandlerThd, info->adcMeasure);
             // do the action
-            res = releaseWheel(GPIOC_RightFront_Loosen, info->motorcurrent,
-                              info->evtReceiveFlag);
+            res = releaseWheel(info);
             if (res != MSG_OK)
             {
-#ifdef DEBUG_MODE
-                char buf[35];
-                chsnprintf(buf, 34, "error %s motor release", info->abbreviation);
-                DEBUG_OUT(buf);
-#endif
+                DEBUG_OUT_PRINTF("error %s motor release", info->abbreviation);
                 saveState(ErrorState, info->wheel);
                 // TODO setting a DTC and broadcast to CAN
             } else {
@@ -179,18 +181,26 @@ static THD_FUNCTION(wheelHandler, args)
             break;
         case Tightening:
             chEvtBroadcastFlags(&sen_MsgHandlerThd, (eventflags_t)StartFront);
-            res = tightenWheel(GPIOC_RightFront_Tighten, info->motorcurrent,
-                    EVENT_FLAG_ADC_FRONTAXLE);
+            res = tightenWheel(info);
             if (res != MSG_OK)
             {
-#ifdef DEBUG_MODE
-                char buf[35];
-                chsnprintf(buf, 34, "error %s motor tighten", info->abbreviation);
-                DEBUG_OUT(buf);
-#endif
+                DEBUG_OUT_PRINTF("error %s motor tighten", info->abbreviation);
                 saveState(ErrorState, info->wheel);
             } else {
                 saveState(Tightened, info->wheel);
+            }
+
+            break;
+        case SetServiceState:
+            chEvtBroadcastFlags(&sen_MsgHandlerThd, (eventflags_t)StartFront);
+            res = serviceWheel(GPIOC_RightFront_Tighten, info->motorcurrent,
+                               info->evtReceiveFlag);
+            if (res != MSG_OK)
+            {
+                DEBUG_OUT_PRINTF("error %s motor service", info->abbreviation);
+                saveState(ErrorState, info->wheel);
+            } else {
+                saveState(InServiceState, info->wheel);
             }
 
             break;
@@ -230,10 +240,11 @@ static void saveState(uint32_t state, ctrl_wheels wheel)
 }
 
 
-static msg_t releaseWheel(uint8_t pin, volatile const uint16_t *currentp, eventflags_t adcAvtFlag)
+//static msg_t releaseWheel(uint8_t pin, volatile const uint16_t *currentp, eventflags_t adcAvtFlag)
+static msg_t releaseWheel(wheelthreadinfo_t *info)
 {
     BRIDGE_ENABLE;
-    palSetPad(GPIOC, pin);
+    palSetPad(GPIOC, info->releasePin);
     msg_t success = MSG_OK;
 
     systime_t curOffTime = 0,
@@ -243,9 +254,8 @@ static msg_t releaseWheel(uint8_t pin, volatile const uint16_t *currentp, eventf
     bool isReleased = false;
 
     while (maxTime > chVTGetSystemTime()) {
-        chThdSleep(curOffTime); // nap a little (emulates PWM low)
         // measure current
-        eventflags_t flg = chEvtWaitOneTimeout(adcAvtFlag | EVENT_FLAG_BRIDGE_DIAG_PINS,
+        eventflags_t flg = chEvtWaitOneTimeout(info->evtReceiveFlag | EVENT_FLAG_BRIDGE_DIAG_PINS,
                                                US2ST(700));
         if (flg == 0) { // timeout check
             DEBUG_OUT("ADC error releasing");
@@ -266,18 +276,18 @@ static msg_t releaseWheel(uint8_t pin, volatile const uint16_t *currentp, eventf
             maxCurrent = settings[S_CurrentMaxRelease];
 
         // compare currents from the newly measured current (as we have been released from pad)
-        if (*currentp > maxCurrent) {
+        if (*info->motorcurrent > maxCurrent) {
             // overCurrent protection
-            palClearPad(GPIOC, pin);
+            palClearPad(GPIOC, info->releasePin);
             curOffTime = US2ST(500);
-        } else if (curOffTime != 0) {
+        } else if (curOffTime && curOffTime < chVTGetSystemTime()) {
             // restore current again from current protection
             curOffTime = 0;
-            palSetPad(GPIOC, pin);
+            palSetPad(GPIOC, info->releasePin);
         } else if (chVTGetSystemTime() > revupTime) {
             // we are past revup time
-            if (!isReleased && *currentp < settings[S_CurrentFreeThreshold]) {
-                // we are released nut we continue for while
+            if (!isReleased && *info->motorcurrent < settings[S_CurrentFreeThreshold]) {
+                // we are released but we continue for while
                 // by changing maxTime so we can take advantage of current limit functionality
                 isReleased = true;
                 maxTime = MS2ST(settings[S_TimeContinueAfterFreed]);
@@ -286,7 +296,7 @@ static msg_t releaseWheel(uint8_t pin, volatile const uint16_t *currentp, eventf
     }
 
     // we are finished
-    palClearPad(GPIOC, pin);
+    palClearPad(GPIOC, info->releasePin);
 
     return success;
 }
@@ -294,25 +304,24 @@ static msg_t releaseWheel(uint8_t pin, volatile const uint16_t *currentp, eventf
 
 // NOTE these to functions could possibly be merged,
 // but special case them for now until we now if it can be generalized enough
-static msg_t tightenWheel(uint8_t pin, volatile const uint16_t *currentp, eventflags_t adcAvtFlag)
+static msg_t tightenWheel(wheelthreadinfo_t *info)
 {
     BRIDGE_ENABLE;
-    palSetPad(GPIOC, pin);
+    palSetPad(GPIOC, info->tightenPin);
     msg_t success = MSG_OK;
 
     systime_t curOffTime = 0,
            maxTime = MS2ST(2000),
-           revupTime = MS2ST(settings[S_TimeRevupTighten]); // revup means higher currents is allowed
+           revupTime = MS2ST(settings[S_TimeRevupRelease]); // revup means higher currents is allowed
 
     bool isTightened = false;
 
     while (maxTime > chVTGetSystemTime()) {
-        chThdSleep(curOffTime); // nap a little (emulates PWM low)
         // measure current
-        eventflags_t flg = chEvtWaitOneTimeout(adcAvtFlag | EVENT_FLAG_BRIDGE_DIAG_PINS,
+        eventflags_t flg = chEvtWaitOneTimeout(info->evtReceiveFlag | EVENT_FLAG_BRIDGE_DIAG_PINS,
                                                US2ST(700));
         if (flg == 0) { // timeout check
-            DEBUG_OUT("ADC error tightening");
+            DEBUG_OUT("ADC error tighten");
             success = false;
             break;
         } else if (flg & EVENT_FLAG_BRIDGE_DIAG_PINS) {
@@ -325,24 +334,24 @@ static msg_t tightenWheel(uint8_t pin, volatile const uint16_t *currentp, eventf
 
         // at first the current is allowed to higher due to release force, (buildup torque)
         if (chVTGetSystemTime() < revupTime)
-            maxCurrent = settings[S_CurrentRevupMaxTighten];
+            maxCurrent = settings[S_CurrentRevupMaxRelease];
         else
-            maxCurrent = settings[S_CurrentMaxTighten];
+            maxCurrent = settings[S_CurrentMaxRelease];
 
         // compare currents from the newly measured current (as we have been released from )
-        if (*currentp > maxCurrent) {
+        if (*info->motorcurrent > maxCurrent) {
             // overCurrent protection
-            palClearPad(GPIOC, pin);
+            palClearPad(GPIOC, info->tightenPin);
             curOffTime = US2ST(500);
-        } else if (curOffTime != 0) {
+        } else if (curOffTime && curOffTime < chVTGetSystemTime()) {
             // restore current again from current protection
             curOffTime = 0;
-            palSetPad(GPIOC, pin);
+            palSetPad(GPIOC, info->tightenPin);
         } else if (chVTGetSystemTime() > revupTime) {
             // we are past revup time
-            if (!isTightened && *currentp > settings[S_CurrentTightenedThreshold])
+            if (!isTightened && *info->motorcurrent > settings[S_CurrentTightenedThreshold])
             {
-                // we are released nut we continue for while
+                // we are tightened but we continue for while
                 // by changing maxTime so we can take advantage of current limit functionality
                 isTightened = true;
                 maxTime = MS2ST(settings[S_TimeContinueAfterTightened]);
@@ -351,10 +360,12 @@ static msg_t tightenWheel(uint8_t pin, volatile const uint16_t *currentp, eventf
     }
 
     // we are finished
-    palClearPad(GPIOC, pin);
+    palClearPad(GPIOC, info->tightenPin);
 
     return success;
 }
+
+
 
 // ---------------------------------------------------------------------------------------
 // begin API functions
@@ -411,7 +422,9 @@ void ctrl_setStateAxle(ctrl_states state, ctrl_axles axle)
 // set on a single wheel
 void ctrl_setStateWheel(ctrl_states state, ctrl_wheels wheel)
 {
-    chDbgAssert(state != Releasing && state != Tightening, "Invalid state");
+    chDbgAssert(state != Releasing &&
+                state != Tightening &&
+                state != SetServiceState, "Invalid state");
     chDbgAssert(wheel > RightRear, "Invalid wheel");
 
     // wheel is already at this state

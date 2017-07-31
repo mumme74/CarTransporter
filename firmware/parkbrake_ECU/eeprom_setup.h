@@ -33,9 +33,10 @@
  * is changeable via CAN
  */
 typedef enum {
-    // time under which a higher current is allowed is milliseconds
     // ----------------------------------------------------------------
     // start Release settings
+
+    // time under which a higher current is allowed is milliseconds
     // see S_CurrentHigherReleaseCurrent
     S_TimeRevupRelease = 0,
 

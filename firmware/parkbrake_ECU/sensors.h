@@ -42,8 +42,8 @@
 // internal to ECU signals
 #define SEN_LEFT_FRONT_DIAG  palReadPad(GPIOB, GPIOB_LeftFront_DIAG) /* High when LF hardware current limit triggered */
 #define SEN_RIGHT_FRONT_DIAG palReadPad(GPIOB, GPIOB_RightFront_DIAG) /* High when RF hardware current limit triggered */
-#define SEN_LEFT_REAR_DIAG   palRearPad(GPIOA, GPIOA_LeftRear_DIAG) /* High when LR hardware current limit triggered */
-#define SEN_RIGHT_REAR_DIAG  palRearPad(GPIOA, GPIOA_RightRear_DIAG) /* High when RR hardware current limit triggered */
+#define SEN_LEFT_REAR_DIAG   palReadPad(GPIOA, GPIOA_LeftRear_DIAG) /* High when LR hardware current limit triggered */
+#define SEN_RIGHT_REAR_DIAG  palReadPad(GPIOA, GPIOA_RightRear_DIAG) /* High when RR hardware current limit triggered */
 #define SEN_TIGHTEN_CMD_SIG  palReadPad(GPIOF, GPIOF_TIGHTEN_CMD_SIG) /* Hardware says it's ok to tighten */
 #define SEN_RELEASE_CMD_SIG  palReadPad(GPIOF, GPIOF_RELEASE_MD_SIG) /* Hardware says it's ok to release */
 #define SEN_PWR_ENABLED_SIG  palReadPad(GPIOA, GPIOA_PWR_ENABLED_SIG) /*when power to bridge is let through (hardware limited for safety reasons) */

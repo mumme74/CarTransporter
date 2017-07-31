@@ -8,17 +8,16 @@
 #ifndef CAN_PROTOCOL_H_
 #define CAN_PROTOCOL_H_
 
-
 enum  {
   // eight possible Nodes in network
-  parkbrakeNode  = 0x00,
-  suspensionNode = 0x01,
-  displayNode    = 0x02,
-  node4          = 0x03,
-  node5          = 0x04,
-  node6          = 0x05,
-  node7          = 0x06,
-  node8          = 0x07,
+  C_parkbrakeNode  = 0x00,
+  C_suspensionNode = 0x01,
+  C_displayNode    = 0x02,
+  C_node4          = 0x03,
+  C_node5          = 0x04,
+  C_node6          = 0x05,
+  C_node7          = 0x06,
+  C_node8          = 0x07,
   //maxNodeId      = 0x07,
 } can_senderIds_e;
 
@@ -58,11 +57,14 @@ enum  {
     C_highestPrioCommand          = 1 << 3, // should not be used
 
     C_parkbrakeCmd_first          = 0x10 << 3,
+
     C_parkbrakeSetConfig          = 0x10 << 3, // b0=configvalue in enum, b2:b3 value as uint16_t little endian
                                                // response b0=1 if ok, b0=0 on fail
-    C_parkbrakeGetConfig          = 0x11 << 3, // b0=configValue in enum, b2:b3 value as uint16_t little endian
-    C_parkbrakeServiceSet         = 0x12 << 3, // responds with same PID and b0 = 1 if success other b0 = 0
-    C_parkbrakeServiceUnset       = 0x13 << 3,
+    C_parkbrakeGetConfig          = 0x11 << 3, // RTR, b0=configValue in enum, b2:b3 value as uint16_t little endian
+    C_parkbrakeServiceSet         = 0x12 << 3, // RTR, Look for update on PID to see if state changed, asyncronous
+    C_parkbrakeServiceUnset       = 0x13 << 3, // RTR, --" same as above "--
+    C_parkbrakeGetState           = 0x14 << 3, // RTR, get the state of each wheel,
+                                               // b0=LF,b1=RF,b2=LR,b3=RR, State = ctrl_states 0=tightened, 1Released, 8 error etc
     C_parkbrakeCmd_last           = 0x19 << 3,
 
     C_suspensionCmd_first         = 0x1A << 3,
@@ -138,16 +140,39 @@ enum {
     C_lowestPrioDiag            = 0x3F << 3, // should not be used
 } can_msgIdsDiag_e;
 
-
+/**
+ * PIDs documentation, databytes is documented within brackets
+ * like |   first PID   ||   next PID    |
+ *      [begin - end bit][begin - end bit]
+ *
+ * when no type is given its a unsigned int
+ * else i = signed int, like i[0:8] = int8_t
+ */
 
 enum {
     C_NoUpdateFrame             = 0,
     C_highestPrioUpdate         = 1 << 3, // should not be used
 
     C_parkbrakePID_FIRST        = 0x10 << 3,
-    C_parkbrakePID_1            = 0x10 << 3,
-    C_parkbrakePID_2            = 0x11 << 3,
-    C_parkbrakePID_3            = 0x12 << 3,
+
+    C_parkbrakePID_1            = 0x10 << 3, // state wheels brakes | revs / sec on wheels
+                                             // [0:8][0:8][0:8][0:8] [0:8][0:8][0:8][0:8]
+                                             //  LF   RF   LR   RR    LF    RF  LR   RR
+                                             //  each 500ms
+
+    C_parkbrakePID_2            = 0x11 << 3, // amps momentary      |  amps maximum this seq.
+                                             // [0:8][0:8][0:8][0:8] [0:8][0:8][0:8][0:8]
+                                             //  LF   RF   LR   RR    LF   RF   LR   RR
+                                             //  each 100ms during maneuvering
+
+    C_parkbrakePID_3            = 0x12 << 3, // bat volt*1000|ign volt*1000|chip temp
+                                             //   [0:16]         [0:16]    i[0:8] -> continue on next row
+
+                                             // IGN|B.LIGHTS|BTN|BTN_INV|LF_LIM|RF_LIM|LR_LIM|RR_LIM
+                                             // [8 -   7   -  6  -  5  -   4  -   3  -  2  -   1  ]
+                                             //  bits so the whole data is 5bytes + 8bit = 6bytes
+                                             //  each 500ms
+
     C_parkbrakePID_LAST         = 0x1F << 3,
 
     C_suspensionPID_FIRST       = 0x20 << 3,
@@ -161,5 +186,10 @@ enum {
 
     C_lowestPrioUpdate          = 0x3F << 3, // should not be used
 } can_msgIdsUpdate_e;
+
+
+// -----------------------------------------------------------------------------
+// CAN pids
+
 
 #endif /* CAN_PROTOCOL_H_ */

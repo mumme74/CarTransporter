@@ -410,7 +410,7 @@ static void backgroundAdcCallback(ADCDriver *adcp, adcsample_t *buffer, size_t n
 }
 
 
-// periodic heartbeat of background ADC converions, (re-)called by VT timer
+// periodic heartbeat of background ADC conversions, (re-)called by VT timer
 static void backgroundTimerCallback(void)
 {
     chSysLockFromISR();

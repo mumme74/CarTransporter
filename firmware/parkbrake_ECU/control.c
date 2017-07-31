@@ -12,6 +12,7 @@
 #include "eeprom_setup.h"
 #include "sensors.h"
 #include "debug.h"
+#include "can_protocol.h"
 
 
 /**
@@ -260,11 +261,11 @@ static msg_t releaseWheel(wheelthreadinfo_t *info)
                                                US2ST(700));
         if (flg == 0) { // timeout check
             DEBUG_OUT("ADC error releasing");
-            success = false;
+            success = C_dtc_ADC_error_LF_release | info->wheel; // LSB:4 is the wheel, LF =0
             break;
         } else if (flg & EVENT_FLAG_BRIDGE_DIAG_PINS) {
             DEBUG_OUT("Hardware current limit tripped");
-            success = false;
+            success = C_dtc_OverCurrent_LF_release | info->wheel; // LSB:4 is the wheel, LF =0
             break;
         }
 
@@ -324,16 +325,15 @@ static msg_t tightenWheel(wheelthreadinfo_t *info)
                                                US2ST(700));
         if (flg == 0) { // timeout check
             DEBUG_OUT("ADC error tighten");
-            success = false;
+            success = C_dtc_ADC_error_LF_tighten | info->wheel; // LSB:4 is the wheel, LF =0
             break;
         } else if (flg & EVENT_FLAG_BRIDGE_DIAG_PINS) {
             DEBUG_OUT("Hardware current limit tripped");
-            success = false;
+            success = C_dtc_OverCurrent_LF_tighten | info->wheel; // LSB:4 is the wheel, LF =0
             break;
         }
 
         uint16_t maxCurrent;
-
 
         // at first the current is allowed to higher due to release force, (buildup torque)
         if (chVTGetSystemTime() < revupTime)
@@ -410,11 +410,11 @@ static msg_t serviceWheel(wheelthreadinfo_t *info)
                                                US2ST(700));
         if (flg == 0) { // timeout check
             DEBUG_OUT("ADC error service");
-            success = false;
+            success = C_dtc_ADC_error_LF_service | info->wheel; // LSB:4 is the wheel, LF =0
             break;
         } else if (flg & EVENT_FLAG_BRIDGE_DIAG_PINS) {
             DEBUG_OUT("Hardware current limit tripped");
-            success = false;
+            success = C_dtc_OverCurrent_LF_service | info->wheel; // LSB:4 is the wheel, LF =0
             break;
         }
 

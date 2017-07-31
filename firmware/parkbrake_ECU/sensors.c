@@ -734,7 +734,10 @@ void sen_initSensors(void)
 // diagnose wheelsensor circuits
 int sen_diagWheelSensors(void)
 {
-    // TODO: Should add code that checks if we have speed or not
+    // don't check when we have speed
+    if (sen_vehicleSpeed())
+        return 0;
+
     int checkedCnt = 0;
     uint8_t bit;
 
@@ -793,7 +796,7 @@ uint8_t sen_wheelAverage(void)
     int i, cnt = 0;
     uint8_t *rps = (uint8_t*)&sen_wheelSpeeds.leftFront_rps;
     for (i = LeftFront; i <= RightRear; ++i) {
-        // only include that wheels that has less than 20% slip in relation to other wheels
+        // only include wheels that has less than 20% slip in relation to other wheels
         if (rps[i] >= check) {
             rev += rps[i];
             ++cnt;

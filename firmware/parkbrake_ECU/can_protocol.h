@@ -98,7 +98,7 @@ enum {
     C_NoErrorFrame              = 0,
     C_highestPrioError          = 1 << 3, // should not be used
 
-    C_parkbrakeDTC              = 0x06 << 3,
+    C_parkbrakeDTC              = 0x06 << 3,   // a new DTC has been set
     C_parkbrakeUserError        = 0x07 << 3,   // action wasn't allowed like when parkbrake during moving
 
     C_suspensionDTC             = 0x08 << 3,   // a errorcode has been set in suspension
@@ -186,6 +186,53 @@ enum {
 
     C_lowestPrioUpdate          = 0x3F << 3, // should not be used
 } can_msgIdsUpdate_e;
+
+
+// all trouble codes in this system
+// Read more at: https://www.obd-codes.com/trouble_codes/obd-ii-c-chassis-codes.php
+typedef enum {
+    // parkbrake node ----------------------------------------------------------------------
+    C_dtc_LF_wheelsensor = 0x0035, // Left front wheel sensor circuit malfunction
+    C_dtc_RF_wheelsensor = 0x0040, // Right front wheel sensor circuit malfunction
+    C_dtc_LR_wheelsensor = 0x0045, // Left rear wheel sensor circuit malfunction
+    C_dtc_RR_wheelsensor = 0x0050, // Right rear wheel sensor circuit malfunction
+
+    C_dtc_ADC_error_LF_release      = 0x1010, //
+    C_dtc_ADC_error_RF_release      = 0x1011,
+    C_dtc_ADC_error_LR_release      = 0x1012,
+    C_dtc_ADC_error_RR_release      = 0x1013,
+
+    C_dtc_OverCurrent_LF_release    = 0x1020,
+    C_dtc_OverCurrent_RF_release    = 0x1021,
+    C_dtc_OverCurrent_LR_release    = 0x1022,
+    C_dtc_OverCurrent_RR_release    = 0x1023,
+
+    C_dtc_ADC_error_LF_tighten      = 0x1030, //
+    C_dtc_ADC_error_RF_tighten      = 0x1031,
+    C_dtc_ADC_error_LR_tighten      = 0x1032,
+    C_dtc_ADC_error_RR_tighten      = 0x1033,
+
+    C_dtc_OverCurrent_LF_tighten    = 0x1040,
+    C_dtc_OverCurrent_RF_tighten    = 0x1041,
+    C_dtc_OverCurrent_LR_tighten    = 0x1042,
+    C_dtc_OverCurrent_RR_tighten    = 0x1043,
+
+    C_dtc_ADC_error_LF_service      = 0x1050, //
+    C_dtc_ADC_error_RF_service      = 0x1051,
+    C_dtc_ADC_error_LR_service      = 0x1052,
+    C_dtc_ADC_error_RR_service      = 0x1053,
+
+    C_dtc_OverCurrent_LF_service    = 0x1060,
+    C_dtc_OverCurrent_RF_service    = 0x1061,
+    C_dtc_OverCurrent_LR_service    = 0x1062,
+    C_dtc_OverCurrent_RR_service    = 0x1063,
+
+
+    // ------------------------------------------------------------------------------------
+    // suspension node
+
+
+} can_DTCs;
 
 
 // -----------------------------------------------------------------------------

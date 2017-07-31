@@ -78,31 +78,37 @@ typedef enum {
     // ---------------------------------------------------------------
     // user settings
     //S_AutoTighten = 10, Hardware error prevents it from working
+    S_AntilockParkbrake = 11,
 
+    // vehicle settings
     // how many pulses ABS sensor generates at one wheel revolution
-    S_PulsesPerRevolution = 11,
+    S_PulsesPerRevolution = 20,
 
     // rim diameter in inches (like on a tire 225 / 17 R 65) this would be 17
-    S_RimDiameter = 12,
+    S_RimDiameter = 21,
 
     // Tire width in mm (like on a tire 225 / 17 R 65) this would be 225
-    S_TireThread = 13,
+    S_TireThread = 22,
 
     // Tire Profile in percent (like on a tire 225 / 17 R 65) this would be 65
-    S_TireProfile = 14,
+    S_TireProfile = 23,
 
     // maximum 50 settings!
 
     // END marker
-    S_EOF
+    S_EOF = 50
 } settings_e;
 
+#define ee_changeSetting(idx,vlu) { \
+    uint16_t *s = (uint16_t*)&settings[idx]; \
+    *s = vlu;   \
+}
 
 
 extern EepromFileStream *stateFile;
 extern EepromFileStream *dtcFile;
 
-extern uint16_t settings[S_EOF];
+extern const uint16_t settings[S_EOF];
 
 extern event_source_t ee_settingsChanged;
 

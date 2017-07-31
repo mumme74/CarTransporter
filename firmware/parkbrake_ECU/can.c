@@ -11,6 +11,7 @@
 #include "can_protocol.h"
 #include "control.h"
 #include "debug.h"
+#include "eeprom_setup.h"
 
 
 
@@ -91,11 +92,47 @@ static void processRx(CANRxFrame *rxf)
         ctrl_states state;
         switch (sid) {
         case C_parkbrakeServiceSet:
-            state = ServiceState;
+            state = SetServiceState;
             break;
         case C_parkbrakeServiceUnset:
             state = Tightening;
             break;
+        case C_parkbrakeSetConfig: {
+            if (rxf->DLC != 3) {
+                DEBUG_OUT_PRINTF("malformed CAN config cmd: %x wrong DLC", rxf->SID & CAN_MSG_ID_MASK);
+                return;
+            }
+            uint8_t idx = rxf->data8[0];
+            if (idx >= S_EOF) {
+                DEBUG_OUT_PRINTF("malformed CAN config cmd: %d index out of range", idx);
+                return;
+            }
+            uint16_t vlu = rxf->data8[1] & (rxf->data8[2] << 8); // little endian
+            ee_changeSetting(idx, vlu);
+            ee_saveSetting(idx);
+        } return;
+        case C_parkbrakeGetConfig: {
+            if (rxf->DLC != 1) {
+                DEBUG_OUT_PRINTF("malformed CAN config cmd: %x wrong DLC", rxf->SID & CAN_MSG_ID_MASK);
+                return;
+            }
+            uint8_t idx = rxf->data8[0];
+            if (idx >= S_EOF) {
+                DEBUG_OUT_PRINTF("malformed CAN config cmd: %d index out of range", idx);
+                return;
+            }
+
+            //is valid, send response
+            CANTxFrame txf;
+            txf.SID = rxf->SID;
+            txf.DLC = 1;
+            txf.IDE = CAN_IDE_STD;
+            txf.data8[0] = idx;
+            txf.data8[1] = settings[idx] & 0x00FF; // little byte first
+            txf.data8[2] = settings[idx] & 0xFF00;
+            canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, MS2ST(10));
+
+        } return;
         default:
             DEBUG_OUT_PRINTF("Non allowed CAN cmd: %x", rxf->SID & CAN_MSG_ID_MASK);
             return;
@@ -113,6 +150,7 @@ static void processRx(CANRxFrame *rxf)
             txf.data8[0] = 0;
             canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, MS2ST(10));
         }
+    // end Command
     } // else should not be possible due protocol definition
 }
 // ----------------------------------------------------------------------------------------

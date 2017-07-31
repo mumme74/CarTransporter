@@ -74,7 +74,7 @@
 // begin global exported symbols
 
 // fill settings with sensible default
-uint16_t settings[S_EOF];
+const uint16_t settings[S_EOF];
 
 event_source_t ee_settingsChanged;
 
@@ -134,7 +134,7 @@ static SPIEepromFileStream settingsFileStream;
 static EepromFileStream *settingsFile = NULL;
 
 SPIEepromFileConfig dtcFileConfig = {
-   105, // start adress
+   105, // start address
    1029, // end address
    EEPROM_SIZE,
    EEPROM_PAGE_SIZE,
@@ -153,24 +153,30 @@ void initSettings(void)
     // a event for settings
     chEvtObjectInit(&ee_settingsChanged);
 
+    // unconst
+    uint16_t **s = (uint16_t**)&settings;
+
     // fill settings with sensible defaults
     // release
-    settings[S_TimeRevupRelease]           = 150; // ms
-    settings[S_TimeContinueAfterFreed]     = 300; // ms
-    settings[S_CurrentFreeThreshold]       = 5000; //mA
-    settings[S_CurrentRevupMaxRelease]     = 20000; // mA
-    settings[S_CurrentMaxRelease]          = 15000; // mA
+    *s[S_TimeRevupRelease]           = 150; // ms
+    *s[S_TimeContinueAfterFreed]     = 300; // ms
+    *s[S_CurrentFreeThreshold]       = 5000; //mA
+    *s[S_CurrentRevupMaxRelease]     = 20000; // mA
+    *s[S_CurrentMaxRelease]          = 15000; // mA
     // tighten
-    settings[S_TimeRevupTighten]           = 50; // ms
-    settings[S_TimeContinueAfterTightened] = 100; // ms
-    settings[S_CurrentTightenedThreshold]  = 15000; // mA
-    settings[S_CurrentMaxTighten]          = 18000; // mA
-    settings[S_CurrentRevupMaxTighten]     = 19000; // mA
+    *s[S_TimeRevupTighten]           = 50; // ms
+    *s[S_TimeContinueAfterTightened] = 100; // ms
+    *s[S_CurrentTightenedThreshold]  = 15000; // mA
+    *s[S_CurrentMaxTighten]          = 18000; // mA
+    *s[S_CurrentRevupMaxTighten]     = 19000; // mA
+
+    // user settings
+    *s[S_AntilockParkbrake]          = 1; // true
 
     // vehicle settings
-    settings[S_RimDiameter]                = 17; // in inches
-    settings[S_TireThread]                 = 225; // in mm
-    settings[S_TireProfile]                = 65; // in percent
+    *s[S_RimDiameter]                = 17; // in inches
+    *s[S_TireThread]                 = 225; // in mm
+    *s[S_TireProfile]                = 65; // in percent
 
     // user settings
 
@@ -184,7 +190,7 @@ void initSettings(void)
         if (fileStreamSeek(settingsFile, pos) == pos) {
             uint16_t vlu = EepromReadHalfword(settingsFile);
             if (vlu > 0)
-                settings[i] = vlu;
+                *s[i] = vlu;
         }
     }
 }

@@ -21,6 +21,7 @@
 #include "board.h"
 
 #include "sensors.h"
+#include "control.h"
 #include "eeprom_setup.h"
 #include <math.h> // for M_PI symbol
 
@@ -776,6 +777,30 @@ int sen_diagWheelSensors(void)
     GPIOA->MODER = oldMode;
 
     return checkedCnt;
+}
+
+// get the average wheel revolution, discards wheel if it is 20% slower
+uint8_t sen_wheelAverage(void)
+{
+
+    // get the fastest spinning wheel, and take out 20%
+    uint32_t rev, check;
+    rev = MAX(sen_wheelSpeeds.rightFront_rps, sen_wheelSpeeds.leftRear_rps);
+    rev = MAX(rev, sen_wheelSpeeds.leftFront_rps);
+    check = (uint32_t)(MAX(rev, sen_wheelSpeeds.rightRear_rps) * 0.8); // 20% slip is allowed
+
+    rev = 0;
+    int i, cnt = 0;
+    uint8_t *rps = (uint8_t*)&sen_wheelSpeeds.leftFront_rps;
+    for (i = LeftFront; i <= RightRear; ++i) {
+        // only include that wheels that has less than 20% slip in relation to other wheels
+        if (rps[i] >= check) {
+            rev += rps[i];
+            ++cnt;
+        }
+    }
+
+    return cnt > 0 ? rev / cnt : 0;
 }
 
 // calculates vehicle speed, returns in kph

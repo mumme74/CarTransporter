@@ -63,6 +63,7 @@ typedef struct {
     uint8_t evtReceiveFlag;
     sen_measure adcMeasure;
     volatile const uint16_t *motorcurrent;
+    volatile const uint8_t *wheelSpeed;
     const char *abbreviation;
     ctrl_wheels wheel;
     uint8_t releasePin;
@@ -74,6 +75,7 @@ typedef struct {
 static void saveState(uint32_t state, ctrl_wheels wheel);
 static msg_t releaseWheel(wheelthreadinfo_t *info);
 static msg_t tightenWheel(wheelthreadinfo_t *info);
+static msg_t serviceWheel(wheelthreadinfo_t *info);
 
 static mailbox_t mbLF, mbLR, mbRF, mbRR;
 
@@ -124,23 +126,23 @@ void saveStateTimerCallback(void *arg)
 // some thread local info
 wheelthreadinfo_t lfInfo = {
     "leftFrontThread", &mbLF, (msg_t**)&mbLF_queue, EVENT_FLAG_ADC_FRONTAXLE,
-    StartFront, &sen_motorCurrents.leftFront, "LF", LeftFront,
-    GPIOC_LeftFront_Loosen, GPIOC_LeftFront_Tighten
+    StartFront, &sen_motorCurrents.leftFront, &sen_wheelSpeeds.leftFront_rps,
+    "LF", LeftFront, GPIOC_LeftFront_Loosen, GPIOC_LeftFront_Tighten
 };
 wheelthreadinfo_t rfInfo = {
     "rightFrontThread", &mbRF, (msg_t**)&mbRF_queue, EVENT_FLAG_ADC_FRONTAXLE,
-    StartFront, &sen_motorCurrents.rightFront, "RF", RightFront,
-    GPIOC_RightFront_Loosen, GPIOC_RightFront_Tighten
+    StartFront, &sen_motorCurrents.rightFront, &sen_wheelSpeeds.rightFront_rps,
+    "RF", RightFront, GPIOC_RightFront_Loosen, GPIOC_RightFront_Tighten
 };
 wheelthreadinfo_t lrInfo = {
     "leftRearThread", &mbLR, (msg_t**)&mbLR_queue, EVENT_FLAG_ADC_REARAXLE,
-    StartRear, &sen_motorCurrents.leftRear, "LR", LeftRear,
-    GPIOC_LeftRear_Loosen, GPIOC_LeftRear_Tighten
+    StartRear, &sen_motorCurrents.leftRear, &sen_wheelSpeeds.leftRear_rps,
+    "LR", LeftRear, GPIOC_LeftRear_Loosen, GPIOC_LeftRear_Tighten
 };
 wheelthreadinfo_t rrInfo = {
     "rightRearThread", &mbRR, (msg_t**)&mbRR_queue, EVENT_FLAG_ADC_REARAXLE,
-    StartRear, &sen_motorCurrents.rightRear, "RR", RightRear,
-    GPIOC_RightRear_Loosen, GPIOC_RightRear_Tighten
+    StartRear, &sen_motorCurrents.rightRear, &sen_wheelSpeeds.rightRear_rps,
+    "RR", RightRear, GPIOC_RightRear_Loosen, GPIOC_RightRear_Tighten
 };
 
 // we create 4 copies of this thread, one for each wheel
@@ -193,8 +195,7 @@ static THD_FUNCTION(wheelHandler, args)
             break;
         case SetServiceState:
             chEvtBroadcastFlags(&sen_MsgHandlerThd, (eventflags_t)StartFront);
-            res = serviceWheel(GPIOC_RightFront_Tighten, info->motorcurrent,
-                               info->evtReceiveFlag);
+            res = serviceWheel(info);
             if (res != MSG_OK)
             {
                 DEBUG_OUT_PRINTF("error %s motor service", info->abbreviation);
@@ -315,6 +316,7 @@ static msg_t tightenWheel(wheelthreadinfo_t *info)
            revupTime = MS2ST(settings[S_TimeRevupRelease]); // revup means higher currents is allowed
 
     bool isTightened = false;
+    uint8_t avgSpeed = 0, lockSpeed = 0;
 
     while (maxTime > chVTGetSystemTime()) {
         // measure current
@@ -332,11 +334,34 @@ static msg_t tightenWheel(wheelthreadinfo_t *info)
 
         uint16_t maxCurrent;
 
+
         // at first the current is allowed to higher due to release force, (buildup torque)
         if (chVTGetSystemTime() < revupTime)
             maxCurrent = settings[S_CurrentRevupMaxRelease];
         else
             maxCurrent = settings[S_CurrentMaxRelease];
+
+        // Anti lock functionality
+        if (settings[S_AntilockParkbrake] != 0) {
+            avgSpeed = sen_wheelAverage();
+            if (lockSpeed  == 0 && avgSpeed > 1 &&
+                ((*info->wheelSpeed) * 0.8) < avgSpeed)
+            {
+                // wheel is slipping more than 20% event
+                lockSpeed = *info->wheelSpeed;
+                palClearPad(GPIOC, info->tightenPin);
+                palSetPad(GPIOC, info->releasePin);
+            }
+            if (lockSpeed > 0 && ((avgSpeed > (*info->wheelSpeed) * 0.9) || avgSpeed < 1))
+            {
+                // wheel is not slipping more than 10%,or vehicle is standing still
+                // restore tighten operation again
+                lockSpeed = 0;
+                palClearPad(GPIOC, info->releasePin);
+                palSetPad(GPIOC, info->tightenPin);
+            }
+        } // end antilock functionality
+
 
         // compare currents from the newly measured current (as we have been released from )
         if (*info->motorcurrent > maxCurrent) {
@@ -349,6 +374,7 @@ static msg_t tightenWheel(wheelthreadinfo_t *info)
             palSetPad(GPIOC, info->tightenPin);
         } else if (chVTGetSystemTime() > revupTime) {
             // we are past revup time
+
             if (!isTightened && *info->motorcurrent > settings[S_CurrentTightenedThreshold])
             {
                 // we are tightened but we continue for while
@@ -365,6 +391,71 @@ static msg_t tightenWheel(wheelthreadinfo_t *info)
     return success;
 }
 
+
+static msg_t serviceWheel(wheelthreadinfo_t *info)
+{
+    BRIDGE_ENABLE;
+    palSetPad(GPIOC, info->releasePin);
+    msg_t success = MSG_OK;
+
+    systime_t curOffTime = 0,
+              maxTime = MS2ST(5000),
+              revupTime = MS2ST(settings[S_TimeRevupRelease]); // start of release means higher currents is allowed
+
+    bool isReleased = false;
+
+    while (maxTime > chVTGetSystemTime()) {
+        // measure current
+        eventflags_t flg = chEvtWaitOneTimeout(info->evtReceiveFlag | EVENT_FLAG_BRIDGE_DIAG_PINS,
+                                               US2ST(700));
+        if (flg == 0) { // timeout check
+            DEBUG_OUT("ADC error service");
+            success = false;
+            break;
+        } else if (flg & EVENT_FLAG_BRIDGE_DIAG_PINS) {
+            DEBUG_OUT("Hardware current limit tripped");
+            success = false;
+            break;
+        }
+
+        uint16_t maxCurrent;
+
+        // at first the current is allowed to be higher due to release force, (buildup torque)
+        if (chVTGetSystemTime() < revupTime)
+            maxCurrent = settings[S_CurrentRevupMaxRelease];
+        else
+            maxCurrent = settings[S_CurrentMaxRelease];
+
+        // compare currents from the newly measured current (as we have been released from pad)
+        if (*info->motorcurrent > maxCurrent) {
+            // overCurrent protection
+            palClearPad(GPIOC, info->releasePin);
+            curOffTime = US2ST(500);
+        } else if (curOffTime && curOffTime < chVTGetSystemTime()) {
+            // restore current again from current protection
+            curOffTime = 0;
+            palSetPad(GPIOC, info->releasePin);
+        } else if (chVTGetSystemTime() > revupTime) {
+            // we are past revup time
+            if (!isReleased && *info->motorcurrent < settings[S_CurrentFreeThreshold]) {
+                // we are released but we continue until current raises again
+                // by changing maxTime so we can take advantage of current limit functionality
+                isReleased = true;
+            } else if (isReleased &&
+                    *info->motorcurrent > settings[S_CurrentFreeThreshold] +2000)
+            {
+                // break when we are release and current rise again 2amps above released threshold
+                break;
+            }
+
+        }
+    }
+
+    // we are finished
+    palClearPad(GPIOC, info->releasePin);
+
+    return success;
+}
 
 
 // ---------------------------------------------------------------------------------------

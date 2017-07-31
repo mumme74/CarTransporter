@@ -113,6 +113,7 @@ typedef struct {
             rightFront_rps,
             leftRear_rps,
             rightRear_rps;
+
 } sen_wheelspeeds_t;
 
 
@@ -131,7 +132,10 @@ void sen_initSensors(void);
 // diagnose wheelsensor circuits
 int sen_diagWheelSensors(void);
 
-// calculates vehicle speed, returns in kph
+// gets the avarage rps of wheels with less than 20% slip
+uint8_t sen_wheelAverage(void);
+
+// calculates vehicle speed from fastest spinning wheel, returns in kph
 uint8_t sen_vehicleSpeed(void);
 
 

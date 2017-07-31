@@ -58,8 +58,9 @@ enum  {
     C_highestPrioCommand          = 1 << 3, // should not be used
 
     C_parkbrakeCmd_first          = 0x10 << 3,
-    C_parkbrakeSet                = 0x10 << 3, //0x0028,
-    C_parkbrakeRelease            = 0x11 << 3,
+    C_parkbrakeSetConfig          = 0x10 << 3, // b0=configvalue in enum, b2:b3 value as uint16_t little endian
+                                               // response b0=1 if ok, b0=0 on fail
+    C_parkbrakeGetConfig          = 0x11 << 3, // b0=configValue in enum, b2:b3 value as uint16_t little endian
     C_parkbrakeServiceSet         = 0x12 << 3, // responds with same PID and b0 = 1 if success other b0 = 0
     C_parkbrakeServiceUnset       = 0x13 << 3,
     C_parkbrakeCmd_last           = 0x19 << 3,

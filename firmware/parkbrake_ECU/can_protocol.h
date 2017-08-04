@@ -8,7 +8,7 @@
 #ifndef CAN_PROTOCOL_H_
 #define CAN_PROTOCOL_H_
 
-enum  {
+typedef enum  {
   // eight possible Nodes in network
   C_parkbrakeNode  = 0x00,
   C_suspensionNode = 0x01,
@@ -52,7 +52,7 @@ enum  {
  *          0bxx000000xxx
  */
 #define CAN_FRAME_COUNT  64U;
-enum  {
+typedef enum  {
     C_NoCommandFrame              = 0,
     C_highestPrioCommand          = 1 << 3, // should not be used
 
@@ -94,7 +94,7 @@ enum  {
 // if (msgId & 0x0F > 5)
 //    msgId -= 6
 // action = msgId & 0x0F
-enum {
+typedef enum {
     C_NoErrorFrame              = 0,
     C_highestPrioError          = 1 << 3, // should not be used
 
@@ -112,7 +112,7 @@ enum {
     C_lowestPrioError           = 0x3F << 3 // should not be used
 } can_msgIdsError_e;
 
-enum {
+typedef enum {
     C_NoDiagFrame               = 0,
     C_highestPrioDiag           = 1 << 3, // should not be used
 
@@ -149,7 +149,7 @@ enum {
  * else i = signed int, like i[0:8] = int8_t
  */
 
-enum {
+typedef enum {
     C_NoUpdateFrame             = 0,
     C_highestPrioUpdate         = 1 << 3, // should not be used
 

@@ -13,6 +13,7 @@
 #include "sensors.h"
 #include "debug.h"
 #include "can_protocol.h"
+#include "diag.h"
 
 
 /**
@@ -177,7 +178,8 @@ static THD_FUNCTION(wheelHandler, args)
             {
                 DEBUG_OUT_PRINTF("error %s motor release", info->abbreviation);
                 saveState(ErrorState, info->wheel);
-                // TODO setting a DTC and broadcast to CAN
+                // setting a DTC and broadcast to CAN
+                chMBPost(&dtc_MB, res, TIME_IMMEDIATE);
             } else {
                 saveState(Released, info->wheel);
             }
@@ -189,6 +191,8 @@ static THD_FUNCTION(wheelHandler, args)
             {
                 DEBUG_OUT_PRINTF("error %s motor tighten", info->abbreviation);
                 saveState(ErrorState, info->wheel);
+                // setting a DTC and broadcast to CAN
+                chMBPost(&dtc_MB, res, TIME_IMMEDIATE);
             } else {
                 saveState(Tightened, info->wheel);
             }
@@ -201,6 +205,8 @@ static THD_FUNCTION(wheelHandler, args)
             {
                 DEBUG_OUT_PRINTF("error %s motor service", info->abbreviation);
                 saveState(ErrorState, info->wheel);
+                // setting a DTC and broadcast to CAN
+                chMBPost(&dtc_MB, res, TIME_IMMEDIATE);
             } else {
                 saveState(InServiceState, info->wheel);
             }

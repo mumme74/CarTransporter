@@ -24,8 +24,10 @@
 #include "control.h"
 #include "eeprom_setup.h"
 #include <math.h> // for M_PI symbol
-
+#include "diag.h"
 #include "debug.h"
+#include "can_protocol.h"
+
 
 // --------- start definitions ------------------------
 // NOTE ! changing these values must be accompanied by changing
@@ -768,7 +770,22 @@ int sen_diagWheelSensors(void)
             chsnprintf(buf, 29, "open circuit at %s sensor", name);
             DEBUG_OUT(buf);
 #endif
-            // TODO code for setting DTC open circuit here
+            // code for setting DTC open circuit here
+            switch (bit) {
+            case GPIOA_LF_speed_in:
+                chMBPost(&dtc_MB, (msg_t)C_dtc_LF_wheelsensor, TIME_IMMEDIATE);
+                break;
+            case GPIOA_RF_speed_in:
+                chMBPost(&dtc_MB, (msg_t)C_dtc_RF_wheelsensor, TIME_IMMEDIATE);
+                break;
+            case GPIOA_LR_speed_in:
+                chMBPost(&dtc_MB, (msg_t)C_dtc_LR_wheelsensor, TIME_IMMEDIATE);
+                break;
+            case GPIOA_RR_speed_in:
+                chMBPost(&dtc_MB, (msg_t)C_dtc_RR_wheelsensor, TIME_IMMEDIATE);
+                break;
+            default: break;
+            }
         } else {
             ++checkedCnt; // sensor ok
         }

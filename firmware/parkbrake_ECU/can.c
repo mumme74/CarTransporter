@@ -13,6 +13,7 @@
 #include "debug.h"
 #include "eeprom_setup.h"
 #include "sensors.h"
+#include "diag.h"
 
 // -----------------------------------------------------------------------------------------
 // begin private variables and configurations for this module
@@ -67,7 +68,6 @@ static CANConfig canCfg = {
 // begin function prototypes
 static bool isRemoteFrame(CANRxFrame *rxf);
 static void processRx(CANRxFrame *rxf);
-static void initTxFrame(CANTxFrame *txf, uint16_t msgType, uint16_t msgId);
 static void broadcastOnCan(void);
 static void sendCurrents(void);
 
@@ -78,13 +78,58 @@ static void processRx(CANRxFrame *rxf)
     uint16_t sid; // save stackspace
 
     sid = rxf->SID & CAN_MSG_TYPE_MASK;
-    if (sid == CAN_MSG_TYPE_ERROR) {
-        // not interested... TODO filter out
+    if (sid == CAN_MSG_TYPE_EXCEPTION) {
+        // not interested in incoming exceptions... TODO filter out
     } else if (sid == CAN_MSG_TYPE_UPDATE) {
         // not sure if we're really interested in anything here
         // our own updates send by a dedicated thread
     } else if (sid == CAN_MSG_TYPE_DIAG) {
         // DTCs data list etc
+        sid = rxf->SID & CAN_MSG_ID_MASK;
+        if (sid < C_parkbrakeDiag_FIRST || sid > C_parkbrakeDiag_LAST)
+            return; // not meant for this node
+
+        switch (sid) {
+        case C_parkbrakeDiagDTCLength:
+            if (!isRemoteFrame(rxf))
+                return;
+            chMBPost(&diag_CanMB, (C_parkbrakeDiagDTCLength << 16), TIME_IMMEDIATE);
+            break;
+        case C_parkbrakeDiagDTC: // fallthrough
+        case C_parkbrakeDiagDTCFreezeFrame: {
+            if (rxf->DLC != 1) {
+                DEBUG_OUT_PRINTF("malformed CAN diag: %x wrong DLC", rxf->SID);
+                return;
+            }
+            uint8_t idx = rxf->data8[0];
+            if (idx >= dtc_length()) {
+                DEBUG_OUT_PRINTF("malformed CAN diag: %x wrong DTC idx", idx);
+                return;
+            }
+            chMBPost(&diag_CanMB, (sid << 16) & idx, TIME_IMMEDIATE);
+        }    return;
+
+        case C_parkbrakeDiagClearDTCs: {
+            if (rxf->DLC != 1) {
+                DEBUG_OUT_PRINTF("malformed CAN diag erase dtc: %x wrong DLC", rxf->SID);
+                return;
+            }
+            uint8_t idx = rxf->data8[0];
+            if (idx != dtc_length()) {
+                DEBUG_OUT_PRINTF("malformed CAN diag erase dtc: %x wrong DTC len", idx);
+                return;
+            }
+            chMBPost(&diag_CanMB, (sid << 16) & idx, TIME_IMMEDIATE);
+        } return;
+        case C_parkbrakeDiagActuatorTest:
+            if (rxf->DLC != 1) {
+                DEBUG_OUT_PRINTF("malformed CAN diag erase dtc: %x wrong DLC", rxf->SID);
+                return;
+            }
+            uint8_t data = rxf->data8[0];
+            chMBPost(&diag_CanMB, (sid << 16) & data, TIME_IMMEDIATE);
+            return;
+        }
     } else if (sid == CAN_MSG_TYPE_COMMAND) {
         // set in service and so forth
         sid = rxf->SID & CAN_MSG_ID_MASK;
@@ -92,7 +137,7 @@ static void processRx(CANRxFrame *rxf)
             return; // not meant for this node
 
         switch (sid) {
-        case C_parkbrakeSetConfig: {
+        case C_parkbrakeCmdSetConfig: {
             if (rxf->DLC != 3) {
                 DEBUG_OUT_PRINTF("malformed CAN config cmd: %x wrong DLC", rxf->SID);
                 return;
@@ -106,7 +151,7 @@ static void processRx(CANRxFrame *rxf)
             ee_changeSetting(idx, vlu);
             ee_saveSetting(idx);
         } return;
-        case C_parkbrakeGetConfig: {
+        case C_parkbrakeCmdGetConfig: {
             if (rxf->DLC != 1) {
                 DEBUG_OUT_PRINTF("malformed CAN config cmd: %x wrong DLC", rxf->SID);
                 return;
@@ -119,7 +164,7 @@ static void processRx(CANRxFrame *rxf)
 
             //is valid, send response
             CANTxFrame txf;
-            initTxFrame(&txf, CAN_MSG_TYPE_COMMAND, sid);
+            can_initTxFrame(&txf, CAN_MSG_TYPE_COMMAND, sid);
             txf.DLC = 3;
             txf.data8[0] = idx;
             txf.data8[1] = settings[idx] & 0x00FF; // little byte first
@@ -127,11 +172,11 @@ static void processRx(CANRxFrame *rxf)
             canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, MS2ST(10));
 
         } return;
-        case C_parkbrakeGetState: {
+        case C_parkbrakeCmdGetState: {
             if (!isRemoteFrame(rxf))
                 return;
             CANTxFrame txf;
-            initTxFrame(&txf, CAN_MSG_TYPE_COMMAND, sid);
+            can_initTxFrame(&txf, CAN_MSG_TYPE_COMMAND, sid);
             txf.DLC = 4;
             txf.data8[0] = ctrl_getState(LeftFront);
             txf.data8[1] = ctrl_getState(RightFront);
@@ -139,12 +184,12 @@ static void processRx(CANRxFrame *rxf)
             txf.data8[3] = ctrl_getState(RightRear);
             canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, MS2ST(10));
         }   return;
-        case C_parkbrakeServiceSet:
+        case C_parkbrakeCmdServiceSet:
             if (!isRemoteFrame(rxf))
                 return;
             ctrl_setStateAll(SetServiceState);
             return;
-        case C_parkbrakeServiceUnset:
+        case C_parkbrakeCmdServiceUnset:
             if (!isRemoteFrame(rxf))
                 return;
             // do the state change
@@ -170,11 +215,6 @@ static bool isRemoteFrame(CANRxFrame *rxf)
     return true;
 }
 
-static void initTxFrame(CANTxFrame *txf, uint16_t msgType, uint16_t msgId)
-{
-    txf->SID = msgType | msgId | C_parkbrakeNode;
-    txf->IDE = CAN_IDE_STD;
-}
 
 // send update pids of volts wheel brakes status etc
 // C_parkbrakePID_1 and C_parkbrakePID_3
@@ -185,40 +225,23 @@ static void broadcastOnCan(void)
 
     // build data for PID_1
     CANTxFrame txf;
-    txf.data8[0] = ctrl_getState(LeftFront);
-    txf.data8[1] = ctrl_getState(RightFront);
-    txf.data8[2] = ctrl_getState(LeftRear);
-    txf.data8[3] = ctrl_getState(RightRear);
-    txf.data8[4] = sen_wheelSpeeds.leftFront_rps;
-    txf.data8[5] = sen_wheelSpeeds.rightFront_rps;
-    txf.data8[6] = sen_wheelSpeeds.leftRear_rps;
-    txf.data8[7] = sen_wheelSpeeds.rightRear_rps;
+    can_buildPid1Data(txf.data8);
+
     if (txf.data64[0] != oldPid_1) {
         // something changed, broadcast
         oldPid_1 = txf.data64[0];
-        initTxFrame(&txf, CAN_MSG_TYPE_UPDATE, C_parkbrakePID_1);
+        can_initTxFrame(&txf, CAN_MSG_TYPE_UPDATE, C_parkbrakeUpdPID_1);
         txf.DLC = 8;
         canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, TIME_IMMEDIATE);
     }
 
     // build data for PID_3
-    txf.data8[0] = (sen_voltages.batVolt & 0x00FF); // little endian
-    txf.data8[1] = (sen_voltages.batVolt & 0xFF00) >> 8;
-
-    txf.data8[2] = (sen_voltages.ignVolt & 0x00FF); // little endian
-    txf.data8[3] = (sen_voltages.ignVolt & 0xFF00) >> 8;
-
-    txf.data8[4] = sen_chipTemperature; // as signed int
-
-    txf.data8[5] = (SEN_IGN_ON_SIG << 7)      | (SEN_LIGHTS_ON_SIG << 6) |
-                   (SEN_BUTTON_SIG << 5)      | (SEN_BUTTON_INV_SIG << 4) |
-                   (SEN_LEFT_FRONT_DIAG << 3) | (SEN_RIGHT_FRONT_DIAG << 2) |
-                   (SEN_LEFT_REAR_DIAG << 1)  | (SEN_RIGHT_REAR_DIAG << 0);
+    can_buildPid3Data(txf.data8);
 
     if (txf.data64[0] != oldPid_3) {
         // something changed, broadcast
         oldPid_3 = txf.data64[0];
-        initTxFrame(&txf, CAN_MSG_TYPE_UPDATE, C_parkbrakePID_3);
+        can_initTxFrame(&txf, CAN_MSG_TYPE_UPDATE, C_parkbrakeUpdPID_3);
         txf.DLC = 6;
         canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, TIME_IMMEDIATE);
     }
@@ -227,17 +250,9 @@ static void broadcastOnCan(void)
 static void sendCurrents(void)
 {
     CANTxFrame txf;
-    initTxFrame(&txf, CAN_MSG_TYPE_UPDATE, C_parkbrakePID_2);
+    can_initTxFrame(&txf, CAN_MSG_TYPE_UPDATE, C_parkbrakeUpdPID_2);
 
-    txf.data8[0] = sen_motorCurrents.leftFront / 1000; // mA -> A
-    txf.data8[1] = sen_motorCurrents.rightFront / 1000; // mA -> A
-    txf.data8[2] = sen_motorCurrents.leftRear / 1000; // mA -> A
-    txf.data8[3] = sen_motorCurrents.rightRear / 1000; // mA -> A
-
-    txf.data8[4] = sen_motorCurrents.maxLeftFront / 1000; // mA -> A
-    txf.data8[5] = sen_motorCurrents.maxRightFront / 1000; // mA -> A
-    txf.data8[6] = sen_motorCurrents.maxLeftRear / 1000; // mA -> A
-    txf.data8[7] = sen_motorCurrents.maxRightRear / 1000; // mA -> A
+    can_buildPid2Data(txf.data8);
 
     txf.DLC = 8;
     canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, TIME_IMMEDIATE);
@@ -307,3 +322,55 @@ void can_init(void)
     chThdStart(canPIDPeriodicSendp);
 }
 
+// requires a uint8_t[8] buffer
+void can_buildPid1Data(uint8_t data8[])
+{
+
+    data8[0] = ctrl_getState(LeftFront);
+    data8[1] = ctrl_getState(RightFront);
+    data8[2] = ctrl_getState(LeftRear);
+    data8[3] = ctrl_getState(RightRear);
+    data8[4] = sen_wheelSpeeds.leftFront_rps;
+    data8[5] = sen_wheelSpeeds.rightFront_rps;
+    data8[6] = sen_wheelSpeeds.leftRear_rps;
+    data8[7] = sen_wheelSpeeds.rightRear_rps;
+}
+
+// requires a uint8_t[8] buffer
+void can_buildPid2Data(uint8_t data8[])
+{
+
+    data8[0] = sen_motorCurrents.leftFront / 1000; // mA -> A
+    data8[1] = sen_motorCurrents.rightFront / 1000; // mA -> A
+    data8[2] = sen_motorCurrents.leftRear / 1000; // mA -> A
+    data8[3] = sen_motorCurrents.rightRear / 1000; // mA -> A
+
+    data8[4] = sen_motorCurrents.maxLeftFront / 1000; // mA -> A
+    data8[5] = sen_motorCurrents.maxRightFront / 1000; // mA -> A
+    data8[6] = sen_motorCurrents.maxLeftRear / 1000; // mA -> A
+    data8[7] = sen_motorCurrents.maxRightRear / 1000; // mA -> A
+}
+
+// requires a uint8_t[5] buffer
+void can_buildPid3Data(uint8_t data8[])
+{
+
+    data8[0] = (sen_voltages.batVolt & 0x00FF); // little endian
+    data8[1] = (sen_voltages.batVolt & 0xFF00) >> 8;
+
+    data8[2] = (sen_voltages.ignVolt & 0x00FF); // little endian
+    data8[3] = (sen_voltages.ignVolt & 0xFF00) >> 8;
+
+    data8[4] = sen_chipTemperature; // as signed int
+
+    data8[5] = (SEN_IGN_ON_SIG << 7)      | (SEN_LIGHTS_ON_SIG << 6) |
+                (SEN_BUTTON_SIG << 5)      | (SEN_BUTTON_INV_SIG << 4) |
+                (SEN_LEFT_FRONT_DIAG << 3) | (SEN_RIGHT_FRONT_DIAG << 2) |
+                (SEN_LEFT_REAR_DIAG << 1)  | (SEN_RIGHT_REAR_DIAG << 0);
+}
+
+void can_initTxFrame(CANTxFrame *txf, uint16_t msgType, uint16_t msgId)
+{
+    txf->SID = msgType | msgId | C_parkbrakeNode;
+    txf->IDE = CAN_IDE_STD;
+}

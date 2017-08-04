@@ -105,7 +105,7 @@ static const SPIConfig spiConfig = {
        // so better safe than sorry, we divide by 32 = 1MHz (BR[2:0]=100)
 
     // CR2 register
-    // we might have to set 8bit rx interupt trigger, 16bit is default.. FRXTH
+    // we might have to set 8bit rx interrupt trigger, 16bit is default.. FRXTH
     SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0 // signifies 8bit transfers
 };
 
@@ -122,8 +122,8 @@ static SPIEepromFileStream stateFileStream;
 EepromFileStream *stateFile = NULL;
 
 SPIEepromFileConfig settingsConfig = {
-    4, // start adress
-    104, // end adress gives us maximum of 50 settings
+    4, // start address
+    104, // end address gives us maximum of 50 settings
     EEPROM_SIZE,
     EEPROM_PAGE_SIZE,
     MS2ST(EEPROM_WRITE_TIME_MS),
@@ -135,7 +135,7 @@ static EepromFileStream *settingsFile = NULL;
 
 SPIEepromFileConfig dtcFileConfig = {
    105, // start address
-   1029, // end address
+   1023, // end address
    EEPROM_SIZE,
    EEPROM_PAGE_SIZE,
    MS2ST(EEPROM_WRITE_TIME_MS),

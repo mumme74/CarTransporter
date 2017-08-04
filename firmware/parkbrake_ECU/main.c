@@ -26,6 +26,7 @@
 #include "control.h"
 #include "button_logic.h"
 #include "can.h"
+#include "diag.h"
 
 
 /*
@@ -49,10 +50,11 @@ int main(void) {
 #endif
   // eeprom should be first as other modules depend on its settings
   ee_initEeprom();
-  sen_initSensors();
-  ctrl_init();
-  btn_initButtonLogic();
   can_init();
+  diag_init();
+  ctrl_init();
+  sen_initSensors();
+  btn_initButtonLogic();
 
 
   while (TRUE) {

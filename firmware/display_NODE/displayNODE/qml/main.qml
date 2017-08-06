@@ -1,41 +1,98 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.0
 import QtQuick.Layouts 1.3
+import "helpers.js" as Helpers
 
 
 ApplicationWindow {
+    id: root
     visible: true
     width: 800
     height: 480
     title: qsTr("DisplayNode")
 
-    SwipeView {
-        id: swipeView
+    Component.onCompleted: Helpers.init(root, mainView, forwardBtn);
+
+    StackView {
+        id: mainView
         anchors.fill: parent
-        currentIndex: tabBar.currentIndex
+        initialItem: mainPage
+        onCurrentItemChanged: Helpers.checkForward();
+    }
+    MainPage {
+        id: mainPage
+    }
 
-        MainPage {
-        }
+    DiagDTC {
+        id: diagnosticPage
+        visible: false
+    }
 
-        Page {
-            Label {
-                text: qsTr("Second page")
-                anchors.centerIn: parent
-            }
+    Page {
+        id: settingsPage
+        visible: false
+        Label {
+            text: qsTr("Third page")
+            anchors.centerIn: parent
         }
     }
 
-    footer: TabBar {
-        id: tabBar
-        currentIndex: swipeView.currentIndex
-        TabButton {
-            text: qsTr("Main")
+
+    footer: Item {
+        //anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: 50
+        IconButton {
+            id: homeBtn
+            source: "qrc:/images/home.svg"
+            visible: mainView.depth > 1
+            anchors.left: parent.left
+            onClicked: {
+                while (mainView.depth > 1)
+                    mainView.pop();
+            }
         }
-        TabButton {
-            text: qsTr("Diagnosis")
+
+        IconButton {
+            id: backBtn
+            source: "qrc:/images/return_arrow.svg"
+            btnText: qsTr("Back")
+            onClicked: Helpers.back();
+            visible: mainView.depth > 1
+            anchors.left: homeBtn.right
+            anchors.leftMargin: 5
         }
-        TabButton {
-            text: qsTr("Settings")
+        IconButton {
+            id: forwardBtn
+            source: "qrc:/images/forward_arrow.svg"
+            btnText: qsTr("Forward")
+            onClicked: Helpers.forward();
+            visible: mainView.depth > 1
+            anchors.left: backBtn.right
+            anchors.leftMargin: 5
+        }
+        IconButton {
+            id: diagnosticsBtn
+            source: "qrc:/images/diagnostic.svg"
+            btnText: qsTr("Diagnostics")
+            anchors.left: forwardBtn.right
+            anchors.leftMargin: 10
+            onClicked: {
+                mainView.pop(mainView.find(function(itm) { return itm === diagnosticPage; }));
+                mainView.push(diagnosticPage);
+            }
+        }
+
+        IconButton {
+            id: settingsBtn
+            source: "qrc:/images/settings.svg"
+            btnText: qsTr("Settings")
+            anchors.right: parent.right
+            onClicked: {
+                mainView.pop(mainView.find(function(itm){return itm === settingsPage; }));
+                mainView.push(settingsPage)
+            }
         }
     }
 }

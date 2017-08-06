@@ -3,7 +3,8 @@ QT += qml quick serialbus
 CONFIG += c++11
 
 SOURCES += main.cpp \
-    caninterface.cpp
+    caninterface.cpp \
+    canpids.cpp
 
 RESOURCES += qml/qml.qrc \
              images/images.qrc
@@ -31,4 +32,6 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 HEADERS += \
-    caninterface.h
+    caninterface.h \
+    ../../parkbrake_ECU/can_protocol.h \
+    canpids.h

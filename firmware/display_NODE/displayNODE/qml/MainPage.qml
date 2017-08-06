@@ -3,8 +3,9 @@ import QtQuick.Controls 2.2
 import QtQuick.Controls.Styles 1.4
 import QtQuick.Dialogs 1.2
 import QtQuick.Layouts 1.3
+import "helpers.js" as Helpers
 
-Item {
+Page {
     id: mainPage
     Item {
         id: car
@@ -237,39 +238,61 @@ Item {
 
     } // end car
 
-
-
-    IconButton {
-        id: compressorBtn
-        source: "qrc:/images/gauge.svg"
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.rightMargin: 10
-        anchors.topMargin: 10
-    }
-
-    IconButton {
-        id: weightBtn
-        enabled: car.state == ""
-        source: "qrc:/images/weight.svg"
-        anchors.right: compressorBtn.left
-        anchors.top: parent.top
-        anchors.rightMargin: 10
-        anchors.topMargin: 10
-        onClicked: {
-            weightDlg.visible ? weightDlg.close() : weightDlg.open()
+    onVisibleChanged: {
+        if (visible) {
+            Helpers.hideDiagHeader();
         }
     }
 
-    IconButton {
-        id: parkbrakeBtn
-        source: "qrc:/images/parkbrake.svg"
-        anchors.left: parent.left
+    Image {
+        id: logo
+        source: "qrc:/images/logo.svg"
+        opacity: 0.8
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: -40
+        fillMode: Image.PreserveAspectFit
+        //width: 150
+        height: 120
+    }
+
+    header: Item {
+        id: headerMain
         anchors.top: parent.top
-        anchors.rightMargin: 10
-        anchors.topMargin: 10
-        onClicked: {
-            parkbrakeDlg.visible ? parkbrakeDlg.close() : parkbrakeDlg.open()
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: 50
+        IconButton {
+            id: compressorBtn
+            source: "qrc:/images/gauge.svg"
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.rightMargin: 10
+            //anchors.topMargin: 10
+        }
+
+        IconButton {
+            id: weightBtn
+            enabled: car.state == ""
+            source: "qrc:/images/weight.svg"
+            anchors.right: compressorBtn.left
+            anchors.top: parent.top
+            anchors.rightMargin: 10
+            //anchors.topMargin: 10
+            onClicked: {
+                weightDlg.visible ? weightDlg.close() : weightDlg.open()
+            }
+        }
+
+        IconButton {
+            id: parkbrakeBtn
+            source: "qrc:/images/parkbrake.svg"
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.rightMargin: 10
+            //anchors.topMargin: 10
+            onClicked: {
+                parkbrakeDlg.visible ? parkbrakeDlg.close() : parkbrakeDlg.open()
+            }
         }
     }
 

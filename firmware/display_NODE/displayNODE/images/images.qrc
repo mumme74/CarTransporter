@@ -8,5 +8,11 @@
         <file>arrow_up.svg</file>
         <file>arrow_down.svg</file>
         <file>parkbrake.svg</file>
+        <file>return_arrow.svg</file>
+        <file>forward_arrow.svg</file>
+        <file>settings.svg</file>
+        <file>diagnostic.svg</file>
+        <file>home.svg</file>
+        <file>logo.svg</file>
     </qresource>
 </RCC>

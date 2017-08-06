@@ -2,16 +2,50 @@ import QtQuick 2.7
 import QtQuick.Controls 2.2
 import QtQuick.Controls.Styles 1.4
 
-Image {
+Button {
     id: iconBtn
     opacity: 0.5
-    property real restScale: 0.5
+    property real restScale: 0.6
+    property string source: ""
+    property string btnText: ""
     signal clicked
 
     transform: Scale { id: iconBtnTransform;
                         origin.x: 30; origin.y: 30;
                         property real scale: restScale
                         xScale: scale; yScale: scale; }
+    Image {
+        id: icon
+        anchors.left: parent.left
+        anchors.leftMargin: 5
+        anchors.top: parent.top
+        anchors.verticalCenter: parent.verticalCenter
+        source: parent.source
+        fillMode: Image.PreserveAspectFit
+        Component.onCompleted: {
+            parent.width = icon.width +20;
+            if (textMetrics.advanceWidth)
+                parent.width += textMetrics.advanceWidth + 20
+            parent.height = icon.height +10
+        }
+    }
+
+    Text {
+        id: text
+        text: btnText
+        color: "white"
+        font.pointSize: 20
+        anchors.left: icon.right
+        anchors.leftMargin: 5
+        anchors.verticalCenter: parent.verticalCenter
+    }
+
+    TextMetrics {
+        id: textMetrics
+        font.family: text.font.family
+        font.pointSize: 20
+        text: btnText
+    }
 
     MouseArea {
         anchors.fill: parent

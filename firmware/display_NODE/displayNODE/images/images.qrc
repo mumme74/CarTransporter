@@ -1,0 +1,12 @@
+<!DOCTYPE RCC><RCC version="1.0">
+    <qresource prefix="images/">
+        <file>car.svg</file>
+        <file>gauge.svg</file>
+        <file>weight.svg</file>
+        <file>wheel.svg</file>
+        <file>ground.svg</file>
+        <file>arrow_up.svg</file>
+        <file>arrow_down.svg</file>
+        <file>parkbrake.svg</file>
+    </qresource>
+</RCC>

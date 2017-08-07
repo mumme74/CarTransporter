@@ -1,4 +1,6 @@
 .pragma library
+.import QtQuick 2.2 as QtQuick2
+
 var _initObj = {
     globalApp: null,
     mainView: null,
@@ -17,7 +19,7 @@ function mainView() { return _initObj.mainView; }
 function globalApp() { return _initObj.globalApp; }
 
 function switchToDiagHeader(page) {
-    if (!page.visible)
+    if (!page || !page.visible)
         return;
     if (!globalApp().header || !globalApp().header.name !== "DiagTabs") {
         if (!_initObj.diagHeader) {
@@ -41,6 +43,9 @@ function hideDiagHeader() {
 
 function pushPage(strPageObj) {
     var comp = Qt.createComponent(strPageObj + ".qml");
+    if (comp.status == QtQuick2.Component.Error) {
+        console.log("Error loading component " + strPageObj + " :", comp.errorString());
+    }
     var page = comp.createObject(mainView());
     mainView().push(page);
 }

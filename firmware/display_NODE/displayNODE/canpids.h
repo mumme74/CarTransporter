@@ -3,8 +3,10 @@
 
 
 #include <QObject>
-#include <QHash>
+#include <QMultiMap>
 #include <QVariant>
+#include <QAbstractTableModel>
+#include <QQmlListProperty>
 #include "caninterface.h"
 
 
@@ -14,76 +16,88 @@
 class CanPid : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(QString value READ value NOTIFY valueChanged)
+    Q_PROPERTY(QString valueStr READ valueStr NOTIFY valueChanged)
+    Q_PROPERTY(int valueInt READ valueInt NOTIFY valueChanged)
+    Q_PROPERTY(float valueFloat READ valueFloat NOTIFY valueChanged)
+    Q_PROPERTY(QString key READ key)
+    Q_PROPERTY(QString unit READ unit)
+
 public:
-    CanPid(const QString &key, QString value, QObject *parent);
+    explicit CanPid();
+    explicit CanPid(const QString &key, QString value, QString unit, QObject *parent);
+    explicit CanPid(const CanPid &other);
     ~CanPid();
 
     void setValue(QString value);
-    QString value() const { return m_value; }
-    Q_INVOKABLE const QString key() const { return m_key; }
+    QString valueStr() const { return m_value; }
+    int valueInt() const;
+    float valueFloat() const;
+    const QString key() const { return m_key; }
+    const QString unit() const { return m_unit; }
 
 
 signals:
-    void valueChanged();
+    void valueChanged(const CanPid *pid);
 
 private:
     const QString m_key;
     QString  m_value;
+    QString m_unit;
 };
 
+Q_DECLARE_METATYPE(CanPid)
 
-/**
- * @brief A in memory database of the current states on the network
- */
-class CanPids : public QObject
+
+// model which QMl connects to
+class CanPids : public QAbstractTableModel
 {
     Q_OBJECT
+    Q_PROPERTY(QQmlListProperty<CanPid> pids READ getPids)
 public:
-    explicit CanPids(CanInterface *canInterface, QObject *parent = 0);
+    explicit CanPids(QObject *parent = 0);
     ~CanPids();
 
-    // returns connect state of can interface
-    bool isCanConnected() const;
-
     // get pointer to the can pid
-    Q_INVOKABLE CanPid *getPid(const QString &key);
+    Q_INVOKABLE CanPid *getPid(int idx) const;
+    Q_INVOKABLE bool addPid(CanPid *pid);
+    Q_INVOKABLE bool removePid(int idx);
 
+    Q_INVOKABLE int indexOf(const CanPid *pid);
     Q_INVOKABLE bool contains(const QString &key) const;
+    Q_INVOKABLE bool contains(CanPid *pid) const;
     Q_INVOKABLE size_t count() const;
+    Q_INVOKABLE void clear();
 
     QList<const CanPid *> getAllPids() const;
 
+    QQmlListProperty<CanPid> getPids();
 
-signals:
-    void pidChangedFromCan(const CanPid *pid);
-    void pidChangedFromQml(const CanPid *pid);
+    QVariant headerData(int section, Qt::Orientation orientation, int role) const;
+    QVariant data(const QModelIndex &index, int role) const;
+    int columnCount(const QModelIndex &parent) const;
+    int rowCount(const QModelIndex &parent) const;
 
-    // update when changes occur from Can and Web
-    // intended for Qml slots
-    void broadcastToQml(const QString &key, quint8 value);
+    // for QML to be able to use this model
+    enum CanPidsRoles {
+        KeyRole = Qt::UserRole + 1,
+        ValueRole
+    };
 
-    void canConnectionChanged(bool connected);
 
-public slots:
-    bool updateFromCan(QList<QCanBusFrame> &frames);
-    bool updateFromQml(const QString &key, quint8 value);
-
-    // called by the Pid itself, value already changed
-    bool updatedFromQml(const CanPid *pid);
-
+protected:
+    QHash<int, QByteArray> roleNames() const;
 
 private slots:
-    void canConnectSignal(bool connected);
-
+    void pidUpdated(const CanPid *pid);
 
 private:
-    typedef QHash<const QString, CanPid*> PidStore;
-    CanPid *insert(const QString &key, quint8 value, bool &newCreated, bool &updated);
-    void toCan(const QString &key, quint8 value);
+    static int pidCount(QQmlListProperty<CanPid>* list);
+    static CanPid* pid(QQmlListProperty<CanPid>* list, int idx);
 
+
+    typedef QMultiMap<QString, CanPid*> PidStore;
+    const int colCount = 2;
     PidStore m_pids;
-    CanInterface *m_canIface;
 };
 
 #endif // CANPIDS_H

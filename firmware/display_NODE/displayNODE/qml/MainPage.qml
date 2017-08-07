@@ -357,7 +357,7 @@ Page {
                     anchors.top: parent.top
                     anchors.topMargin: 10
                     anchors.leftMargin: 10
-                    Layout.rowSpan: 3
+                    Layout.rowSpan: 2
                 }
 
                 Label {
@@ -365,12 +365,22 @@ Page {
                     font.bold: true
                     Layout.margins: 10
                 }
-                Label {
-                    text: "Activated(TODO implement)"
+                Grid {
+                    columns: 2
                     Layout.margins: 10
-                }
-                Item {
-                    // gridlayout workaround
+                    spacing: 10
+                    Label {
+                        text: "LF:" + parkbrakeNode.getPid("LeftFront_state").valueStr
+                    }
+                    Label {
+                        text: "RF:" + parkbrakeNode.getPid("RightFront_state").valueStr
+                    }
+                    Label {
+                        text: "LR:" + parkbrakeNode.getPid("LeftRear_state").valueStr
+                    }
+                    Label {
+                        text: "RR:" + parkbrakeNode.getPid("RightRear_state").valueStr
+                    }
                 }
             }
             Button {

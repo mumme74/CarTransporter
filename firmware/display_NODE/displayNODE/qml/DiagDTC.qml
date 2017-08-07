@@ -3,6 +3,7 @@ import QtQuick.Controls 2.2
 import QtQuick.Controls.Styles 1.4
 import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.3
+import QtQuick.Dialogs 1.2
 import "helpers.js" as Helpers
 
 Item {
@@ -27,6 +28,7 @@ Item {
         anchors.left: parent.left
         anchors.top: parent.top
         anchors.topMargin: 65
+        onClicked: parkbrakeNode.fetchAllDtcs();
     }
 
     IconButton {
@@ -35,6 +37,7 @@ Item {
         anchors.left: parent.left
         anchors.top: readDtcs.bottom
         anchors.topMargin: 20
+        onClicked: parkbrakeNode.clearAllDtcs();
     }
 
     StackLayout {
@@ -65,6 +68,7 @@ Item {
                 anchors.topMargin: 10
                 anchors.bottom: parent.bottom
                 width: 450
+                model: testDtcModel
                 TableViewColumn {
                     role: "code"
                     title: qsTr("Code")+ tr.str
@@ -75,7 +79,6 @@ Item {
                     title: qsTr("Description")+ tr.str
                     width: 300
                 }
-                model: testDtcModel
             }
             Label {
                 id: suspensionFFLbl
@@ -116,11 +119,14 @@ Item {
                 anchors.topMargin: pageIndicator.y + pageIndicator.height
             }
             TableView {
-                id: parkbarkeDtcList
+                id: parkbrakeDtcList
                 anchors.top: parkbarkeDtcLbl.bottom
                 anchors.topMargin: 10
                 anchors.bottom: parent.bottom
-                width: 450
+                anchors.right: parent.right
+                anchors.rightMargin: 10
+                width: 650
+                model: dtcParkbrakeModel
                 TableViewColumn {
                     role: "code"
                     title: qsTr("Code")+ tr.str
@@ -129,39 +135,136 @@ Item {
                 TableViewColumn {
                     role: "desc"
                     title: qsTr("Description")+ tr.str
-                    width: 300
+                    width: 400
                 }
-                model: testDtcModel
+                TableViewColumn {
+                    role: "occurrences"
+                    title: qsTr("Occurrences")+ tr.str
+                    width: 70
+                }
+                TableViewColumn {
+                    role: "time"
+                    title: qsTr("Time from startup")+ tr.str
+                    width: 70
+                }
             }
-            Label {
-                id: parkbarkeFFLbl
-                text: qsTr("Freeze Frame")+ tr.str
-                color: "white"
-                font.pointSize: 20
-                anchors.horizontalCenter: parkbarkeFreezeFrameList.horizontalCenter
-                anchors.top: parkbarkeDtcLbl.top
-            }
-            TableView {
-                id: parkbarkeFreezeFrameList
-                anchors.top: parkbarkeDtcList.top
-                anchors.left: parkbarkeDtcList.right
+            Button {
+                id: btnFreezeFrameParkbrake
                 anchors.right: parent.right
-                anchors.bottom: parent.bottom
-
-                TableViewColumn {
-                    role: "param"
-                    title: qsTr("Param")+ tr.str
-                    width: 100
+                anchors.top: parent.top
+                anchors.topMargin: 10
+                anchors.rightMargin: 10
+                text: qsTr("FreezeFrame") + tr.str
+                onClicked: {
+                    var dtc = parkbrakeNode.getDtc(parkbrakeDtcList.currentRow);
+                    if (dtc) {
+                        parkbrakeNode.fetchFreezeFrame(dtc.storedNr, function(ff){
+                            freezeFrameModel.setFreezeFrame(ff);
+                            dlgDtcCode.text = dtc.dtcCodeStr;
+                            dlgFreezeFrame.open();
+                        });
+                    }
                 }
-                TableViewColumn {
-                    role: "value"
-                    title: qsTr("Value")+ tr.str
-                    width: 80
-                }
-                model: testFreezeFrameModel
             }
         }
     }
+
+    // --------FreezeFrame dialog --------------------
+
+    Dialog {
+        id: dlgFreezeFrame
+        width: 600
+        height: 300
+        contentItem: Item {
+            Label {
+                id: dlgHeadLine
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: parent.top
+                anchors.topMargin: 10
+                text: qsTr("Freeze frame data for DTC") + tr.str
+            }
+            Label {
+                id: dlgDtcCode
+                anchors.top: dlgHeadLine.top
+                anchors.left: dlgHeadLine.right
+                anchors.leftMargin: 5
+
+            }
+
+            Button {
+                id: btnOk
+                anchors.right: parent.right
+                anchors.rightMargin: 10
+                anchors.top: parent.top
+                anchors.topMargin: 10
+                text: qsTr("OK") + tr.str
+                onClicked: dlgFreezeFrame.close()
+            }
+
+            TableView {
+                id: freezeFrameList
+                anchors.left: parent.left
+                anchors.leftMargin: 5
+                anchors.right: parent.right
+                anchors.rightMargin: 5
+                anchors.top: btnOk.bottom
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 5
+                model: freezeFrameModel
+                TableViewColumn {
+                    role: "name"
+                    title: qsTr("Name") + tr.str
+                    width: 200
+                }
+                TableViewColumn {
+                    role: "value"
+                    title: qsTr("Value") + tr.str
+                    width: 100
+                }
+            }
+        }
+
+    }
+
+    // ------- parkbrake model ------------
+    ListModel {
+        id: dtcParkbrakeModel
+        function rebuild() {
+            clear();
+            for (var i = 0; i < parkbrakeNode.dtcCount; ++i) {
+                var dtc = parkbrakeNode.getDtc(i);
+                append({code: dtc.dtcCodeStr, desc: dtc.dtcDescription, occurrences: dtc.occurences,
+                        time: dtc.timeSinceStartup});
+            }
+        }
+        Component.onCompleted: rebuild()
+    }
+
+    Connections {
+        target: parkbrakeNode
+        onDtcArrived: dtcParkbrakeModel.rebuild();
+    }
+    Connections {
+        target: parkbrakeNode
+        onDtcsCleared: dtcParkbrakeModel.clear();
+    }
+    // ---------- end parkbrake model -------------
+
+    // -----------freezeFrame model ---------------
+
+    ListModel {
+        id: freezeFrameModel
+        function setFreezeFrame(ff) {
+            // this function gets called from c++ when we after all freezeFrames has arrived
+            clear();
+            for (var i = 0; i < ff.pidCount; ++i) {
+                var pid = ff.getPid(i);
+                append({ name: pid.key, value: pid.valueStr + pid.unit });
+            }
+        }
+    }
+
+    // ----------- end freezeFrame model ----------
 
 
     // these can be erased when bridge to C++ is finished

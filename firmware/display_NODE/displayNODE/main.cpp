@@ -4,8 +4,10 @@
 #include <QSettings>
 #include "caninterface.h"
 #include "translation.h"
+#include "cannodes.h"
 
 
+//QQmlApplicationEngine *qmlEngine = nullptr;
 
 int main(int argc, char *argv[])
 {
@@ -26,8 +28,20 @@ int main(int argc, char *argv[])
     CanInterface canIface;
     canIface.setConnected(true);
 
+    CanParkbrakeNode parkbrakeNode(&canIface);
+    CanPids canPidsModel;
+
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty("tr", &transObj);
+    engine.rootContext()->setContextProperty("parkbrakeNode", &parkbrakeNode);
+    engine.rootContext()->setContextProperty("canPidsModel", &canPidsModel);
+
+
+    qmlRegisterInterface<CanPid>("CanDtc");
+    qmlRegisterInterface<CanPid>("CanPid");
+    qmlRegisterInterface<CanPid>("CanFreezeFrame");
+
+
     engine.load(QUrl(QLatin1String("qrc:/main.qml")));
     if (engine.rootObjects().isEmpty())
         return -1;

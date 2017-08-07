@@ -10,17 +10,17 @@ TabBar {
     height: 45
     TabButton {
         id: dtcTabBtn
-        text: qsTr("Trouble codes")
+        text: qsTr("Trouble codes")+ tr.str
         onClicked: Helpers.pushPage("DiagDTC");
     }
     TabButton {
         id: paramTabBtn
-        text: qsTr("Parameters")
+        text: qsTr("Parameters")+ tr.str
         onClicked: Helpers.pushPage("DiagParam");
     }
     TabButton {
         id: activateTabBtn
-        text: qsTr("Activate")
+        text: qsTr("Activate")+ tr.str
         onClicked: Helpers.pushPage("DiagActivation");
     }
 }

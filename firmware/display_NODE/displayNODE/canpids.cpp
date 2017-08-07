@@ -1,21 +1,12 @@
 #include "canpids.h"
-
+#include "can_protocol.h"
 #include <QQmlEngine>
 
 
-CanPid::CanPid(const QString &key, QObject *parent) :
+CanPid::CanPid(const QString &key, QString value, QObject *parent) :
     QObject(parent),
     m_key(key),
-    m_value(0),
-    m_state(CanPidStates::UnInitialized)
-{
-}
-
-CanPid::CanPid(const QString &key, quint8 value, QObject *parent) :
-    QObject(parent),
-    m_key(key),
-    m_value(value),
-    m_state(CanPidStates::Initialized)
+    m_value(value)
 {
 }
 
@@ -23,13 +14,7 @@ CanPid::~CanPid()
 {
 }
 
-void CanPid::setValueFromQml(quint8 value)
-{
-    m_value = value;
-    emit valueChangedFromQml(this);
-}
-
-void CanPid::setValue(quint8 value)
+void CanPid::setValue(QString value)
 {
     m_value = value;
     emit valueChanged();
@@ -86,14 +71,14 @@ bool CanPids::isCanConnected() const
 
 CanPid *CanPids::getPid(const QString &key)
 {
-    QHash<const QString, CanPid*>::iterator pidIt = m_pids.find(key);
-    if (pidIt == m_pids.end()){
-        // create as CanPidState::UnInitialized
-        CanPid *pid = new CanPid(key, this);
-        return *m_pids.insert(key, pid);
-    }
+//    QHash<const QString, CanPid*>::iterator pidIt = m_pids.find(key);
+//    if (pidIt == m_pids.end()){
+//        // create as CanPidState::UnInitialized
+//        CanPid *pid = new CanPid(key, this);
+//        return *m_pids.insert(key, pid);
+//    }
 
-    return *pidIt;
+//    return *pidIt;
 }
 
 void CanPids::canConnectSignal(bool connected)
@@ -105,11 +90,10 @@ void CanPids::canConnectSignal(bool connected)
 // slot invoked by the pid itself when it changes
 bool CanPids::updatedFromQml(const CanPid *pid)
 {
-    toCan(pid->key(), pid->value());
+//    toCan(pid->key(), pid->value());
 
-    emit pidChangedFromQml(pid);
-    emit broadcastToWeb(pid->key(), pid->value());
-    return true;
+//    emit pidChangedFromQml(pid);
+//    return true;
 }
 
 bool CanPids::updateFromQml(const QString &key, quint8 value)
@@ -123,7 +107,6 @@ bool CanPids::updateFromQml(const QString &key, quint8 value)
     toCan(key, value);
 
     emit pidChangedFromQml(pid);
-    emit broadcastToWeb(key, value);
     return true;
 }
 
@@ -134,32 +117,55 @@ bool CanPids::updateFromCan(QList<QCanBusFrame> &frames)
     if (frames.size() > 0) {
         foreach(QCanBusFrame frame, frames) {
             quint32 id = frame.frameId();
+
+            if ((id & CAN_MSG_TYPE_UPDATE_MASK) != CAN_MSG_TYPE_UPDATE)
+                continue; // not a PID
+
             QByteArray data = frame.payload();
 
-            // convert id to string we use as key in this store
-            // we only use the high number bits in picaxe databuss
-            char chId = (id & 0xFF0 ) >> 3;
-            QChar ch(chId);
-            QString key(ch);
+            quint16 msgId = id & CAN_MSG_ID_MASK;
+            quint16 senderId = id & CAN_MSG_SENDER_ID_MASK;
+            switch (senderId) {
+            case C_parkbrakeNode:
+                // LF, RF, LR, RR
+                // 0   1   2   3  <- byte orders
+                if (msgId == C_parkbrakeUpdPID_1) {
+                    // b0-b3 brake states, b4-b7 rev/sec wheels
 
-            int idx = 0;
+                } else if (msgId == C_parkbrakeUpdPID_2) {
 
-            // handle request such as W1=0xA8 (1 byte ID and 2 bytes data where first databyte is part of key in this class)
-            if (data.size() > 1) {
-                ch = data.at(0);
-                key += ch;
-                idx = 1;
+                } else if (msgId == C_parkbrakeUpdPID_3) {
+
+                } else {
+
+                }
+            case C_suspensionNode:
+
+            default:
+               continue;
             }
 
-            if (!data.isEmpty()) {
-                quint8 value = data.at(idx);
-                bool updated = false;
-                bool newCreated = false;
-                CanPid *pid = insert(key, value, newCreated, updated);
-                emit pidChangedFromCan(pid);
-                emit broadcastToWeb(key, value);
-                return true;
-            }
+
+//            QChar ch(chId);
+//            QString (ch);
+
+//            int idx = 0;
+
+//            // handle request such as W1=0xA8 (1 byte ID and 2 bytes data where first databyte is part of key in this class)
+//            if (data.size() > 1) {
+//                ch = data.at(0);
+//                key += ch;
+//                idx = 1;
+//            }
+
+//            if (!data.isEmpty()) {
+//                quint8 value = data.at(idx);
+//                bool updated = false;
+//                bool newCreated = false;
+//                CanPid *pid = insert(key, value, newCreated, updated);
+//                emit pidChangedFromCan(pid);
+//                return true;
+//            }
         }
     }
 
@@ -169,24 +175,24 @@ bool CanPids::updateFromCan(QList<QCanBusFrame> &frames)
 CanPid *CanPids::insert(const QString &key, quint8 value, bool &newCreated, bool &updated)
 {
 
-    PidStore::iterator pidIt = m_pids.find(key);
-    if (pidIt != m_pids.end()) {
-        // existing Pid
-        newCreated = false;
-        updated = (*pidIt)->value() != value;
-        if (updated)
-            (*pidIt)->setValue(value);
+//    PidStore::iterator pidIt = m_pids.find(key);
+//    if (pidIt != m_pids.end()) {
+//        // existing Pid
+//        newCreated = false;
+//        updated = (*pidIt)->value() != value;
+//        if (updated)
+//            (*pidIt)->setValue(value);
 
-        return *pidIt;
-    }
+//        return *pidIt;
+//    }
 
-    // new pid not yet stored
-    CanPid *pid = new CanPid(key, value, this);
-    connect(pid, &CanPid::valueChangedFromQml, this, &CanPids::updatedFromQml);
+//    // new pid not yet stored
+//    CanPid *pid = new CanPid(key, value, this);
+//    connect(pid, &CanPid::valueChangedFromQml, this, &CanPids::updatedFromQml);
 
-    newCreated = true;
+//    newCreated = true;
 
-    return *m_pids.insert(key, pid);
+//    return *m_pids.insert(key, pid);
 }
 
 // send to CAN

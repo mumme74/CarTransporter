@@ -36,7 +36,7 @@ Item {
             id: suspensionPIDsPage
             Label {
                 id: suspensionPIDsLbl
-                text: qsTr("Suspension PIDs")
+                text: qsTr("Suspension PIDs")+ tr.str
                 font.pointSize: 20
                 color: "white"
                 anchors.top: parent.top
@@ -50,12 +50,12 @@ Item {
                 width: 450
                 TableViewColumn {
                     role: "param"
-                    title: "Param"
+                    title: qsTr("Param") + tr.str
                     width: 200
                 }
                 TableViewColumn {
                     role: "value"
-                    title: "Value"
+                    title: qsTr("Value") + tr.str
                     width: 100
                 }
                 model: testPIDsModel
@@ -79,12 +79,12 @@ Item {
                 width: 450
                 TableViewColumn {
                     role: "param"
-                    title: "Param"
+                    title: qsTr("Param") + tr.str
                     width: 200
                 }
                 TableViewColumn {
                     role: "value"
-                    title: "Value"
+                    title: qsTr("Value")+ tr.str
                     width: 100
                 }
                 model: testPIDsModel

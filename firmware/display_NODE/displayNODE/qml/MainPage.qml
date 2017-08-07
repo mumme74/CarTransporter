@@ -139,9 +139,6 @@ Page {
                         to: 0.0;
                         duration: 500
                     }
-                    onRunningChanged: {
-                        console.log("changed", running)
-                    }
                 }
             }
         }
@@ -232,8 +229,8 @@ Page {
 
         MessageDialog {
             id: carLiftedDialog
-            title: qsTr("Forbidden!")
-            text: qsTr("Can't operate rear wheels when not in low state");
+            title: qsTr("Forbidden!")+ tr.str
+            text: qsTr("Can't operate rear wheels when not in low state")+ tr.str;
         }
 
     } // end car
@@ -298,7 +295,7 @@ Page {
 
     MessageDialog {
         id: weightDlg
-        title: qsTr("Weight")
+        title: qsTr("Weight")+ tr.str
         standardButtons: StandardButton.Ok
         contentItem: Rectangle {
             color: "lightskyblue"
@@ -317,7 +314,7 @@ Page {
                 }
 
                 Label {
-                    text: qsTr("Weight calculation")
+                    text: qsTr("Weight calculation")+ tr.str
                     font.bold: true
                     Layout.margins: 10
                 }
@@ -336,7 +333,7 @@ Page {
                 anchors.bottomMargin: 10
                 Text {
                     anchors.centerIn: parent
-                    text: qsTr("OK")
+                    text: qsTr("OK")+ tr.str
                 }
                 onClicked: weightDlg.close()
             }
@@ -345,7 +342,7 @@ Page {
 
     MessageDialog {
         id: parkbrakeDlg
-        title: qsTr("Parkbrake")
+        title: qsTr("Parkbrake")+ tr.str
         standardButtons: StandardButton.Ok
         contentItem: Rectangle {
             color: "lightskyblue"
@@ -364,7 +361,7 @@ Page {
                 }
 
                 Label {
-                    text: qsTr("Parkbrake status")
+                    text: qsTr("Parkbrake status")+ tr.str
                     font.bold: true
                     Layout.margins: 10
                 }
@@ -383,7 +380,7 @@ Page {
                 anchors.bottomMargin: 10
                 Text {
                     anchors.centerIn: parent
-                    text: qsTr("OK")
+                    text: qsTr("OK")+ tr.str
                 }
                 onClicked: parkbrakeDlg.close()
             }

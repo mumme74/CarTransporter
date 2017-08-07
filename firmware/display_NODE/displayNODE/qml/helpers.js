@@ -34,7 +34,8 @@ function switchToDiagHeader(page) {
 }
 
 function hideDiagHeader() {
-    _initObj.diagHeader.visible = false;
+    if (_initObj.diagHeader)
+        _initObj.diagHeader.visible = false;
     globalApp().header = null;
 }
 
@@ -57,8 +58,10 @@ function back() {
 function forward() {
     if (_forwardStack.length) {
         _lastPopped = _forwardStack.pop();
-        if (_lastPopped && mainView().currntItem !== _lastPopped)
+        if (_lastPopped && mainView().currentItem !== _lastPopped) {
             mainView().push(_lastPopped);
+            _lastPopped = _forwardStack[_forwardStack.length -1];
+        }
     } else {
         _initObj.forwardBtn.enabled = false;
     }

@@ -9,7 +9,7 @@ ApplicationWindow {
     visible: true
     width: 800
     height: 480
-    title: qsTr("DisplayNode")
+    title: qsTr("DisplayNode")+ tr.str
 
     Component.onCompleted: Helpers.init(root, mainView, forwardBtn);
 
@@ -32,8 +32,14 @@ ApplicationWindow {
         id: settingsPage
         visible: false
         Label {
-            text: qsTr("Third page")
+            text: qsTr("Third page")+ tr.str
             anchors.centerIn: parent
+        }
+
+        Row {
+         anchors.verticalCenter: parent.verticalCenter
+         Button { text: qsTr("English")+ tr.str; onClicked: tr.selectLanguage("en"); }
+         Button { text: qsTr("Swedish")+ tr.str; onClicked: tr.selectLanguage("sv"); }
         }
     }
 
@@ -57,7 +63,7 @@ ApplicationWindow {
         IconButton {
             id: backBtn
             source: "qrc:/images/return_arrow.svg"
-            btnText: qsTr("Back")
+            btnText: qsTr("Back")+ tr.str
             onClicked: Helpers.back();
             visible: mainView.depth > 1
             anchors.left: homeBtn.right
@@ -66,7 +72,7 @@ ApplicationWindow {
         IconButton {
             id: forwardBtn
             source: "qrc:/images/forward_arrow.svg"
-            btnText: qsTr("Forward")
+            btnText: qsTr("Forward")+ tr.str
             onClicked: Helpers.forward();
             visible: mainView.depth > 1
             anchors.left: backBtn.right
@@ -75,7 +81,7 @@ ApplicationWindow {
         IconButton {
             id: diagnosticsBtn
             source: "qrc:/images/diagnostic.svg"
-            btnText: qsTr("Diagnostics")
+            btnText: qsTr("Diagnostics")+ tr.str
             anchors.left: forwardBtn.right
             anchors.leftMargin: 10
             onClicked: {
@@ -87,7 +93,7 @@ ApplicationWindow {
         IconButton {
             id: settingsBtn
             source: "qrc:/images/settings.svg"
-            btnText: qsTr("Settings")
+            btnText: qsTr("Settings")+ tr.str
             anchors.right: parent.right
             onClicked: {
                 mainView.pop(mainView.find(function(itm){return itm === settingsPage; }));

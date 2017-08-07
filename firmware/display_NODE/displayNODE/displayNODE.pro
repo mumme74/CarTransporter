@@ -4,7 +4,9 @@ CONFIG += c++11
 
 SOURCES += main.cpp \
     caninterface.cpp \
-    canpids.cpp
+    canpids.cpp \
+    cannodes.cpp \
+    translation.cpp
 
 RESOURCES += qml/qml.qrc \
              images/images.qrc
@@ -34,4 +36,22 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 HEADERS += \
     caninterface.h \
     ../../parkbrake_ECU/can_protocol.h \
-    canpids.h
+    canpids.h \
+    cannodes.h \
+    ../../parkbrake_ECU/control.h \
+    translation.h
+
+INCLUDEPATH += ../../parkbrake_ECU/
+
+TRANSLATIONS.path = ts/
+TRANSLATIONS += ts_sv.ts
+
+
+copydata.commands = $(COPY_DIR) $$PWD/ts/ $$OUT_PWD/ts/
+first.depends = $(first) copydata
+export(first.depends)
+export(copydata.commands)
+QMAKE_EXTRA_TARGETS += first copydata
+
+
+INSTALLS += TRANSLATIONS

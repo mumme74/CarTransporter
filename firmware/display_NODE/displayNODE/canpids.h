@@ -14,35 +14,23 @@
 class CanPid : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(int value READ value WRITE setValueFromQml NOTIFY valueChanged)
+    Q_PROPERTY(QString value READ value NOTIFY valueChanged)
 public:
-    CanPid(const QString &key, QObject *parent);
-    CanPid(const QString &key, quint8 value,QObject *parent);
+    CanPid(const QString &key, QString value, QObject *parent);
     ~CanPid();
 
-    enum CanPidStates : quint8 {
-        UnInitialized = 0,
-        Initialized = 1
-    };
-
-    Q_INVOKABLE bool isInitialized() { return m_state != CanPidStates::UnInitialized; }
-
-    void setValueFromQml(quint8 value);
-    void setValue(quint8 value);
-    quint8 value() const { return m_value; }
+    void setValue(QString value);
+    QString value() const { return m_value; }
     Q_INVOKABLE const QString key() const { return m_key; }
 
 
 signals:
     void valueChanged();
-    void valueChangedFromQml(const CanPid *pid);
 
 private:
     const QString m_key;
-    quint8 m_value;
-    CanPidStates m_state;
+    QString  m_value;
 };
-
 
 
 /**
@@ -70,15 +58,10 @@ public:
 signals:
     void pidChangedFromCan(const CanPid *pid);
     void pidChangedFromQml(const CanPid *pid);
-    void pidChangedFromWeb(const CanPid *pid);
 
     // update when changes occur from Can and Web
     // intended for Qml slots
     void broadcastToQml(const QString &key, quint8 value);
-
-    // update when changes occur from Can and Qqml
-    // intended for websock server
-    void broadcastToWeb(const QString &key, quint8 value);
 
     void canConnectionChanged(bool connected);
 

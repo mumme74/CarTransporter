@@ -23,7 +23,7 @@ Item {
 
     IconButton {
         id: readDtcs
-        btnText: qsTr("Read")
+        btnText: qsTr("Read") + tr.str
         anchors.left: parent.left
         anchors.top: parent.top
         anchors.topMargin: 65
@@ -31,7 +31,7 @@ Item {
 
     IconButton {
         id: eraseDtcs
-        btnText: qsTr("Erase")
+        btnText: qsTr("Erase") + tr.str
         anchors.left: parent.left
         anchors.top: readDtcs.bottom
         anchors.topMargin: 20
@@ -53,7 +53,7 @@ Item {
             id: suspensionDtcPage
             Label {
                 id: suspensionDtcLbl
-                text: qsTr("Suspension DTC")
+                text: qsTr("Suspension DTC")+ tr.str
                 font.pointSize: 20
                 color: "white"
                 anchors.top: parent.top
@@ -67,19 +67,19 @@ Item {
                 width: 450
                 TableViewColumn {
                     role: "code"
-                    title: "Code"
+                    title: qsTr("Code")+ tr.str
                     width: 70
                 }
                 TableViewColumn {
                     role: "desc"
-                    title: "Description"
+                    title: qsTr("Description")+ tr.str
                     width: 300
                 }
                 model: testDtcModel
             }
             Label {
                 id: suspensionFFLbl
-                text: qsTr("Freeze Frame")
+                text: qsTr("Freeze Frame")+ tr.str
                 color: "white"
                 font.pointSize: 20
                 anchors.horizontalCenter: suspensionFreezeFrameList.horizontalCenter
@@ -94,12 +94,12 @@ Item {
 
                 TableViewColumn {
                     role: "param"
-                    title: "Param"
+                    title: qsTr("Param")+ tr.str
                     width: 100
                 }
                 TableViewColumn {
                     role: "value"
-                    title: "Value"
+                    title: qsTr("Value")+ tr.str
                     width: 80
                 }
                 model: testFreezeFrameModel
@@ -109,7 +109,7 @@ Item {
             id: parkbrakeDtcPage
             Label {
                 id: parkbarkeDtcLbl
-                text: qsTr("Parkbrake DTC")
+                text: qsTr("Parkbrake DTC")+ tr.str
                 font.pointSize: 20
                 color: "white"
                 anchors.top: parent.top
@@ -123,19 +123,19 @@ Item {
                 width: 450
                 TableViewColumn {
                     role: "code"
-                    title: "Code"
+                    title: qsTr("Code")+ tr.str
                     width: 70
                 }
                 TableViewColumn {
                     role: "desc"
-                    title: "Description"
+                    title: qsTr("Description")+ tr.str
                     width: 300
                 }
                 model: testDtcModel
             }
             Label {
                 id: parkbarkeFFLbl
-                text: qsTr("Freeze Frame")
+                text: qsTr("Freeze Frame")+ tr.str
                 color: "white"
                 font.pointSize: 20
                 anchors.horizontalCenter: parkbarkeFreezeFrameList.horizontalCenter
@@ -150,12 +150,12 @@ Item {
 
                 TableViewColumn {
                     role: "param"
-                    title: "Param"
+                    title: qsTr("Param")+ tr.str
                     width: 100
                 }
                 TableViewColumn {
                     role: "value"
-                    title: "Value"
+                    title: qsTr("Value")+ tr.str
                     width: 80
                 }
                 model: testFreezeFrameModel

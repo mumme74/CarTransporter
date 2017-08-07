@@ -21,7 +21,7 @@ Item {
 
     IconButton {
         id: setOn
-        btnText: qsTr("On")
+        btnText: qsTr("On")+ tr.str
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.topMargin: 65
@@ -29,7 +29,7 @@ Item {
 
     IconButton {
         id: setOff
-        btnText: qsTr("Off")
+        btnText: qsTr("Off") + tr.str
         anchors.right: parent.right
         anchors.top: setOn.bottom
         anchors.topMargin: 20
@@ -52,7 +52,7 @@ Item {
             id: suspensionActivatePage
             Label {
                 id: suspensionActivateLbl
-                text: qsTr("Suspension activations")
+                text: qsTr("Suspension activations")+ tr.str
                 font.pointSize: 20
                 color: "white"
                 anchors.top: parent.top
@@ -66,12 +66,12 @@ Item {
                 width: 450
                 TableViewColumn {
                     role: "param"
-                    title: "Param"
+                    title: qsTr("Param")+ tr.str
                     width: 200
                 }
                 TableViewColumn {
                     role: "value"
-                    title: "Value"
+                    title: qsTr("Value")+ tr.str
                     width: 100
                 }
                 model: testActivationModel
@@ -81,7 +81,7 @@ Item {
             id: parkbrakeActivatePage
             Label {
                 id: parkbarkeActivationLbl
-                text: qsTr("Parkbrake activation")
+                text: qsTr("Parkbrake activation")+ tr.str
                 font.pointSize: 20
                 color: "white"
                 anchors.top: parent.top
@@ -95,12 +95,12 @@ Item {
                 width: 450
                 TableViewColumn {
                     role: "param"
-                    title: "Param"
+                    title: qsTr("Param")+ tr.str
                     width: 200
                 }
                 TableViewColumn {
                     role: "value"
-                    title: "Value"
+                    title: qsTr("Value")+ tr.str
                     width: 100
                 }
                 model: testActivationModel

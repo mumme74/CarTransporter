@@ -27,6 +27,7 @@ public:
     const QString dtcCodeStr() const;
     const QString dtcDescription() const;
     int occurences() const;
+    void setOccurences(int occurences);
     int timeSinceStartup() const;
 
 private:
@@ -148,6 +149,7 @@ private:
 class CanParkbrakeNode : public CanAbstractNode
 {
     Q_OBJECT
+    Q_PROPERTY(bool inServiceMode READ inServiceMode NOTIFY serviceModeChanged)
 public:
     explicit CanParkbrakeNode(CanInterface *canInterface, QObject *parent = nullptr);
     virtual ~CanParkbrakeNode();
@@ -158,13 +160,28 @@ public:
     Q_INVOKABLE void fetchAllDtcs();
     Q_INVOKABLE void clearAllDtcs();
 
-    Q_INVOKABLE virtual bool fetchFreezeFrame(int dtcNr, QJSValue jsCallback);
+    Q_INVOKABLE bool fetchFreezeFrame(int dtcNr, QJSValue jsCallback);
+
+    Q_INVOKABLE bool activateOutput(int wheel, bool tighten) const;
+
+    Q_INVOKABLE void setServiceState(bool service);
+
+public slots:
+    bool inServiceMode();
+
+signals:
+    void serviceModeChanged(bool service);
+    void userErrorIgnOff();
+    void userErrorBrakeOff();
+    void userErrorBtnInvOff();
+    void userError(int userError);
+    void newDtcSet(CanDtc *dtc);
 
 protected slots:
     void updatedFromCan(QList<QCanBusFrame> &frames);
 
 private:
-
+    bool m_inServiceState;
     void updateCanFrame(const QCanBusFrame &frame);
     void commandCanFrame(const QCanBusFrame &frame);
     void exceptionCanFrame(const QCanBusFrame &frame);

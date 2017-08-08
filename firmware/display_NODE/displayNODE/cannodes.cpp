@@ -132,6 +132,11 @@ int CanDtc::occurences() const
     return m_occurences;
 }
 
+void CanDtc::setOccurences(int occurences)
+{
+    m_occurences = occurences;
+}
+
 int CanDtc::timeSinceStartup() const
 {
     return m_timeSinceStartup;
@@ -356,7 +361,7 @@ CanPid *CanAbstractNode::pid(QQmlListProperty<CanPid> *list, int idx)
 // --------------------------------------------------------------------------------
 
 CanParkbrakeNode::CanParkbrakeNode(CanInterface *canInterface, QObject *parent) :
-    CanAbstractNode(canInterface, parent)
+    CanAbstractNode(canInterface, parent), m_inServiceState(false)
 {
     // init some known PIDS
     QCanBusFrame pid1;
@@ -428,11 +433,20 @@ CanParkbrakeNode::CanParkbrakeNode(CanInterface *canInterface, QObject *parent) 
 
     frames << ff0 << ff4 << ff2 << ff3 << ff1;
 
-    // ------------ end text -------------------
+    // ------------ end test -------------------
 
     updatedFromCan(frames);
 
     qmlRegisterUncreatableType<CanParkbrakeNode>("mummesoft", 0, 1, "parkbrakeNode", QStringLiteral("Cant create CanParkbrakeNode from QML"));
+    // detect changes in state
+    connect(getPid("LeftFront_state"), SIGNAL(valueChanged(const CanPid*)),
+            this, SLOT(inServiceMode()));
+    connect(getPid("RightFront_state"), SIGNAL(valueChanged(const CanPid*)),
+            this, SLOT(inServiceMode()));
+    connect(getPid("LeftRear_state"), SIGNAL(valueChanged(const CanPid*)),
+            this, SLOT(inServiceMode()));
+    connect(getPid("RightRear_state"), SIGNAL(valueChanged(const CanPid*)),
+            this, SLOT(inServiceMode()));
 }
 
 CanParkbrakeNode::~CanParkbrakeNode()
@@ -529,6 +543,57 @@ bool CanParkbrakeNode::fetchFreezeFrame(int dtcNr, QJSValue jsCallback)
     return true;
 }
 
+bool CanParkbrakeNode::activateOutput(int wheel, bool tighten) const
+{
+    if (wheel < LeftFront || wheel > RightRear)
+        return false;
+
+    // request: t= tighten
+    //  [0  -  1  -  2  -  3  -  4  -  5  -  6  -  7]
+    //  t-LF t-RF   t-LR  t-RR  r-LF  r-RF  r-LR  r-RR
+    // LeftFront == 0, RightRear == 3
+    quint8 shiftDecr = tighten ? 0 : 4;
+    shiftDecr -= wheel;
+    quint8 msk = 1 << (7 - shiftDecr);
+
+    QByteArray pl(msk, 1);
+    QCanBusFrame f(CAN_MSG_TYPE_DIAG | C_parkbrakeDiagActuatorTest | C_displayNode, pl);
+    f.setExtendedFrameFormat(false);
+    m_canIface->sendFrame(f);
+    return true;
+}
+
+void CanParkbrakeNode::setServiceState(bool service)
+{
+    QCanBusFrame f(QCanBusFrame::RemoteRequestFrame);
+    if (service)
+        f.setFrameId(CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdServiceSet | C_displayNode);
+    else
+        f.setFrameId(CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdServiceUnset | C_displayNode);
+    f.setExtendedFrameFormat(false);
+    m_canIface->sendFrame(f);
+}
+
+bool CanParkbrakeNode::inServiceMode()
+{
+    bool ret;
+    CanPid *lf = getPid("LeftFront_state"),
+           *rf = getPid("RightFront_state"),
+           *lr = getPid("LeftRear_state"),
+           *rr = getPid("RightRear_state");
+    if (lf->valueInt() == InServiceState && rf->valueInt() == InServiceState &&
+        lr->valueInt() == InServiceState && rr->valueInt() == InServiceState)
+    {
+        ret = true;
+    } else
+        ret = false;
+
+    if (ret != m_inServiceState) {
+        m_inServiceState = ret;
+        emit serviceModeChanged(ret);
+    }
+    return ret;
+}
 
 void CanParkbrakeNode::updatedFromCan(QList<QCanBusFrame> &frames)
 {
@@ -643,7 +708,37 @@ void CanParkbrakeNode::commandCanFrame(const QCanBusFrame &frame)
 void CanParkbrakeNode::exceptionCanFrame(const QCanBusFrame &frame)
 {
     // when parkbrakeNode sends a exceptionFrame
+    QByteArray payload = frame.payload();
+    quint32 sid = frame.frameId();
+    switch (sid & CAN_MSG_ID_MASK) {
+    case C_parkbrakeExcNewDTC: {
+        quint16 code = (payload[1] << 8) | payload[0];
+        CanDtc *dtc = getDtc(payload[0]);
+        if (dtc == nullptr) {
+            dtc = new CanDtc(this, payload[0], code, payload[3], 0);
+            m_dtcs.insert(dtc->storedNr(), dtc);
+            emit dtcArrived(dtc->storedNr());
+        } else {
+            dtc->setOccurences(payload[3]);
+        }
+        emit newDtcSet(dtc);
 
+    }   break;
+    case C_parkbrakeExcUserError: {
+        quint16 excId = (payload.at(1) << 8) | payload.at(0);
+        if (excId == C_userErrorBrakeOff) {
+            emit userErrorBrakeOff();
+        } else if (excId == C_userErrorBtnInvOff) {
+            emit userErrorBtnInvOff();
+        } else if (excId == C_userErrorIgnOff) {
+            emit userErrorIgnOff();
+        }
+
+        emit userError(excId);
+    }   break;
+    default:
+        break;
+    }
 }
 
 void CanParkbrakeNode::diagCanFrame(const QCanBusFrame &frame)

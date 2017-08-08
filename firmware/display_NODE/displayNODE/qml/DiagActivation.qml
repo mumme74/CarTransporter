@@ -87,23 +87,80 @@ Item {
                 anchors.top: parent.top
                 anchors.topMargin: pageIndicator.y + pageIndicator.height
             }
-            TableView {
-                id: parkbarkeActivationList
+            Label {
+                id: parkbrakeHelpLbl
+                anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parkbarkeActivationLbl.bottom
+                anchors.topMargin: 5
+                color: "beige"
+                text: qsTr("You must press brake til brakelights and hold release button") + tr.str
+            }
+
+            Grid {
+                anchors.top: parkbrakeHelpLbl.bottom
                 anchors.topMargin: 10
+                anchors.left: parent.left
+                anchors.right: parent.right
+                spacing: 10
+                columns: 2
+                Row {
+                    IconButton {
+                        btnText: qsTr("LF release") + tr.str
+                        onClicked: parkbrakeNode.activateOutput(0, false);
+                    }
+                    IconButton {
+                        btnText: qsTr("LF tighten") + tr.str
+                        onClicked: parkbrakeNode.activateOutput(0, true);
+                    }
+                }
+                Row {
+                    IconButton {
+                        btnText: qsTr("RF release") + tr.str
+                        onClicked: parkbrakeNode.activateOutput(1, false);
+                    }
+                    IconButton {
+                        btnText: qsTr("RF tighten") + tr.str
+                        onClicked: parkbrakeNode.activateOutput(1, true);
+                    }
+                }
+                Row {
+                    IconButton {
+                        btnText: qsTr("LR release") + tr.str
+                        onClicked: parkbrakeNode.activateOutput(2, false);
+                    }
+                    IconButton {
+                        btnText: qsTr("LR tighten") + tr.str
+                        onClicked: parkbrakeNode.activateOutput(2, true);
+                    }
+                }
+                Row {
+                    IconButton {
+                        btnText: qsTr("RR release") + tr.str
+                        onClicked: parkbrakeNode.activateOutput(3, false);
+                    }
+                    IconButton {
+                        btnText: qsTr("RR tighten") + tr.str
+                        onClicked: parkbrakeNode.activateOutput(3, true);
+                    }
+                }
+            }
+
+            Row {
+                anchors.left: parent.left
+                anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                width: 450
-                TableViewColumn {
-                    role: "param"
-                    title: qsTr("Param")+ tr.str
-                    width: 200
+                IconButton {
+                    id: parkbrakeSetServiceBtn
+                    btnText: qsTr("Set service mode") + tr.str
+                    enabled: !parkbrakeNode.inServiceMode
+                    onClicked: parkbrakeNode.setServiceState(true);
                 }
-                TableViewColumn {
-                    role: "value"
-                    title: qsTr("Value")+ tr.str
-                    width: 100
+                IconButton {
+                    id: parkbrakeUnsetServiceBtn
+                    btnText: qsTr("Unset service mode") + tr.str
+                    enabled: parkbrakeNode.inServiceMode
+                    onClicked: parkbrakeNode.setServiceState(false);
                 }
-                model: testActivationModel
             }
         }
     }

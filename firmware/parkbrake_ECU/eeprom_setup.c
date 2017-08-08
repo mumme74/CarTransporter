@@ -211,12 +211,15 @@ void ee_initEeprom(void)
     initSettings();
 }
 
-void ee_saveSetting(settings_e settingsIdx)
+int ee_saveSetting(settings_e settingsIdx)
 {
     msg_t pos = settingsIdx * sizeof(settings[0]);
     if (fileStreamSeek(settingsFile, pos) == pos) {
-        EepromWriteHalfword(settingsFile, settings[settingsIdx]);
-        chEvtBroadcastFlags(&ee_settingsChanged, (eventflags_t)settingsIdx);
+        if (EepromWriteHalfword(settingsFile, settings[settingsIdx]) == 2) {
+            chEvtBroadcastFlags(&ee_settingsChanged, (eventflags_t)settingsIdx);
+            return 1;
+        }
     }
+    return 0;
 }
 

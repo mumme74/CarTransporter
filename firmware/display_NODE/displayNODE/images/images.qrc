@@ -14,5 +14,10 @@
         <file>diagnostic.svg</file>
         <file>home.svg</file>
         <file>logo.svg</file>
+        <file>ignition.svg</file>
+        <file>brake_pedal.svg</file>
+        <file>service.svg</file>
+        <file>error.svg</file>
+        <file>warning.svg</file>
     </qresource>
 </RCC>

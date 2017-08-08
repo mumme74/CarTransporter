@@ -10,5 +10,12 @@
         <file>DiagHeader.qml</file>
         <file>DiagActivation.qml</file>
         <file>helpers.js</file>
+        <file>MyNotifier.qml</file>
+        <file>SettingsHeader.qml</file>
+        <file>SettingsDisplay.qml</file>
+        <file>SettingsSuspension.qml</file>
+        <file>SettingsParkbrake.qml</file>
+        <file>SettingsSpinBox.qml</file>
+        <file>SettingsCheckBox.qml</file>
     </qresource>
 </RCC>

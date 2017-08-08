@@ -28,21 +28,14 @@ ApplicationWindow {
         visible: false
     }
 
-    Page {
+    SettingsDisplay {
         id: settingsPage
         visible: false
-        Label {
-            text: qsTr("Third page")+ tr.str
-            anchors.centerIn: parent
-        }
-
-        Row {
-         anchors.verticalCenter: parent.verticalCenter
-         Button { text: qsTr("English")+ tr.str; onClicked: tr.selectLanguage("en"); }
-         Button { text: qsTr("Swedish")+ tr.str; onClicked: tr.selectLanguage("sv"); }
-        }
     }
 
+    MyNotifier {
+        id: notifier
+    }
 
     footer: Item {
         //anchors.bottom: parent.bottom

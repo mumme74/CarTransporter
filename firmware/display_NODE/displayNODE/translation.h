@@ -16,6 +16,7 @@ public:
     QString getEmptyString();
 
     Q_INVOKABLE void selectLanguage(QString language);
+    Q_INVOKABLE const QString getLang() const;
 
 signals:
     void languageChanged();

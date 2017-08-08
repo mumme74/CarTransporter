@@ -8,12 +8,27 @@ Button {
     property real restScale: 0.6
     property string source: ""
     property string btnText: ""
+    property int iconSize: 48
     signal clicked
 
     transform: Scale { id: iconBtnTransform;
                         origin.x: 30; origin.y: 30;
                         property real scale: restScale
                         xScale: scale; yScale: scale; }
+
+    function calcSize() {
+        iconBtn.width = iconSize +10;
+        iconBtn.height = iconSize +10
+        textMetrics.text = btnText
+        if (textMetrics.advanceWidth) {
+            iconBtn.width += textMetrics.advanceWidth + 10
+            if (textMetrics.height +8 > height)
+                iconBtn.height = textMetrics.height + 8
+        }
+    }
+
+    onBtnTextChanged: calcSize(); // on retranslate event
+
     Image {
         id: icon
         anchors.left: parent.left
@@ -22,12 +37,9 @@ Button {
         anchors.verticalCenter: parent.verticalCenter
         source: parent.source
         fillMode: Image.PreserveAspectFit
-        Component.onCompleted: {
-            parent.width = icon.width +20;
-            if (textMetrics.advanceWidth)
-                parent.width += textMetrics.advanceWidth + 20
-            parent.height = icon.height +10
-        }
+        width: iconSize
+        height: iconSize
+        Component.onCompleted: calcSize();
     }
 
     Text {

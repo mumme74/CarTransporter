@@ -1,9 +1,12 @@
 #include "cannodes.h"
 #include "can_protocol.h"
+#include "park_settings.h"
 #include "control.h"
 #include <QQmlEngine>
 #include <QDebug>
 
+
+//#define TEST_DIAG 1
 
 // -------------------------------------------------------------------------------
 
@@ -344,6 +347,22 @@ void CanAbstractNode::freezeFrameArrival(int dtcNr)
     }
 }
 
+void CanAbstractNode::settingsSetArrival(int idx, quint16 vlu)
+{
+    if (m_settingsSetCallback.contains(idx)) {
+        QJSValue jsCallback = m_settingsSetCallback.take(idx);
+        jsCallback.call(QJSValueList { vlu });
+    }
+}
+
+void CanAbstractNode::settingsFetchArrival(int idx, quint16 vlu)
+{
+    if (m_settingsFetchCallback.contains(idx)) {
+        QJSValue jsCallback = m_settingsFetchCallback.take(idx);
+        jsCallback.call(QJSValueList { vlu });
+    }
+}
+
 
 /* static */
 int CanAbstractNode::pidCount(QQmlListProperty<CanPid> *list)
@@ -382,6 +401,7 @@ CanParkbrakeNode::CanParkbrakeNode(CanInterface *canInterface, QObject *parent) 
     QList<QCanBusFrame> frames;
     frames << pid1 << pid2 << pid3;
 
+#ifdef TEST_DIAG
     // ------------- test ------------------------
     // for test
     QCanBusFrame dtcLength;
@@ -434,6 +454,7 @@ CanParkbrakeNode::CanParkbrakeNode(CanInterface *canInterface, QObject *parent) 
     frames << ff0 << ff4 << ff2 << ff3 << ff1;
 
     // ------------ end test -------------------
+#endif
 
     updatedFromCan(frames);
 
@@ -574,6 +595,44 @@ void CanParkbrakeNode::setServiceState(bool service)
     m_canIface->sendFrame(f);
 }
 
+bool CanParkbrakeNode::fetchSetting(quint8 idx, QJSValue jsCallback)
+{
+    if (idx >= S_EOF)
+        return false;
+
+    if (!jsCallback.isCallable())
+        return false;
+
+    m_settingsFetchCallback.insert(idx, jsCallback);
+
+    QByteArray pl(idx & 0xFF, 1);
+    QCanBusFrame f(CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdGetConfig | C_displayNode, pl);
+    f.setExtendedFrameFormat(false);
+    m_canIface->sendFrame(f);
+    return true;
+}
+
+bool CanParkbrakeNode::setSetting(quint8 idx, quint16 vlu, QJSValue jsCallback)
+{
+    if (idx >= S_EOF)
+        return false;
+
+    if (!jsCallback.isCallable())
+        return false;
+
+    m_settingsSetCallback.insert(idx, jsCallback);
+    QByteArray pl("\0\0\0", 3);
+    pl[0] = idx;
+    pl[1] = vlu & 0xFF;
+    pl[2] = (vlu & 0xFF00) >> 8;
+    QCanBusFrame f(CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdSetConfig | C_displayNode, pl);
+    f.setExtendedFrameFormat(false);
+    m_canIface->sendFrame(f);
+    return true;
+}
+
+
+
 bool CanParkbrakeNode::inServiceMode()
 {
     bool ret;
@@ -702,7 +761,25 @@ void CanParkbrakeNode::updateCanFrame(const QCanBusFrame &frame)
 void CanParkbrakeNode::commandCanFrame(const QCanBusFrame &frame)
 {
     // when parkbrakenode sends a command frame
-    Q_UNUSED(frame);
+    QByteArray payload = frame.payload();
+    quint32 sid = frame.frameId();
+    switch (sid & CAN_MSG_ID_MASK) {
+    case C_parkbrakeCmdGetConfig: {
+        quint8 idx = payload[0];
+        quint16 vlu = (payload[2] << 8) | payload[1];
+        settingsFetchArrival(idx, vlu);
+    } break;
+    case C_parkbrakeCmdSetConfig: {
+        quint8 idx = payload[0];
+        quint8 res = payload[1];
+        settingsSetArrival(idx, res);
+
+    } break;
+    default:
+        break;
+    }
+
+
 }
 
 void CanParkbrakeNode::exceptionCanFrame(const QCanBusFrame &frame)

@@ -6,10 +6,12 @@ SOURCES += main.cpp \
     caninterface.cpp \
     canpids.cpp \
     cannodes.cpp \
-    translation.cpp
+    translation.cpp \
+    settings.cpp
 
 RESOURCES += qml/qml.qrc \
-             images/images.qrc
+             images/images.qrc \
+             sounds/sounds.qrc
 
 # Additional import path used to resolve QML modules in Qt Creator's code model
 QML_IMPORT_PATH =
@@ -39,7 +41,9 @@ HEADERS += \
     canpids.h \
     cannodes.h \
     ../../parkbrake_ECU/control.h \
-    translation.h
+    translation.h \
+    settings.h \
+    ../../parkbrake_ECU/park_settings.h
 
 INCLUDEPATH += ../../parkbrake_ECU/
 

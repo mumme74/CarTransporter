@@ -103,62 +103,99 @@ Item {
                 anchors.right: parent.right
                 spacing: 10
                 columns: 2
-                Row {
-                    IconButton {
-                        btnText: qsTr("LF release") + tr.str
-                        onClicked: parkbrakeNode.activateOutput(0, false);
+                Column {
+                    Label {
+                        color: "white"
+                        text: parkbrakeNode.getPid("LeftFront_state").valueStr
+                        anchors.horizontalCenter: parent.horizontalCenter
                     }
-                    IconButton {
-                        btnText: qsTr("LF tighten") + tr.str
-                        onClicked: parkbrakeNode.activateOutput(0, true);
-                    }
-                }
-                Row {
-                    IconButton {
-                        btnText: qsTr("RF release") + tr.str
-                        onClicked: parkbrakeNode.activateOutput(1, false);
-                    }
-                    IconButton {
-                        btnText: qsTr("RF tighten") + tr.str
-                        onClicked: parkbrakeNode.activateOutput(1, true);
+
+                    Row {
+                        IconButton {
+                            btnText: qsTr("LF release") + tr.str
+                            onClicked: parkbrakeNode.activateOutput(0, false);
+                        }
+                        IconButton {
+                            btnText: qsTr("LF tighten") + tr.str
+                            onClicked: parkbrakeNode.activateOutput(0, true);
+                        }
                     }
                 }
-                Row {
-                    IconButton {
-                        btnText: qsTr("LR release") + tr.str
-                        onClicked: parkbrakeNode.activateOutput(2, false);
+                Column {
+                    Label {
+                        color: "white"
+                        text: parkbrakeNode.getPid("RightFront_state").valueStr
+                        anchors.horizontalCenter: parent.horizontalCenter
                     }
-                    IconButton {
-                        btnText: qsTr("LR tighten") + tr.str
-                        onClicked: parkbrakeNode.activateOutput(2, true);
+                    Row {
+                        IconButton {
+                            btnText: qsTr("RF release") + tr.str
+                            onClicked: parkbrakeNode.activateOutput(1, false);
+                        }
+                        IconButton {
+                            btnText: qsTr("RF tighten") + tr.str
+                            onClicked: parkbrakeNode.activateOutput(1, true);
+                        }
                     }
                 }
-                Row {
-                    IconButton {
-                        btnText: qsTr("RR release") + tr.str
-                        onClicked: parkbrakeNode.activateOutput(3, false);
+                Column {
+                    Label {
+                        color: "white"
+                        text: parkbrakeNode.getPid("LeftRear_state").valueStr
+                        anchors.horizontalCenter: parent.horizontalCenter
                     }
-                    IconButton {
-                        btnText: qsTr("RR tighten") + tr.str
-                        onClicked: parkbrakeNode.activateOutput(3, true);
+                    Row {
+                        IconButton {
+                            btnText: qsTr("LR release") + tr.str
+                            onClicked: parkbrakeNode.activateOutput(2, false);
+                        }
+                        IconButton {
+                            btnText: qsTr("LR tighten") + tr.str
+                            onClicked: parkbrakeNode.activateOutput(2, true);
+                        }
+                    }
+                }
+                Column {
+                    Label {
+                        color: "white"
+                        text: parkbrakeNode.getPid("RightRear_state").valueStr
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+                    Row {
+                        IconButton {
+                            btnText: qsTr("RR release") + tr.str
+                            onClicked: parkbrakeNode.activateOutput(3, false);
+                        }
+                        IconButton {
+                            btnText: qsTr("RR tighten") + tr.str
+                            onClicked: parkbrakeNode.activateOutput(3, true);
+                        }
                     }
                 }
             }
 
             Row {
+                id: parkbrakeServiceGrid
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
+                anchors.bottomMargin: 50
+
+                Label {
+                    color: "white"
+                    text: qsTr("Service mode: %1").arg(parkbrakeNode.serviceMode) + tr.str
+                }
+
                 IconButton {
                     id: parkbrakeSetServiceBtn
                     btnText: qsTr("Set service mode") + tr.str
-                    enabled: !parkbrakeNode.inServiceMode
+                    enabled: !parkbrakeNode.serviceMode
                     onClicked: parkbrakeNode.setServiceState(true);
                 }
                 IconButton {
                     id: parkbrakeUnsetServiceBtn
                     btnText: qsTr("Unset service mode") + tr.str
-                    enabled: parkbrakeNode.inServiceMode
+                    enabled: parkbrakeNode.serviceMode
                     onClicked: parkbrakeNode.setServiceState(false);
                 }
             }

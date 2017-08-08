@@ -4,7 +4,7 @@ import "helpers.js" as Helpers
 
 TabBar {
     id: tabBar
-    readonly property string name: "DiagTabs"
+    readonly property string name: "DiagHeader"
     property StackView view
     property ApplicationWindow globalApp
     height: 45

@@ -5,6 +5,7 @@ var _initObj = {
     globalApp: null,
     mainView: null,
     diagHeader: null,
+    settingsHeader: null,
     forwardBtn: null
 };
 
@@ -19,19 +20,27 @@ function mainView() { return _initObj.mainView; }
 function globalApp() { return _initObj.globalApp; }
 
 function switchToDiagHeader(page) {
+    switchToHeader("DiagHeader", page, "diagHeader");
+}
+
+function switchToSettingsHeader(page) {
+    switchToHeader("SettingsHeader", page, "settingsHeader");
+}
+
+function switchToHeader(headerName, page, initObjMember) {
     if (!page || !page.visible)
         return;
-    if (!globalApp().header || !globalApp().header.name !== "DiagTabs") {
-        if (!_initObj.diagHeader) {
-            var comp = Qt.createComponent("DiagHeader.qml");
-            _initObj.diagHeader = comp.createObject(globalApp());
+    if (!globalApp().header || !globalApp().header.name !== headerName) {
+        if (!_initObj[initObjMember]) {
+            var comp = Qt.createComponent(headerName + ".qml");
+            _initObj[initObjMember] = comp.createObject(globalApp());
         }
-        globalApp().header = _initObj.diagHeader;
-        _initObj.diagHeader.visible = true;
+        globalApp().header = _initObj[initObjMember];
+        _initObj[initObjMember].visible = true;
         mainView().anchors.top = globalApp().header.bottom;
-        _initObj.diagHeader.anchors.right = globalApp.right;
-        _initObj.diagHeader.anchors.left = globalApp.left;
-        _initObj.diagHeader.anchors.top = globalApp.top;
+        _initObj[initObjMember].anchors.right = globalApp.right;
+        _initObj[initObjMember].anchors.left = globalApp.left;
+        _initObj[initObjMember].anchors.top = globalApp.top;
     }
 }
 

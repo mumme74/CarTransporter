@@ -37,3 +37,9 @@ void Translation::selectLanguage(QString language)
 
     emit languageChanged();
 }
+
+const QString Translation::getLang() const
+{
+    QSettings set;
+    return set.value("language", "en").toString();
+}

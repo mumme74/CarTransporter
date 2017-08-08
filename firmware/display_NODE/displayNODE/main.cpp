@@ -4,6 +4,7 @@
 #include <QSettings>
 #include "caninterface.h"
 #include "translation.h"
+#include "settings.h"
 #include "cannodes.h"
 
 
@@ -31,10 +32,13 @@ int main(int argc, char *argv[])
     CanParkbrakeNode parkbrakeNode(&canIface);
     CanPids canPidsModel;
 
+    Settings settings;
+
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty("tr", &transObj);
     engine.rootContext()->setContextProperty("parkbrakeNode", &parkbrakeNode);
     engine.rootContext()->setContextProperty("canPidsModel", &canPidsModel);
+    engine.rootContext()->setContextProperty("settings", &settings);
 
 
     qmlRegisterInterface<CanPid>("CanDtc");

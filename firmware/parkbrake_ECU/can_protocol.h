@@ -58,9 +58,12 @@ typedef enum  {
 
     C_parkbrakeCmd_first             = 0x10 << 3,
 
-    C_parkbrakeCmdSetConfig          = 0x10 << 3, // b0=configvalue in enum, b2:b3 value as uint16_t little endian
-                                                  // response b0=1 if ok, b0=0 on fail
-    C_parkbrakeCmdGetConfig          = 0x11 << 3, // RTR, b0=configValue in enum, b2:b3 value as uint16_t little endian
+    C_parkbrakeCmdSetConfig          = 0x10 << 3, // request: b0=configvalue in enum, b2:b3 value as uint16_t little endian
+                                                  // response:
+                                                  //  b0=configvalue in enum, b1=1 if ok, b1=0 on fail
+    C_parkbrakeCmdGetConfig          = 0x11 << 3, // request b0=configValue in enum
+                                                  // response:
+                                                  // b0=configValue in enum, b2:b3 value as uint16_t little endian
     C_parkbrakeCmdServiceSet         = 0x12 << 3, // RTR, Look for update on PID to see if state changed, asyncronous
     C_parkbrakeCmdServiceUnset       = 0x13 << 3, // RTR, --" same as above "--
     C_parkbrakeCmdGetState           = 0x14 << 3, // RTR, get the state of each wheel,

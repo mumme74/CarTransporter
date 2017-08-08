@@ -149,7 +149,14 @@ static void processRx(CANRxFrame *rxf)
             }
             uint16_t vlu = rxf->data8[1] & (rxf->data8[2] << 8); // little endian
             ee_changeSetting(idx, vlu);
-            ee_saveSetting(idx);
+            int res = ee_saveSetting(idx);
+            CANTxFrame txf;
+            can_initTxFrame(&txf, CAN_MSG_TYPE_COMMAND, C_parkbrakeCmdSetConfig);
+            txf.DLC = 2;
+            txf.data8[idx];
+            txf[1] = res;
+            canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, MS2ST(10));
+
         } return;
         case C_parkbrakeCmdGetConfig: {
             if (rxf->DLC != 1) {
@@ -164,7 +171,7 @@ static void processRx(CANRxFrame *rxf)
 
             //is valid, send response
             CANTxFrame txf;
-            can_initTxFrame(&txf, CAN_MSG_TYPE_COMMAND, sid);
+            can_initTxFrame(&txf, CAN_MSG_TYPE_COMMAND, C_parkbrakeCmdGetConfig);
             txf.DLC = 3;
             txf.data8[0] = idx;
             txf.data8[1] = settings[idx] & 0x00FF; // little byte first
@@ -176,7 +183,7 @@ static void processRx(CANRxFrame *rxf)
             if (!isRemoteFrame(rxf))
                 return;
             CANTxFrame txf;
-            can_initTxFrame(&txf, CAN_MSG_TYPE_COMMAND, sid);
+            can_initTxFrame(&txf, CAN_MSG_TYPE_COMMAND, C_parkbrakeCmdGetState);
             txf.DLC = 4;
             txf.data8[0] = ctrl_getState(LeftFront);
             txf.data8[1] = ctrl_getState(RightFront);

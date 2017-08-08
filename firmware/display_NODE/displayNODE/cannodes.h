@@ -125,12 +125,15 @@ protected:
     void setTempPid(QString key, quint8 temp, PidStore &pidStore);
 
     void dtcOnArrival(int dtcIdx);
-
     void freezeFrameArrival(int dtcNr);
+    void settingsFetchArrival(int idx, quint16 vlu);
+    void settingsSetArrival(int idx, quint16 vlu);
 
     // this is a stack for callbacks to invoke when DTC arrives from CAN bus
     QMap<int, QJSValue> m_dtcFetchCallback;
     QMap<int, QJSValue> m_freezeFrameFetchCallback;
+    QMap<int, QJSValue> m_settingsFetchCallback;
+    QMap<int, QJSValue> m_settingsSetCallback;
 
 
     PidStore m_pids;
@@ -149,7 +152,7 @@ private:
 class CanParkbrakeNode : public CanAbstractNode
 {
     Q_OBJECT
-    Q_PROPERTY(bool inServiceMode READ inServiceMode NOTIFY serviceModeChanged)
+    Q_PROPERTY(bool serviceMode READ inServiceMode NOTIFY serviceModeChanged)
 public:
     explicit CanParkbrakeNode(CanInterface *canInterface, QObject *parent = nullptr);
     virtual ~CanParkbrakeNode();
@@ -165,6 +168,9 @@ public:
     Q_INVOKABLE bool activateOutput(int wheel, bool tighten) const;
 
     Q_INVOKABLE void setServiceState(bool service);
+
+    Q_INVOKABLE bool fetchSetting(quint8 idx, QJSValue jsCallback);
+    Q_INVOKABLE bool setSetting(quint8 idx, quint16 vlu, QJSValue jsCallback);
 
 public slots:
     bool inServiceMode();

@@ -182,42 +182,61 @@ can_userError_e HeightController::setRearWheels(bool lift)
   return C_userErrorSuckedRearWheelBlocked;
 }
 
-void HeightController::setConfig(Configs cfg, store::byte4 value)
+int HeightController::setConfig(Configs cfg, store::byte4 value)
 {
   switch (cfg) {
-    case Configs::KP_factor_float:
+    case Configs::KP_factor_float: {
       m_p = value.decimal;
-      break;
-    case Configs::KI_factor_float:
+      store::write4_to_eeprom(store::Suspension::HEIGHT_KP_ADR, value);
+    } break;
+    case Configs::KI_factor_float: {
       m_i = value.decimal;
-      break;
-    case Configs::KD_factor_float:
+      store::write4_to_eeprom(store::Suspension::HEIGHT_KI_ADR, value);
+    } break;
+    case Configs::KD_factor_float: {
       m_d = value.decimal;
-      break;
-    case Configs::LeftLowSetpoint_uint16:
+      store::write4_to_eeprom(store::Suspension::HEIGHT_KD_ADR, value);
+    } break;
+    case Configs::LeftLowSetpoint_uint16: {
       m_leftLowSetpoint = static_cast<uint16_t>(value.uint32);
-      break;
-    case Configs::LeftNormalSetpoint_uint16:
+      store::byte2 b2;
+      store::write2_to_eeprom(store::Suspension::HEIGHT_LEFT_LOW_ADR, b2);
+    } break;
+    case Configs::LeftNormalSetpoint_uint16: {
       m_leftNormalSetpoint = static_cast<uint16_t>(value.uint32);
-      break;
-    case Configs::LeftHighSetpoint_uint16:
+      store::byte2 b2;
+      store::write2_to_eeprom(store::Suspension::HEIGHT_LEFT_NORMAL_ADR, b2);
+    } break;
+    case Configs::LeftHighSetpoint_uint16: {
       m_leftHighSetpoint = static_cast<uint16_t>(value.uint32);
-      break;
-    case Configs::RightLowSetpoint_uint16:
+      store::byte2 b2;
+      store::write2_to_eeprom(store::Suspension::HEIGHT_LEFT_HIGH_ADR, b2);
+    } break;
+    case Configs::RightLowSetpoint_uint16: {
       m_rightLowSetpoint = static_cast<uint16_t>(value.uint32);
-      break;
-    case Configs::RightNormalSetpoint_uint16:
+      store::byte2 b2;
+      store::write2_to_eeprom(store::Suspension::HEIGHT_RIGHT_LOW_ADR, b2);
+    } break;
+    case Configs::RightNormalSetpoint_uint16: {
       m_rightNormalSetpoint = static_cast<uint16_t>(value.uint32);
-      break;
-    case Configs::RightHighSetpoint_uint16:
+      store::byte2 b2;
+      store::write2_to_eeprom(store::Suspension::HEIGHT_RIGHT_NORMAL_ADR, b2);
+    } break;
+    case Configs::RightHighSetpoint_uint16: {
       m_rightHighSetpoint = static_cast<uint16_t>(value.uint32);
-      break;
-    case Configs::DeadWeight_uint16:
+      store::byte2 b2;
+      store::write2_to_eeprom(store::Suspension::HEIGHT_RIGHT_HIGH_ADR, b2);
+    } break;
+    case Configs::DeadWeight_uint16: {
       m_deadWeight = static_cast<uint16_t>(value.uint32);
-      break;
-    case Configs::DeadBand_uint16:
+      store::byte2 b2;
+      store::write2_to_eeprom(store::Suspension::HEIGHT_DEAD_WEIGHT_ADR, b2);
+    } break;
+    case Configs::DeadBand_uint16: {
       m_deadBand = static_cast<uint16_t>(value.uint32);
-      break;
+      store::byte2 b2;
+      store::write2_to_eeprom(store::Suspension::HEIGHT_DEAD_BAND_ADR, b2);
+    } break;
     case Configs::CylDia_mm: {
       store::byte2 b2;
       b2.uint16 = static_cast<uint16_t>(value.uint32);
@@ -225,10 +244,13 @@ void HeightController::setConfig(Configs cfg, store::byte4 value)
       calcCylArea(); // update weight calc params
 
     }  break;
-    default: ; // ignore
+    default:
+        return 0; // ignore
   }
+  return 1;
 }
 
+/*
 void HeightController::saveSettings()
 {
   store::byte2 b2;
@@ -255,12 +277,13 @@ void HeightController::saveSettings()
 
   store::byte4 b4;
   b4.decimal = m_p;
-  store::write4_to_eeprom(store::Suspension::HEIGHT_KD_ADR, b4);
+  store::write4_to_eeprom(store::Suspension::HEIGHT_KP_ADR, b4);
   b4.decimal = m_i;
   store::write4_to_eeprom(store::Suspension::HEIGHT_KI_ADR, b4);
   b4.decimal = m_d;
-  store::write4_to_eeprom(store::Suspension::HEIGHT_KP_ADR, b4);
+  store::write4_to_eeprom(store::Suspension::HEIGHT_KD_ADR, b4);
 }
+*/
 
 store::byte4 HeightController::getConfig(Configs cfg)
 {

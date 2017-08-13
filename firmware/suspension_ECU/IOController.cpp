@@ -52,19 +52,22 @@ void CAN::IOController::_recievedCommand(CAN_message_t *msg,
     } break;
     case C_suspensionCmdSetRearWheelsUp: {
       bool up = msg->buf[0] > 0;
-      this->_init_CAN_message_t(msg, 10);
       exc = heightStateMachine.setRearWheels(up);
       if (exc != C_userErrorNone)
           _sendUserError(exc);
     } break;
     case C_suspensionCmdSetConfig: {
-      heightStateMachine.setConfig(cfgId, valueB4);
+      int res = heightStateMachine.setConfig(cfgId, valueB4);
+      _init_CAN_message_t(msg, 10);
+      msg->id = CAN_MSG_TYPE_COMMAND | C_suspensionCmdSetConfig | m_senderId;
+      msg->buf[msg->len++] = cfgId;
+      msg->buf[msg->len++] = res & 0xFF;
     } break;
     case C_suspensionCmdGetConfig: {
       valueB4 = heightStateMachine.getConfig(cfgId);
 
-      this->_init_CAN_message_t(msg, 10);
-      msg->id = C_suspensionCmdGetConfig;
+      _init_CAN_message_t(msg, 10);
+      msg->id = CAN_MSG_TYPE_COMMAND | C_suspensionCmdGetConfig | m_senderId;
       msg->buf[msg->len++] = cfgId;
       // need to make sure it send little endian
       uint32_t vlu = valueB4.uint32;
@@ -76,9 +79,11 @@ void CAN::IOController::_recievedCommand(CAN_message_t *msg,
       }
       send(*msg);
     } break;
+    /*
     case C_suspensionCmdSaveConfig: {
       heightStateMachine.saveSettings();
     } break;
+    */
     default: // ignore
       break;
   }
@@ -109,7 +114,7 @@ void CAN::IOController::_sendUserError(can_userError_e exc)
 {
     CAN_message_t msg;
     _init_CAN_message_t(&msg, 10);
-    msg.id = C_suspensionExcUserError;
+    msg.id = CAN_MSG_TYPE_EXCEPTION | C_suspensionExcUserError | m_senderId;
     // little endian
     msg.buf[msg.len++] = (exc & 0x00FF) >> 0;
     msg.buf[msg.len++] = (exc & 0xFF00) >> 8;

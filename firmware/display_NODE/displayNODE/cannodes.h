@@ -12,9 +12,10 @@ class CanDtc : public QObject
     Q_PROPERTY(int storedNr READ storedNr)
     Q_PROPERTY(int dtcCode READ dtcCode)
     Q_PROPERTY(QString dtcCodeStr READ dtcCodeStr)
-    Q_PROPERTY(int occurences READ occurences)
+    Q_PROPERTY(int occurences READ occurences NOTIFY occurencesChanged)
     Q_PROPERTY(int timeSinceStartup READ timeSinceStartup)
     Q_PROPERTY(QString dtcDescription READ dtcDescription)
+    Q_PROPERTY(bool isPending READ isPending NOTIFY pendingChanged)
 
 public:
     CanDtc();
@@ -29,12 +30,19 @@ public:
     int occurences() const;
     void setOccurences(int occurences);
     int timeSinceStartup() const;
+    bool isPending() const;
+    void setPending(bool pending);
+
+signals:
+    void occurencesChanged();
+    void pendingChanged();
 
 private:
     int m_storedNr;
     int m_dtcCode;
     int m_occurences;
     int m_timeSinceStartup;
+    bool m_pending;
 };
 
 Q_DECLARE_METATYPE(CanDtc)
@@ -128,6 +136,8 @@ protected:
     void freezeFrameArrival(int dtcNr);
     void settingsFetchArrival(int idx, quint16 vlu);
     void settingsSetArrival(int idx, quint16 vlu);
+    void settingsFetchArrivalFloat(int idx, float vlu);
+    void settingsSetArrivalFloat(int idx, float vlu);
 
     // this is a stack for callbacks to invoke when DTC arrives from CAN bus
     QMap<int, QJSValue> m_dtcFetchCallback;
@@ -148,54 +158,6 @@ private:
 };
 
 // ----------------------------------------------------------------------------------
-
-class CanParkbrakeNode : public CanAbstractNode
-{
-    Q_OBJECT
-    Q_PROPERTY(bool serviceMode READ inServiceMode NOTIFY serviceModeChanged)
-public:
-    explicit CanParkbrakeNode(CanInterface *canInterface, QObject *parent = nullptr);
-    virtual ~CanParkbrakeNode();
-
-    Q_INVOKABLE bool hasProperty(const QString &key);
-
-    Q_INVOKABLE bool fetchDtc(int storedIdx, QJSValue jsCallback);
-    Q_INVOKABLE void fetchAllDtcs();
-    Q_INVOKABLE void clearAllDtcs();
-
-    Q_INVOKABLE bool fetchFreezeFrame(int dtcNr, QJSValue jsCallback);
-
-    Q_INVOKABLE bool activateOutput(int wheel, bool tighten) const;
-
-    Q_INVOKABLE void setServiceState(bool service);
-
-    Q_INVOKABLE bool fetchSetting(quint8 idx, QJSValue jsCallback);
-    Q_INVOKABLE bool setSetting(quint8 idx, quint16 vlu, QJSValue jsCallback);
-
-public slots:
-    bool inServiceMode();
-
-signals:
-    void serviceModeChanged(bool service);
-    void userErrorIgnOff();
-    void userErrorBrakeOff();
-    void userErrorBtnInvOff();
-    void userError(int userError);
-    void newDtcSet(CanDtc *dtc);
-
-protected slots:
-    void updatedFromCan(QList<QCanBusFrame> &frames);
-
-private:
-    bool m_inServiceState;
-    void updateCanFrame(const QCanBusFrame &frame);
-    void commandCanFrame(const QCanBusFrame &frame);
-    void exceptionCanFrame(const QCanBusFrame &frame);
-    void diagCanFrame(const QCanBusFrame &frame);
-
-    void setStatePid(QString key, quint8 state, PidStore &pidStore);
-    void setWheelRevs(QString key, quint8 rev, PidStore &pidStore);
-};
 
 
 

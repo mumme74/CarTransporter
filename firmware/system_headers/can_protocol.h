@@ -81,7 +81,9 @@ typedef enum  {
                                                    // request:
                                                    //     [0:7]       [0:16 or 0:31]
                                                    //   Configs id      data (as float or uint)
-                                                   // no response for this frame, use timeout and getConfig
+                                                   // response:
+                                                   //     [0:7]         [0:7]
+                                                   //   Configs id     result 1 if success, 0 on failure
 
     C_suspensionCmdGetConfig         = 0x21 << 3,  // get current config, byte 0=command
                                                    // request:
@@ -92,7 +94,7 @@ typedef enum  {
                                                    //  [0:7]            [0:15 or 0:31]
                                                    // Configs id        data (as float or uint)
 
-    C_suspensionCmdSaveConfig        = 0x22 << 3,  // Save config to suspensionECU EEPROM
+    //C_suspensionCmdSaveConfig        = 0x22 << 3,  // Save config to suspensionECU EEPROM
 
     C_suspensionCmd_last             = 0x29 << 3,
 

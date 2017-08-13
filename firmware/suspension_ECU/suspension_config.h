@@ -25,6 +25,7 @@ enum Configs : uint8_t {
   DeadWeight_uint16 = 10,
   DeadBand_uint16 = 11,
   CylDia_mm  = 12,
+  ConfigEnd,
 };
 
 

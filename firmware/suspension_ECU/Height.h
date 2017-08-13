@@ -84,8 +84,8 @@ public:
   can_userError_e setRearWheels(bool lift);
   bool rearWheels() const { return m_sucked; }
 
-  void setConfig(Configs cfg, store::byte4 value);
-  void saveSettings(); // stores settings in eeprom
+  int setConfig(Configs cfg, store::byte4 value);
+  //void saveSettings(); // stores settings in eeprom
   store::byte4 getConfig(Configs cfg);
 
   void init();

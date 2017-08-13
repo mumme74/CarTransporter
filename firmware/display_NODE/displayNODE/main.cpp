@@ -6,6 +6,7 @@
 #include "translation.h"
 #include "settings.h"
 #include "cannodes.h"
+#include "canparkbrakenode.h"
 
 
 //QQmlApplicationEngine *qmlEngine = nullptr;

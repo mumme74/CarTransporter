@@ -7,12 +7,13 @@
 
 #ifndef ADRESSES_H_
 #define ADRESSES_H_
+#include <stdint.h>
 
 /**
  * This file acts as a common database for inputs-outputs adresses systemwide
  * adresses are a system wide unique ID to each thing
  */
-enum struct Adresses : uint16_t {
+enum Adresses : uint8_t {
     // suspension ecu outputs
     leftFill = 1,
     leftDump = 2,

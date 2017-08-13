@@ -37,15 +37,16 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 HEADERS += \
     caninterface.h \
-    ../../parkbrake_ECU/can_protocol.h \
     canpids.h \
     cannodes.h \
-    ../../parkbrake_ECU/control.h \
     translation.h \
     settings.h \
-    ../../parkbrake_ECU/park_settings.h
+    ../../parkbrake_ECU/control.h \
+    ../../parkbrake_ECU/park_settings.h \
+    ../../system_headers/can_protocol.h
 
-INCLUDEPATH += ../../parkbrake_ECU/
+INCLUDEPATH += ../../parkbrake_ECU/ \
+               ../../system_headers/
 
 TRANSLATIONS.path = ts/
 TRANSLATIONS += ts_sv.ts
@@ -56,6 +57,11 @@ first.depends = $(first) copydata
 export(first.depends)
 export(copydata.commands)
 QMAKE_EXTRA_TARGETS += first copydata
+
+# add make action ie make install_pi
+install_pi.commands = bash $$PWD/install-on-pi.bash
+export(install_pi)
+QMAKE_EXTRA_TARGETS += install_pi
 
 
 INSTALLS += TRANSLATIONS

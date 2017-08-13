@@ -91,6 +91,10 @@ C_EXTRAFLAGS += -DTRACE_MODE=yes
 # Imported source files and paths
 CHIBIOS = $(HOME)/workspace/ChibiOS_17.6.0
 CHIBIOS_CONTRIB = $(CHIBIOS)/community
+
+#system things
+SYSTEM_HEADERS = $(HOME)/elektronik/CarTransporter/firmware/system_headers/
+
 # Startup files.
 include $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC/mk/startup_stm32f3xx.mk
 # HAL-OSAL files (optional).
@@ -165,7 +169,8 @@ INCDIR = $(CHIBIOS)/os/license \
          $(PLATFORMINC) \
          $(BOARDINC) \
          $(STREAMSINC) \
-         $(CHIBIOS)/os/various
+         $(CHIBIOS)/os/various \
+         $(SYSTEM_HEADERS)
 
 #
 # Project, sources and paths

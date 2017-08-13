@@ -153,8 +153,8 @@ static void processRx(CANRxFrame *rxf)
             CANTxFrame txf;
             can_initTxFrame(&txf, CAN_MSG_TYPE_COMMAND, C_parkbrakeCmdSetConfig);
             txf.DLC = 2;
-            txf.data8[idx];
-            txf[1] = res;
+            txf.data8[0] = idx;
+            txf.data8[1] = res;
             canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, MS2ST(10));
 
         } return;

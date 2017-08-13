@@ -7,11 +7,16 @@
 
 #include "CAN.h"
 #include "Outputs.h"
+#include "can_protocol.h"
+#include <Arduino.h>
+#include "suspension_adresses.h"
 
 namespace CAN {
 
+static const uint8_t MAX_FRAME_COUNT = 64;
+
 struct Frame_t {
-  const msgIdsUpdate msgId;
+  const can_msgIdsUpdate_e msgId;
   const uint8_t len;
   const PIDs::IDs *ids;
 };
@@ -20,7 +25,7 @@ struct PidID_to_Frame_t {
   Frame_t *frame;
 };
 struct msgId_to_Frame_t {
-  const msgIdsUpdate msgId;
+  const can_msgIdsUpdate_e msgId;
   const Frame_t *frame;
 };
 
@@ -44,7 +49,7 @@ PIDs::IDs SuspensionPID1ids [] = {
     PIDs::IDs::compressorPWM_8bit,
 };
 Frame_t SuspensionPID_1_Frame8bit = {
-  msgIdsUpdate::suspensionPID_1,
+  C_suspensionUpdPID_1,
   8, // number of pids in this frame
   SuspensionPID1ids
 };
@@ -58,7 +63,7 @@ PIDs::IDs SuspensionPID2ids [] = {
     PIDs::IDs::suspensionSpare1PWM_8bit, // 8byte
 };
 Frame_t SuspensionPID_2_FrameMixed = {
-  msgIdsUpdate::suspensionPID_2,
+  C_suspensionUpdPID_2,
   5, // number of pids in this frame
   SuspensionPID2ids
 };
@@ -71,32 +76,33 @@ PIDs::IDs SuspensionPID3ids[] = {
     PIDs::IDs::suspensionSpareAnalog1_12bit, // 8byte
 };
 Frame_t SuspensionPID_3_FrameMixed = {
-  msgIdsUpdate::suspensionPID_3,
+  C_suspensionUpdPID_3,
   4, // number of pids in this frame
   SuspensionPID3ids
 };
 Frame_t *SuspensionPID_3_FrameMixedPtr = &SuspensionPID_3_FrameMixed;
 
 PIDs::IDs SuspensionPID4ids[] = {
-    PIDs::IDs::airFeedState_32bit, // 4byte
-    PIDs::IDs::heightState_32bit, // 8byte
+    PIDs::IDs::airFeedState_16bit, // 2byte
+    PIDs::IDs::heightState_16bit, // 4byte
+    PIDs::IDs::loadWeight_16bit,  // 6byte
 };
-Frame_t SuspensionPID_4_Frame32bit[] = {
-  msgIdsUpdate::suspensionPID_4,
-  2, // number of pids in this frame
+Frame_t SuspensionPID_4_Frame16bit[] = {
+  C_suspensionUpdPID_4,
+  3, // number of pids in this frame
   SuspensionPID4ids
 };
-Frame_t *SuspensionPID_4_Frame32bitPtr = SuspensionPID_4_Frame32bit;
+Frame_t *SuspensionPID_4_Frame16bitPtr = SuspensionPID_4_Frame16bit;
 
 // used when we want to seek for the frame and have msgId
 msgId_to_Frame_t FramesTable[] = {
-    { msgIdsUpdate::suspensionPID_1, CAN::SuspensionPID_1_Frame8bitPtr },
-    { msgIdsUpdate::suspensionPID_2, CAN::SuspensionPID_2_FrameMixedPtr },
-    { msgIdsUpdate::suspensionPID_3, CAN::SuspensionPID_3_FrameMixedPtr },
-    { msgIdsUpdate::suspensionPID_4, CAN::SuspensionPID_4_Frame32bitPtr },
+    { C_suspensionUpdPID_1, CAN::SuspensionPID_1_Frame8bitPtr },
+    { C_suspensionUpdPID_2, CAN::SuspensionPID_2_FrameMixedPtr },
+    { C_suspensionUpdPID_3, CAN::SuspensionPID_3_FrameMixedPtr },
+    { C_suspensionUpdPID_4, CAN::SuspensionPID_4_Frame16bitPtr },
 
     // this empty carrier signifies the end
-    { msgIdsUpdate::NoUpdateFrame, nullptr }
+    { C_NoUpdateFrame, nullptr }
 };
 // Used when we have a pid id and want to know the frame
 PidID_to_Frame_t ID_to_FrameTable[] = {
@@ -124,8 +130,8 @@ PidID_to_Frame_t ID_to_FrameTable[] = {
     { PIDs::IDs::suspensionSpareAnalog1_12bit, CAN::SuspensionPID_3_FrameMixedPtr },
 
     // suspension frame4
-    { PIDs::IDs::airFeedState_32bit, CAN::SuspensionPID_4_Frame32bitPtr },
-    { PIDs::IDs::heightState_32bit, CAN::SuspensionPID_4_Frame32bitPtr },
+    { PIDs::IDs::airFeedState_16bit, CAN::SuspensionPID_4_Frame16bitPtr },
+    { PIDs::IDs::heightState_16bit, CAN::SuspensionPID_4_Frame16bitPtr },
 
     // this empty carrier signifies the end
     { PIDs::IDs::Nothing, nullptr }
@@ -144,11 +150,11 @@ const Frame_t *frame_from_id(PIDs::IDs id){
 }
 
 /**
- * Find the frame for this maessageId
+ * Find the frame for this messageId
  */
-const Frame_t *frame_from_msgId(msgIdsUpdate msgId) {
+const Frame_t *frame_from_msgId(can_msgIdsUpdate_e msgId) {
   for (int i = 0; i < MAX_FRAME_COUNT; ++i) {
-    if (FramesTable[i].msgId == msgIdsUpdate::NoUpdateFrame)
+    if (FramesTable[i].msgId == C_NoUpdateFrame)
       return nullptr;
     if (FramesTable[i].msgId == msgId)
       return FramesTable[i].frame;
@@ -159,10 +165,10 @@ const Frame_t *frame_from_msgId(msgIdsUpdate msgId) {
 /**
  * Get the msgId for a given PID.id
  */
-msgIdsUpdate msgId_from_ID(PIDs::IDs id) {
+can_msgIdsUpdate_e msgId_from_ID(PIDs::IDs id) {
    for (int i = 0; i < MAX_FRAME_COUNT; ++i){
-     if (FramesTable[i].msgId == msgIdsUpdate::NoUpdateFrame)
-       return msgIdsUpdate::NoUpdateFrame;
+     if (FramesTable[i].msgId == C_NoUpdateFrame)
+       return C_NoUpdateFrame;
 
      const Frame_t *frame = FramesTable[i].frame;
      for (int j = 0;i < frame->len; ++j) {
@@ -175,21 +181,26 @@ msgIdsUpdate msgId_from_ID(PIDs::IDs id) {
      }
    }
 
-   return msgIdsUpdate::NoUpdateFrame;
+   return C_NoUpdateFrame;
  }
 
-CAN::ControllerBase::ControllerBase (senderIds nodeId) :
-  m_can(baudRate), // Baud
-  m_senderId(static_cast<uint8_t>(nodeId))
+} // namespace CAN
+
+using namespace CAN;
+
+ControllerBase::ControllerBase (can_senderIds_e nodeId) :
+   m_senderId(nodeId & 0xFF)
+{
+    m_can.begin(baudRate);
+}
+
+ControllerBase::~ControllerBase ()
 {
 }
 
-CAN::ControllerBase::~ControllerBase ()
-{
-}
-
-void CAN::ControllerBase::_recievedUpdate(CAN_message_t *msg,
-                                        senderIds /*senderId*/, msgIdsUpdate msgId)
+// as in request for PID value
+void ControllerBase::_recievedUpdate(CAN_message_t *msg,
+                                        can_senderIds_e /*senderId*/, can_msgIdsUpdate_e msgId)
 {
   // find the correct frame
   const Frame_t *frame = frame_from_msgId(msgId);
@@ -197,7 +208,8 @@ void CAN::ControllerBase::_recievedUpdate(CAN_message_t *msg,
     return;
 
   // read each pid from the msg bytes
-  for (int i = 0, byteCnt = 0; i < 8; ++i) {
+  int byteCnt = 0;
+  for (int i = 0; i < 8; ++i) {
       PIDs::IDs id = frame->ids[i];
       if (id == PIDs::IDs::Nothing) {
           break;
@@ -207,32 +219,36 @@ void CAN::ControllerBase::_recievedUpdate(CAN_message_t *msg,
       if (pid != nullptr) {
           PID::byteSizes siz = pid->size();
           switch(siz) {
-            case PID::byteSizes::oneByte:
-              pid->setRawValue(msg->buf[byteCnt++]);
-              break;
-            case PID::byteSizes::twoByte:
-              // big endian, highest byte first
-              uint16_t vlu16;
-              vlu16 = msg->buf[byteCnt++] << 8;
-              vlu16 |= msg->buf[byteCnt++];
-              pid->setRawValue(vlu16);
-              break;
+            case PID::byteSizes::oneByte: {
+              uint16_t vlu = pid->rawValue();
+              msg->buf[byteCnt++] = vlu & 0x00FF;
+            } break;
+            case PID::byteSizes::twoByte: {
+              // little endian, LSB byte first
+              uint16_t vlu = pid->rawValue();
+              msg->buf[byteCnt++] = (vlu & 0x00FF) << 0;
+              msg->buf[byteCnt++] = (vlu & 0xFF00) << 8;
+            } break;
             case PID::byteSizes::fourByte:
-              // big endian, highest byte first
-              uint32_t vlu32;
-              vlu32 = msg->buf[byteCnt++] << 24;
-              vlu32 |= msg->buf[byteCnt++] << 16;
-              vlu32 |= msg->buf[byteCnt++] << 8;
-              vlu32 |= msg->buf[byteCnt++];
-              static_cast<PID::State*>(pid)->setRawData32(vlu32);
+              // little endian, LSB byte first
+              uint32_t vlu32 = pid->rawData32();
+              msg->buf[byteCnt++] = (vlu32 & 0x000000FF) << 0;
+              msg->buf[byteCnt++] = (vlu32 & 0x0000FF00) << 8;
+              msg->buf[byteCnt++] = (vlu32 & 0x00FF0000) << 16;
+              msg->buf[byteCnt++] = (vlu32 & 0xFF000000) << 24;
               break;
           }
       }
   }
+
+  _init_CAN_message_t(msg, 5);
+  msg->id = CAN_MSG_TYPE_UPDATE | msgId | m_senderId;
+  msg->len = byteCnt;
+  send(*msg);
 }
 
-void CAN::ControllerBase::_recievedDiagnose(CAN_message_t *msg,
-                                          senderIds senderId, msgIdsDiag msgId)
+void ControllerBase::_recievedDiagnose(CAN_message_t *msg,
+                                          can_senderIds_e senderId, can_msgIdsDiag_e msgId)
 {
   // each node start at 0 or 6 to get the reciever node id
   uint16_t action, recieverNodeId;
@@ -244,91 +260,164 @@ void CAN::ControllerBase::_recievedDiagnose(CAN_message_t *msg,
 
     uint16_t id = 0;
 
-    switch(_normalizeAction(action)) {
-      case 0: // DTC Length
+    switch(action) {
+      case C_suspensionDiagDTCLength: { // DTC Length
         _init_CAN_message_t(msg, 40); // 40ms timeout to make sure it reaches our destination
         msg->buf[msg->len++] = static_cast<uint8_t>(DTCs.store.length());
         ++action;
-        msg->id = msgTypeDiagMask & (recieverNodeId << 7) & (action << 3);
+        msg->id = CAN_MSG_TYPE_DIAG | C_suspensionDiagDTCLength | m_senderId;
         this->send(*msg);
-        break;
-      case 1: // response DTC Length
-        //uint8_t dtcCnt = msg->buf[0];
-        //uint16_t id = msg->id & 0x0FF8; // note due to switch above only our own error get through
-        break;//unsupported, subclass implement
+      }  break;
 
-      case 2: // get DTC with PID as argument
-        id = msg->buf[0] << 8;
-        id |= msg->buf[1];
+      case C_suspensionDiagGetDTC: { // get DTC with PID as argument
+        // little endian
+        id = msg->buf[1] << 8 | msg->buf[0];
         for (DTC *dtc = DTCs.store.first(); dtc == nullptr; dtc = DTCs.store.next()) {
           if (dtc->pidID() == id || id == 0){ // send every DTC if id is 0
-              CAN_message_t msgErr = this->_buildDTC_Msg(dtc);
+              uint8_t idx = dtc->storedIndex();
+              CAN_message_t msgErr = this->_buildDTC_Msg(dtc, idx);
               msgErr.timeout = 20; // wait 20ms if needed to make sure it reaches the line
               ++action;
-              msgErr.id = msgTypeDiagMask & (recieverNodeId << 7) & (action << 3);
+              msgErr.id = CAN_MSG_TYPE_DIAG | C_suspensionDiagGetDTC | m_senderId;
               send(msgErr);
               return;
           }
         }
-        break;
-      case 3: // response to a get DTC request
-        break;//unsupported, subclass implement
-
-      case 4: // Set actuatortest
-        id = msg->buf[0] << 8;
-        id |= msg->buf[1];
+      } break;
+      case C_suspensionDiagActuatorTest: { // Set actuatortest
+        id = msg->buf[0];
         for (IOutput *outDrv = OutputsController.first();
              outDrv != nullptr;
              outDrv = OutputsController.next())
         {
-          if (static_cast<uint16_t>(outDrv->pid()->id()) == id) {
+          if (outDrv->pid()->id() == id) {
               // set actuation test on this pid
-              outDrv->setActuatorTest(msg->buf[2]);
+              outDrv->setActuatorTest(msg->buf[1]);
               // respond to requesting node
               ++action;
-              msg->id = msgTypeDiagMask & (recieverNodeId << 7) & (action << 3);
+              msg->id = CAN_MSG_TYPE_DIAG | C_suspensionDiagActuatorTest | m_senderId;
               send(*msg);
               return;
           }
         }
-        break;
+      } break;
+      case C_suspensionDiagClearDTC: {
+          uint8_t dtcCnt = msg->buf[0],
+                  retCnt = 0;
 
-      case 5: // response actuatortest progress
-        break;//unsupported, subclass implement
-
+          if (dtcCnt == DTCs.store.length())
+              retCnt = DTCs.clear();
+          _init_CAN_message_t(msg, 40);
+          msg->id = CAN_MSG_TYPE_DIAG | C_suspensionDiagClearDTC | m_senderId;
+          msg->buf[0] = retCnt;
+          msg->len = 1;
+          send(*msg);
+      } break;
       default: ; //unsupported, subclass implement
     }
   }
 }
 
-void CAN::ControllerBase::_parseID(uint16_t id, uint16_t &targetNode, uint16_t &action) const
+void ControllerBase::_parseID(uint16_t id, uint16_t &targetNode, uint16_t &action) const
 {
   // each node start at 0 or 6 to get the reciever node id
-  uint16_t mID = (id & msgIdMask) >> 3; // to remove senderID bits
+  uint16_t mID = (id & CAN_MSG_ID_MASK) >> 3; // to remove senderID bits
   targetNode = (mID & 0xF0) >> 4;
 
   action = mID & 0x0F;
 }
 
-uint16_t CAN::ControllerBase::_normalizeAction(uint16_t action) const
-{
-  if (action > 5) {
-    return action - 6;
-  }
-  return action;
-}
-
-CAN_message_t CAN::ControllerBase::_buildDTC_Msg(DTC *dtc) const
+CAN_message_t ControllerBase::_buildDTC_Msg(DTC *dtc, uint8_t idx) const
 {
   CAN_message_t msg;
   _init_CAN_message_t(&msg, 10);
 
   msg.id = 0;
+  // request [0:7] the DTC index in stored memory
+  // response:
+  //  [0:7]        [0:15]    [0:6] [:7]
+  // stored nr     dtc code  occurrences & pending mask (1 on 7th bit = real code, 0=pending)
 
-  msg.buf[0] = (dtc->pidID() & 0xFF00) >> 8;
-  msg.buf[1] = dtc->pidID() & 0x00FF;
+  msg.buf[0] = idx;
+  uint16_t dtcCode = 0;
+  uint8_t errNr = static_cast<uint8_t>(dtc->errType());
+  while (errNr > 9)
+      errNr -= 10;
 
-  msg.buf[2] = static_cast<uint8_t>(dtc->errType());
+  switch (dtc->pidID()) {
+  // outputs
+  case Adresses::leftFill:
+      dtcCode = C_dtc_leftFill_openLoad + errNr;
+      break;
+  case Adresses::leftDump:
+      dtcCode = C_dtc_leftDump_openLoad + errNr;
+      break;
+  case Adresses::leftSuck:
+      dtcCode = C_dtc_leftSuck_openLoad + errNr;
+      break;
+  case Adresses::rightFill:
+      dtcCode = C_dtc_rightFill_openLoad + errNr;
+      break;
+  case Adresses::rightDump:
+      dtcCode = C_dtc_rightDump_openLoad + errNr;
+      break;
+  case Adresses::rightSuck:
+      dtcCode = C_dtc_rightSuck_openLoad + errNr;
+      break;
+  case Adresses::airdryer:
+      dtcCode = C_dtc_airDryer_openLoad + errNr;
+      break;
+  case Adresses::spare1:
+      dtcCode = C_dtc_spare1_openLoad + errNr;
+      break;
+  case Adresses::compressor:
+      dtcCode = C_dtc_compressor_openLoad + errNr;
+      break;
+
+  // sensors
+  case Adresses::airPressure:
+      dtcCode = C_dtc_airPressure_nonValidValue + errNr;
+      break;
+  case Adresses::leftPressure:
+      dtcCode = C_dtc_leftPressure_nonValidValue + errNr;
+      break;
+  case Adresses::leftHeight:
+      dtcCode = C_dtc_leftHeight_nonValidValue + errNr;
+      break;
+  case Adresses::rightPressure:
+      dtcCode = C_dtc_rightPressure_nonValidValue + errNr;
+      break;
+  case Adresses::rightHeight:
+      dtcCode = C_dtc_rightHeight_nonValidValue + errNr;
+      break;
+  case Adresses::compressorTemp:
+      dtcCode = C_dtc_compressorTemp_nonValidValue + errNr;
+      break;
+  case Adresses::systemPressure:
+      dtcCode = C_dtc_systemPressure_nonValidValue + errNr;
+      break;
+  case Adresses::spareAnalog1:
+      dtcCode = C_dtc_spareAnalog1_nonValidValue + errNr;
+      break;
+  case Adresses::spareTemp1:
+      dtcCode = C_dtc_spareTemp1_nonValidValue + errNr;
+      break;
+
+  // compressor control logic
+  case Adresses::airFeed:
+      dtcCode = C_dtc_airFeed_overCurrent + errNr;
+      break;
+  default:
+      // unhandled ??
+      msg.len = 0;
+      break;
+  }
+
+  // little endian
+  msg.buf[1] = (dtcCode & 0x00FF) >> 0;
+  msg.buf[2] = (dtcCode & 0xFF00) >> 8;
+
+  // pending and occurrences
   msg.buf[3] = dtc->mask();
   msg.len = 4;
 
@@ -336,7 +425,7 @@ CAN_message_t CAN::ControllerBase::_buildDTC_Msg(DTC *dtc) const
 }
 
 
-void CAN::ControllerBase::_init_CAN_message_t(CAN_message_t *msg, uint16_t timeout /*= 0*/) const
+void ControllerBase::_init_CAN_message_t(CAN_message_t *msg, uint16_t timeout /*= 0*/) const
 {
   msg->ext = msg->len = msg->id = 0;
   msg->timeout = timeout;
@@ -345,38 +434,38 @@ void CAN::ControllerBase::_init_CAN_message_t(CAN_message_t *msg, uint16_t timeo
 }
 
 
-void CAN::ControllerBase::init()
+void ControllerBase::init()
 {
   m_can.begin();
 }
 
-void CAN::ControllerBase::loop()
+void ControllerBase::loop()
 {
   CAN_message_t msg;
-  msg.timeout = 0; // no wait when recieving
+  msg.timeout = 0; // no wait when receiving
   while(m_can.read(msg)) {
     Serial.println("can msg");
-    senderIds senderId = static_cast<senderIds>(msg.id & senderIdMask);
+    can_senderIds_e senderId = static_cast<can_senderIds_e>(msg.id & CAN_MSG_SENDER_ID_MASK);
 
-    switch(msg.id & msgTypeMask) {
-      case msgTypeControlMask:
-        msgIdsCommand msgIdCmd;
-        msgIdCmd = static_cast<msgIdsCommand>(msg.id & msgIdMask);
+    switch(msg.id & CAN_MSG_TYPE_MASK) {
+      case CAN_MSG_TYPE_COMMAND: //msgTypeControlMask:
+        can_msgIdsCommand_e msgIdCmd;
+        msgIdCmd = static_cast<can_msgIdsCommand_e>(msg.id & CAN_MSG_ID_MASK);
         this->_recievedCommand(&msg, senderId, msgIdCmd);
         break;
-      case msgTypeErrorMask:
-        msgIdsError msgIdErr;
-        msgIdErr = static_cast<msgIdsError>(msg.id & msgIdMask);
-        this->_recievedError(&msg, senderId, msgIdErr);
+      case CAN_MSG_TYPE_EXCEPTION: //msgTypeErrorMask:
+        can_msgIdsException_e msgIdErr;
+        msgIdErr = static_cast<can_msgIdsException_e>(msg.id & CAN_MSG_ID_MASK);
+        this->_recievedException(&msg, senderId, msgIdErr);
         break;
-      case msgTypeUpdateMask:
-        msgIdsUpdate msgIdUpd;
-        msgIdUpd = static_cast<msgIdsUpdate>(msg.id & msgIdMask);
+      case CAN_MSG_TYPE_UPDATE: //msgTypeUpdateMask:
+        can_msgIdsUpdate_e msgIdUpd;
+        msgIdUpd = static_cast<can_msgIdsUpdate_e>(msg.id & CAN_MSG_ID_MASK);
         this->_recievedUpdate(&msg, senderId, msgIdUpd);
         break;
-      case msgTypeDiagMask:
-        msgIdsDiag msgIdDiag;
-        msgIdDiag = static_cast<msgIdsDiag>(msg.id & msgIdMask);
+      case CAN_MSG_TYPE_DIAG:// msgTypeDiagMask:
+        can_msgIdsDiag_e msgIdDiag;
+        msgIdDiag = static_cast<can_msgIdsDiag_e>(msg.id & CAN_MSG_ID_MASK);
         this->_recievedDiagnose(&msg, senderId, msgIdDiag);
         break;
       default:
@@ -417,20 +506,20 @@ void CAN::ControllerBase::loop()
             msg.buf[msg.len++] = static_cast<uint8_t>(pid->rawValue());
             break;
           case PID::byteSizes::twoByte:
-            // big endian, highest byte first
+            // little endian, highest byte first
             uint16_t vlu16;
             vlu16 = pid->rawValue();
+            msg.buf[msg.len++] = (vlu16 & 0x00FF) >> 0;
             msg.buf[msg.len++] = (vlu16 & 0xFF00) >> 8;
-            msg.buf[msg.len++] = vlu16 & 0x00FF;
             break;
           case PID::byteSizes::fourByte:
-            // big endian, highest byte first
+            // little endian, highest byte first
             uint32_t vlu32;
             vlu32 = pid->rawData32();
-            msg.buf[msg.len++] = (vlu32 & 0xFF000000) >> 24;
-            msg.buf[msg.len++] = (vlu32 & 0x00FF0000) >> 16;
+            msg.buf[msg.len++] = (vlu32 & 0x000000FF) >> 0;
             msg.buf[msg.len++] = (vlu32 & 0x0000FF00) >> 8;
-            msg.buf[msg.len++] = vlu32 & 0x000000FF;
+            msg.buf[msg.len++] = (vlu32 & 0x00FF0000) >> 16;
+            msg.buf[msg.len++] = (vlu32 & 0xFF000000) >> 24;
             break;
         }
       }
@@ -438,47 +527,43 @@ void CAN::ControllerBase::loop()
   }
 }
 
-bool CAN::ControllerBase::send(CAN_message_t &msg)
+bool ControllerBase::send(CAN_message_t &msg)
 {
-  msg.id &= msgTypeMask | msgIdMask; // clear possible erroneous nodeID bits
+  msg.id &= CAN_MSG_TYPE_MASK | CAN_MSG_ID_MASK; // clear possible erroneous nodeID bits
   msg.id |= m_senderId;  // this node sent this msg
   return m_can.write(msg);
 }
 
-bool CAN::ControllerBase::sendDTC(DTC *dtc, msgIdsError msgId)
+bool ControllerBase::sendNewDTC(DTC *dtc, can_msgIdsException_e msgId)
 {
-  CAN_message_t msg = this->_buildDTC_Msg(dtc);
+  uint8_t idx = dtc->storedIndex();
+  CAN_message_t msg = this->_buildDTC_Msg(dtc, idx);
   msg.id = msgId;
   return send(msg);
 }
 
 
-bool CAN::ControllerBase::sendDiagnoseCommand(msgIdsDiag msgId,
-                                              PIDs::IDs id /*= PIDs::IDs::Nothing*/,
-                                              uint8_t vlu /* = 0*/)
+bool ControllerBase::sendDiagnoseCommand(can_msgIdsDiag_e msgId,
+                                         PIDs::IDs id /*= PIDs::IDs::Nothing*/,
+                                         uint8_t vlu /* = 0*/)
 {
-  uint16_t targetNode, action;
-  this->_parseID(msgId, targetNode, action);
+  uint16_t action = msgId & CAN_MSG_ID_MASK;
 
   CAN_message_t msg;
-  this->_init_CAN_message_t(&msg, 1000);// dont abort if line is busy, 1sec timeout
+  this->_init_CAN_message_t(&msg, 1000);// don't abort if line is busy, 1sec timeout
 
   uint16_t mID = static_cast<uint16_t>(id);
 
-  switch(_normalizeAction(action)){
-    case 0: // get DTC LENGTH
+  switch(action){
+    case C_suspensionDiagDTCLength: // get DTC LENGTH
       msg.id = msgId;
       return send(msg);
-    case 1: // response DTC length
-      break;
-    case 2: // get DTC
+    case C_suspensionDiagGetDTC: // get DTC
       msg.id = msgId;
       msg.buf[msg.len++] = (mID & 0xFF00) >> 8;
       msg.buf[msg.len++] = mID & 0x00FF;
       return send(msg);
-    case 3: // DTC response
-      break;
-    case 4: // Set ActuatorTest
+    case C_suspensionDiagActuatorTest: // Set ActuatorTest
       msg.id = msgId;
       msg.buf[msg.len++] = (mID & 0xFF00) >> 8;
       msg.buf[msg.len++] = mID & 0x00FF;
@@ -489,5 +574,3 @@ bool CAN::ControllerBase::sendDiagnoseCommand(msgIdsDiag msgId,
   }
   return false;
 }
-
-}; // namespace CAN

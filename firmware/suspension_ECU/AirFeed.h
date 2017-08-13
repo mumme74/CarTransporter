@@ -10,7 +10,7 @@
 
 #include "Outputs.h"
 #include "Inputs.h"
-#include <errors.h>
+#include <suspension_errors.h>
 #include <PID.h>
 
 /**

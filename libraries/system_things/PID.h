@@ -13,7 +13,7 @@
 
 
 namespace PIDs {
-  enum struct IDs : uint16_t;
+  enum IDs : uint16_t;
 };
 
 
@@ -23,32 +23,26 @@ namespace PID {
  * Different states that can occur
  * is a bitmask so several states can happen at once if needed
  */
-enum States : uint32_t {
-  Off              = 0x00000000,
-  On               = 0x00000001,
-  ActuatorTest     = 0x00000002, // for diagnosis
+enum States : uint16_t {
+  Off              = 0x0000,
+  On               = 0x0001,
+  ActuatorTest     = 0x0002, // for diagnosis
 
-  Working          = 0x00000004, // when a input works
+  Working          = 0x0004, // when a input works
 
-  RevUp            = 0x00000008, // when a motor revs up
-  FullRev          = 0x00000010, // full speed of motor
-  Airdryer         = 0x00000020, // Airdryer activated
-  RevDown          = 0x00000040, // Motor revs down
+  RevUp            = 0x0008, // when a motor revs up
+  FullRev          = 0x0010, // full speed of motor
+  Airdryer         = 0x0020, // Airdryer activated
+  RevDown          = 0x0040, // Motor revs down
 
-  LowState         = 0x00000080, // Suspension at lowest state
-  ToLowState       = 0x00000100, // Suspension going to lowest state
-  NormalState      = 0x00000200, // Suspension at normal state
-  ToNormalState    = 0x00000400, // Suspension going to normal state
-  HighState        = 0x00000800, // suspension at highest state
-  ToHighState      = 0x00001000, // suspension going to highest state
+  LowState         = 0x0080, // Suspension at lowest state
+  ToLowState       = 0x0100, // Suspension going to lowest state
+  NormalState      = 0x0200, // Suspension at normal state
+  ToNormalState    = 0x0400, // Suspension going to normal state
+  HighState        = 0x0800, // suspension at highest state
+  ToHighState      = 0x1000, // suspension going to highest state
 
-  BrakeSet         = 0x00002000, // when parking brake is set
-  BrakeToSet       = 0x00004000, // when parkbrake is going to be set
-  BrakeReleased    = 0x00008000, // when parkbrake is released
-  BrakeToReleased  = 0x00010000, // when parkbrake is going to be released
-  BrakeService     = 0x00020000, // when you service brakes
-
-  Error            = 0x80000000, // an error has occured
+  Error            = 0x2000, // an error has occured
 };
 
 enum Types :uint16_t {
@@ -171,8 +165,8 @@ class State : public Base
 public:
   State(PIDs::IDs id);
 
-  inline void setState(States state) { m_vlu.uint32 = static_cast<uint32_t>(state); }
-  inline States state() const { return static_cast<States>(m_vlu.uint32); }
+  inline void setState(States state) { m_vlu.uint16 = static_cast<uint16_t>(state); }
+  inline States state() const { return static_cast<States>(m_vlu.uint16); }
 };
 
 // outputs
@@ -207,7 +201,7 @@ namespace PIDs {
  *
  */
 static const uint16_t MAX_PIDS = 300;
-enum struct IDs : uint16_t {
+enum IDs : uint16_t {
     // suspension ecu outputs
     Nothing                     = 0,
     leftFillPWM_8bit            = 1, //8bit
@@ -232,8 +226,8 @@ enum struct IDs : uint16_t {
     compressorCurrent_8bit       = 28, //8bit
 
     // suspension ecu system pressure regulator
-    airFeedState_32bit           = 40,
-    heightState_32bit            = 41,
+    airFeedState_16bit           = 40,
+    heightState_16bit            = 41,
 
     // suspension calculated values
     loadWeight_16bit             = 52,
@@ -359,9 +353,9 @@ extern _Handler<PID::Base> collection;
 
 // states
 #define USE_airFeedState_PID \
-    PID::State airFeedState_PID(PIDs::IDs::airFeedState_32bit);
+    PID::State airFeedState_PID(PIDs::IDs::airFeedState_16bit);
 #define USE_heightState_PID \
-    PID::State heightState_PID(PIDs::IDs::airFeedState_32bit);
+    PID::State heightState_PID(PIDs::IDs::airFeedState_16bit);
 
 
 // calculated values

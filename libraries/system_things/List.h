@@ -34,6 +34,32 @@ public:
     }
   }
 
+  T *popItem()
+  {
+      if (m_last == nullptr)
+          return nullptr;
+      if (m_first == nullptr)
+          return nullptr;
+
+      // find previous item
+      T *prevItm = m_first;
+      while (prevItm != nullptr) {
+          if (prevItm->next == m_last) {
+              break;
+          }
+          prevItm = prevItm->next;
+      }
+
+      // backup current pointer
+      if (m_current == m_last)
+          m_current = prevItm;
+
+      // pop off list and return poped item
+      T *popItm = m_last;
+      m_last = prevItm;
+      return popItm;
+  }
+
   /**
    * Gets the first item and resets to internal iterator
    */

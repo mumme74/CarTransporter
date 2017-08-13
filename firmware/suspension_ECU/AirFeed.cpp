@@ -32,7 +32,8 @@ void AirFeed::loop()
 
     static uint32_t airdryerEndAt = 0;
     PID::States state = m_pid->state();
-    if (m_pid->state() == PID::States::Off && m_systemPressure->pressureKPa() < lowestPressure &&
+    if (m_pid->state() == PID::States::Off &&
+        m_systemPressure->pressureKPa() < lowestPressure &&
         m_compressorTemp->celcius() < maxCompressorTemp)
     {
         // softStart compressor
@@ -55,7 +56,9 @@ void AirFeed::loop()
         m_pid->setUpdated(true);
         m_airdryerOutDrv->setValue(100);
         airdryerEndAt = millis() + airdryerTimeMs;
-    } else if(m_pid->state() == PID::States::Airdryer && airdryerEndAt < millis()) {
+    } else if(m_pid->state() == PID::States::Airdryer &&
+              airdryerEndAt < millis())
+    {
         int duty = m_compressorOutDrv->pid()->rawValue() - incDuty;
         if (duty < 0) {
           // overflow
@@ -68,7 +71,8 @@ void AirFeed::loop()
           m_pid->setUpdated(true);
         }
         m_compressorOutDrv->setValue(duty);
-    } else if (m_pid->state() != PID::States::Off && state != PID::States::Error &&
+    } else if (m_pid->state() != PID::States::Off &&
+               state != PID::States::Error &&
                m_compressorTemp->celcius() > maxCompressorTemp)
     {
         m_compressorOutDrv->setValue(0);

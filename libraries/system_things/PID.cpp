@@ -9,8 +9,9 @@
 #include <Ntc.h>
 #include <PID.h>
 
+using namespace PID;
 
-PID::Base::Base (PIDs::IDs id, PID::Types availableTypes,
+Base::Base (PIDs::IDs id, PID::Types availableTypes,
                  PID::Types preferedType, PID::byteSizes size) :
   next(nullptr),
   m_byteSize(size),
@@ -22,17 +23,17 @@ PID::Base::Base (PIDs::IDs id, PID::Types availableTypes,
   m_vlu.uint32 = 0;
 }
 
-void PID::Base::setRawValue(uint16_t value)
+void Base::setRawValue(uint16_t value)
 {
   m_vlu.uint16 = value;
 }
 
 
-void PID::Base::setRawData32(uint32_t data) {
+void Base::setRawData32(uint32_t data) {
   m_vlu.uint32 = data;
 }
 
-PID::States PID::Base::valueAsState(bool &ok)
+PID::States Base::valueAsState(bool &ok)
 {
   if (m_availableTypes & PID::Types::states) {
       ok = true;
@@ -42,7 +43,7 @@ PID::States PID::Base::valueAsState(bool &ok)
   return PID::States::Off;
 }
 
-float PID::Base::valueAsFloat(PID::Types type, bool &ok)
+float Base::valueAsFloat(PID::Types type, bool &ok)
 {
   if (m_availableTypes & type) {
       ok = true;
@@ -64,7 +65,7 @@ float PID::Base::valueAsFloat(PID::Types type, bool &ok)
   return 0.0;
 }
 
-uint16_t PID::Base::valueAsUInt16(PID::Types type, bool &ok)
+uint16_t Base::valueAsUInt16(PID::Types type, bool &ok)
 {
   if (m_availableTypes & type) {
       ok = true;
@@ -95,7 +96,7 @@ uint16_t PID::Base::valueAsUInt16(PID::Types type, bool &ok)
   return 0;
 }
 
-uint8_t PID::Base::valueAsUInt8(PID::Types type, bool &ok)
+uint8_t Base::valueAsUInt8(PID::Types type, bool &ok)
 {
   if (m_availableTypes & type) {
     if (type < Types::output_RawData) { // its a input
@@ -134,7 +135,7 @@ uint8_t PID::Base::valueAsUInt8(PID::Types type, bool &ok)
   return 0;
 }
 
-bool PID::Base::valueAsBool(Types type, bool &ok) const
+bool Base::valueAsBool(Types type, bool &ok) const
 {
   if (m_availableTypes & type) {
       if (type == Types::input_Digital || type == Types::output_Digital) {
@@ -148,7 +149,7 @@ bool PID::Base::valueAsBool(Types type, bool &ok) const
 
 
 // -------------------------------------------
-PID::sensor_Base::sensor_Base (PIDs::IDs id, PID::Types availableTypes,
+sensor_Base::sensor_Base (PIDs::IDs id, PID::Types availableTypes,
                                PID::Types preferedType, uint16_t ADmax, PID::byteSizes size) :
     PID::Base(id, availableTypes, preferedType, size),
   m_ADmax(ADmax)
@@ -156,7 +157,7 @@ PID::sensor_Base::sensor_Base (PIDs::IDs id, PID::Types availableTypes,
 
 
 
-float PID::sensor_Base::volt() const
+float sensor_Base::volt() const
 {
   static float factor = 5.0 / m_ADmax;
   return factor * m_vlu.uint16;
@@ -164,19 +165,19 @@ float PID::sensor_Base::volt() const
 
 // ------------------------------------------
 
-uint8_t PID::sensor_Current::current() const
+uint8_t sensor_Current::current() const
 {
   return map(0, 255, 0, 33, m_vlu.uint8); // 0-3.3V -> 0-255 steps, 1A = 0.1V
 }
 
-void PID::sensor_Current::setCurrent(uint8_t current)
+void sensor_Current::setCurrent(uint8_t current)
 {
   m_vlu.uint8 = map(0, 33, 0, 255, current);
 }
 
 // ------------------------------------------------
 
-uint16_t PID::sensor_Pressure::pressureKPa() const
+uint16_t sensor_Pressure::pressureKPa() const
 {
   // assumes sensor is https://www1.elfa.se/data1/wwwroot/assets/datasheets/PSE530_eng_datasheet.pdf
   // 1-5 volts range 0->1000kpa
@@ -191,29 +192,29 @@ uint16_t PID::sensor_Pressure::pressureKPa() const
 }
 
 // ----------------------- begin PID_sensor_NTC ----------------
-PID::sensor_NTC::sensor_NTC(PIDs::IDs id, PID::Types availableTypes,
+sensor_NTC::sensor_NTC(PIDs::IDs id, PID::Types availableTypes,
                             PID::Types preferedType, uint16_t ADmax, Ntc *ntcObj, PID::byteSizes size) :
     sensor_Base(id, availableTypes, preferedType, ADmax, size),
     m_ntcObj(ntcObj)
 {
 }
 
-float PID::sensor_NTC::celcius() const
+float sensor_NTC::celcius() const
 {
   return m_ntcObj->valueToTemp(m_vlu.uint16);
 }
 
 
 // -----------------------------------------------------------
-PID::State::State(PIDs::IDs id) :
+State::State(PIDs::IDs id) :
     Base(id, static_cast<PID::Types>(PID::Types::states | PID::Types::input_RawData |
              PID::Types::output_RawData),
-         PID::Types::states, PID::byteSizes::fourByte)
+         PID::Types::states, PID::byteSizes::twoByte)
 {
 }
 
 // ------------------------ begin outputs ---------------------
-uint8_t PID::actuator_PWM::duty() const
+uint8_t actuator_PWM::duty() const
 {
   return map(0, 255, 0, 100, m_vlu.uint8);
 }

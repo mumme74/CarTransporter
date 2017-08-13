@@ -61,7 +61,7 @@ HeightController::HeightController(
    m_leftSetpointVar(100),
    m_rightSetpointVar(100),
    m_p(defaultP), m_i(defaultI), m_d(defaultD),
-   m_cylArea(defaultCylArea),
+   m_cylArea_m2(defaultCylArea),
    m_leftPidLoop (m_leftInputVar, m_leftOutputVar, m_leftSetpointVar,
                   m_p, m_i, m_d, PidLoop::pidDirections::Direct),
    m_rightPidLoop(m_rightInputVar, m_rightOutputVar, m_rightSetpointVar,
@@ -136,7 +136,7 @@ void HeightController::loop()
   }
 }
 
-void HeightController::setState(PID::States state)
+can_userError_e HeightController::setState(PID::States state)
 {
   if (state != m_statePid->state()) {
       switch(state){
@@ -158,12 +158,14 @@ void HeightController::setState(PID::States state)
           m_statePid->setState(PID::States::ToHighState);
           m_statePid->setUpdated(true);
           break;
-        default: break; // do nothing
+        default:
+            return C_userErrorHeightNonValidState;
       }
   }
+  return C_userErrorNone;
 }
 
-bool HeightController::setRearWheels(bool lift)
+can_userError_e HeightController::setRearWheels(bool lift)
 {
   if (m_statePid->state() == PID::States::LowState) {
       m_sucked = lift;
@@ -174,19 +176,10 @@ bool HeightController::setRearWheels(bool lift)
 
       m_leftSuckDrv->setValue(vlu);
       m_rightSuckDrv->setValue(vlu);
-      return true;
+      return C_userErrorNone;
   }
 
-  return false;
-}
-
-void HeightController::setCylDia(uint16_t cylDiaIn_mm)
-{
-  store::byte2 b2;
-  b2.uint16 = cylDiaIn_mm;
-  store::write2_to_eeprom(store::Suspension::HEIGHT_CYL_DIA_MM_ADR, b2);
-
-  readSettings(); // update the DIA calculation
+  return C_userErrorSuckedRearWheelBlocked;
 }
 
 void HeightController::setConfig(Configs cfg, store::byte4 value)
@@ -225,6 +218,13 @@ void HeightController::setConfig(Configs cfg, store::byte4 value)
     case Configs::DeadBand_uint16:
       m_deadBand = static_cast<uint16_t>(value.uint32);
       break;
+    case Configs::CylDia_mm: {
+      store::byte2 b2;
+      b2.uint16 = static_cast<uint16_t>(value.uint32);
+      store::write2_to_eeprom(store::Suspension::HEIGHT_CYL_DIA_MM_ADR, b2);
+      calcCylArea(); // update weight calc params
+
+    }  break;
     default: ; // ignore
   }
 }
@@ -299,6 +299,9 @@ store::byte4 HeightController::getConfig(Configs cfg)
     case Configs::DeadBand_uint16:
       value.uint32 = m_deadBand;
       break;
+    case Configs::CylDia_mm:
+      value.uint32 = store::read2_from_eeprom(store::Suspension::HEIGHT_CYL_DIA_MM_ADR).uint16;
+      break;
     default: ;
       value.uint32 = 0;
   }
@@ -352,12 +355,6 @@ void HeightController::readSettings()
   if (tmp != defaultD && tmp != 0.0)
     m_d = tmp;
 
-  // calculate cylinder area
-  uint16_t dia = store::read2_from_eeprom(store::Suspension::HEIGHT_CYL_DIA_MM_ADR).uint16;
-  if (dia == 0)
-    dia = defaultCylArea;
-  dia /= 2;
-  m_cylArea = dia * dia * 3.141592;
 
   m_deadWeight = store::read2_from_eeprom(store::Suspension::HEIGHT_DEAD_WEIGHT_ADR).uint16;
   if (m_deadWeight == 0)
@@ -367,6 +364,18 @@ void HeightController::readSettings()
   if (m_deadBand == 0)
       m_deadBand = defaultDeadBand;
 
+
+  calcCylArea();
+}
+
+void HeightController::calcCylArea()
+{
+    // calculate cylinder area
+    uint16_t dia = store::read2_from_eeprom(store::Suspension::HEIGHT_CYL_DIA_MM_ADR).uint16;
+    if (dia == 0)
+      dia = defaultCylArea;
+    dia /= 2;
+    m_cylArea_m2 = (dia * dia * 3.14159264) / 1000000; // area in mm to area in m
 }
 
 
@@ -432,19 +441,22 @@ void HeightController::updateInputs()
       // calculate Weight
       if (m_statePid->state() == PID::States::NormalState) {
           // average 2 pressures in calculation
-          uint16_t pressure = static_cast<PID::sensor_Pressure*>(m_leftPressureDrv->pid())->pressureKPa() +
+          uint16_t pressureKPa = static_cast<PID::sensor_Pressure*>(m_leftPressureDrv->pid())->pressureKPa() +
                               static_cast<PID::sensor_Pressure*>(m_rightPressureDrv->pid())->pressureKPa();
-          pressure /= 2;
+          pressureKPa /= 2; // mean value of both cyls
+
           int nCyls = 4;
           if (m_sucked) { // rear wheels lifted
               nCyls = 2;
           }
 
-          // F = p * A
-          float weight = pressure * (m_cylArea * nCyls);
-          if (weight > m_deadWeight) // avoid overflow due lighter chassi than stored deadweight
+          // F = p * A (A=in m2)
+          float weight = pressureKPa * (m_cylArea_m2 * nCyls);
+          weight /= 0.980665; // newtons to kg
+
+          if (weight > m_deadWeight) { // avoid overflow due lighter chassi than stored deadweight
             weight -= m_deadWeight;
-          else
+          } else
             weight = 0;
 
           m_weightPid->setRawValue(static_cast<uint16_t>(weight));

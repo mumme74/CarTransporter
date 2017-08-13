@@ -13,6 +13,8 @@
 #include <Outputs.h>
 #include <Inputs.h>
 #include <storage.h>
+#include <can_protocol.h>
+#include "suspension_config.h"
 
 /**
  * This is the state machine that controls the suspension height
@@ -60,7 +62,7 @@ class HeightController
     m_leftSetpointVar,
     m_rightSetpointVar,
     m_p, m_i, m_d, // the pid values
-    m_cylArea;  // the bellows (cylinders) area, calculated from cyl dia. in settings
+    m_cylArea_m2;  // the bellows (cylinders) area, calculated from cyl dia. in settings
 
 
   PidLoop
@@ -68,12 +70,6 @@ class HeightController
     m_rightPidLoop;
 
 public:
-  enum Configs : uint8_t {
-      KP_factor_float, KI_factor_float, KD_factor_float,
-      LeftLowSetpoint_uint16, LeftNormalSetpoint_uint16, LeftHighSetpoint_uint16,
-      RightLowSetpoint_uint16, RightNormalSetpoint_uint16, RightHighSetpoint_uint16,
-      DeadWeight_uint16, DeadBand_uint16,
-  };
 
   HeightController(IOutput *leftFillDrv,  IOutput *leftDumpDrv,  IOutput *leftSuckDrv,
                    IOutput *rightFillDrv, IOutput *rightDumpDrv, IOutput *rightSuckDrv,
@@ -84,11 +80,10 @@ public:
   ~HeightController ();
 
   PID::State *pid() const { return m_statePid; }
-  void setState(PID::States state);
-  bool setRearWheels(bool lift);
+  can_userError_e setState(PID::States state);
+  can_userError_e setRearWheels(bool lift);
   bool rearWheels() const { return m_sucked; }
 
-  void setCylDia(uint16_t cylDiaIn_mm); // changes in settings the diameter of the air bellows
   void setConfig(Configs cfg, store::byte4 value);
   void saveSettings(); // stores settings in eeprom
   store::byte4 getConfig(Configs cfg);
@@ -99,6 +94,7 @@ public:
 private:
   void resetPidLoop();
   void readSettings();
+  void calcCylArea();
   void updateInputs();
 };
 

@@ -10,7 +10,7 @@
 #include <Arduino.h>
 
 #include <List.h>
-#include <errors.h>
+#include <suspension_errors.h>
 #include <PID.h>
 #include <ADC.h>
 

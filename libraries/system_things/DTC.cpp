@@ -63,6 +63,23 @@ void DTC::increment()
   }
 }
 
+uint8_t DTC::storedIndex() const
+{
+    uint8_t i = 0;
+    const DTC *dtc = DTCs.store.first();
+
+    while (dtc != nullptr) {
+        if (dtc == this) {
+            return i;
+        }
+        ++i;
+        dtc = dtc->next;
+    }
+
+    // not found
+    return 0xFF;
+}
+
 // ------------------ begin DTC_controller --------------
 DTC_controller::DTC_controller()
 {}
@@ -131,6 +148,8 @@ DTC *DTC_controller::setDTC(uint16_t id, errorTypes errType)
   uint8_t errCount = EEPROM.read(store::DTC_COUNT_ADR);
   uint16_t startAdr = EEPROM.read(store::DTC_STARTPTR_ADR_HI) << 8;
   startAdr |= EEPROM.read(store::DTC_STARTPTR_ADR_LO);
+  if (startAdr < store::DTC_STARTPTR_ADR_LO)
+     startAdr = store::DTC_STORE_START_ADR;
 
   if (dtc == nullptr) {
       // it is a new DTC
@@ -182,5 +201,25 @@ DTC *DTC_controller::setDTC(uint16_t id, errorTypes errType)
  */
 DTC *DTC_controller::setDTC(PID::Base *pid, errorTypes errType) {
   return setDTC(static_cast<uint16_t>(pid->id()), errType);
+}
+
+/**
+ * Clears all DTCs including erase index in eeprom
+ */
+uint8_t DTC_controller::clear()
+{
+    uint8_t errCount = EEPROM.read(store::DTC_COUNT_ADR);
+    uint16_t startAdr = store::DTC_STORE_START_ADR;
+
+    EEPROM.write(store::DTC_COUNT_ADR, 0);
+    EEPROM.write(store::DTC_STARTPTR_ADR_LO, (startAdr & 0x00FF) >> 0);
+    EEPROM.write(store::DTC_STARTPTR_ADR_HI, (startAdr & 0xFF00) >> 8);
+
+    // clear cache memory
+    DTC *delItm;
+    while ((delItm = store.popItem()) != nullptr) {
+        delete delItm;
+    }
+    return errCount;
 }
 

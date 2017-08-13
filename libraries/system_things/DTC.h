@@ -10,7 +10,7 @@
 
 #include <stdint.h>
 #include <PID.h>
-#include <errors.h>
+#include <suspension_errors.h>
 #include <List.h>
 
 /**
@@ -27,6 +27,7 @@ struct DTC {
   inline bool isPending() const { return m_mask & pendingMask; }
   inline uint8_t occurences() const { return m_mask & ~pendingMask; }
   void increment();
+  uint8_t storedIndex() const;
 
   DTC *next; // next item used internally for iteration
 
@@ -59,6 +60,7 @@ public:
   void init();
   DTC *setDTC(PID::Base *pid, errorTypes errType);
   DTC *setDTC(uint16_t id, errorTypes errType);
+  uint8_t clear();
 };
 
 extern DTC_controller DTCs;

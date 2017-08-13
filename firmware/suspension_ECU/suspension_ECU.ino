@@ -1,3 +1,5 @@
+//#include <TimerThree.h>
+
 
 #include <PID.h>
 #include <Outputs.h>
@@ -160,7 +162,7 @@ void loop()
        errorTypes err = outDrv->error();
        if (err != errorTypes::NoError) {
            dtc = DTCs.setDTC(outDrv->pid(), err);
-           canIO.sendDTC(dtc);
+           canIO.sendNewDTC(dtc);
 
            // then try to reset error if it was a glitch
            outDrv->resetError();
@@ -175,7 +177,7 @@ void loop()
       errorTypes err = inDrv->error();
       if (err != errorTypes::NoError) {
           dtc = DTCs.setDTC(inDrv->pid(), err);
-          canIO.sendDTC(dtc);
+          canIO.sendNewDTC(dtc);
 
           // then try to reset error if it was a glitch
           inDrv->resetError();
@@ -186,7 +188,7 @@ void loop()
     errorTypes err = airFeedStateMachine.error();
     if (err != errorTypes::NoError) {
         dtc = DTCs.setDTC(airFeedStateMachine.pid(), err);
-        canIO.sendDTC(dtc);
+        canIO.sendNewDTC(dtc);
 
       // then try to reset if it was a glitch
       airFeedStateMachine.resetError();

@@ -9,20 +9,24 @@
 #define IOCONTROLLER_H_
 
 #include <CAN.h>
+#include <can_protocol.h>
 
 namespace CAN {
 
 class IOController :public ControllerBase
 {
 protected:
-  void _recievedCommand(CAN_message_t *msg, senderIds senderId, msgIdsCommand msgId);
-  void _recievedError(CAN_message_t *msg, senderIds senderId, msgIdsError msgId);
+  void _recievedCommand(CAN_message_t *msg, can_senderIds_e senderId, can_msgIdsCommand_e msgId);
+  void _recievedException(CAN_message_t *msg, can_senderIds_e senderId, can_msgIdsException_e msgId);
   //void _recievedDiagnose(CAN_message_t *msg, senderIds senderId, msgIdsDiag msgId);
 public:
   IOController ();
   virtual ~IOController ();
 
-  bool sendDTC(DTC *dtc);
+  bool sendNewDTC(DTC *dtc);
+
+private:
+  void _sendUserError(can_userError_e exc);
 
 };
 

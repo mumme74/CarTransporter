@@ -12,77 +12,82 @@
 extern HeightController heightStateMachine;
 
 CAN::IOController::IOController () :
-    CAN::ControllerBase(CAN::senderIds::suspensionNode)
+    CAN::ControllerBase(can_senderIds_e::C_suspensionNode)
 {}
 
 CAN::IOController::~IOController ()
 {}
 
 void CAN::IOController::_recievedCommand(CAN_message_t *msg,
-                                         senderIds /*senderId*/, msgIdsCommand msgId)
+                                         can_senderIds_e /*senderId*/, can_msgIdsCommand_e msgId)
 {
-  HeightController::Configs cfgId = static_cast<HeightController::Configs>(msg->buf[0]);
+  Configs cfgId = Configs::NoConfig;
   store::byte4 valueB4;
-  valueB4.buf[0] = msg->buf[1];
-  valueB4.buf[1] = msg->buf[2];
-  valueB4.buf[2] = msg->buf[3];
-  valueB4.buf[3] = msg->buf[4];
+  if (msg->len >0)
+      cfgId = static_cast<Configs>(msg->buf[0]);
+  if (msg->len > 4) {
+      valueB4.buf[0] = msg->buf[1];
+      valueB4.buf[1] = msg->buf[2];
+      valueB4.buf[2] = msg->buf[3];
+      valueB4.buf[3] = msg->buf[4];
+  }
+
+  can_userError_e exc = C_userErrorNone;
 
   switch (msgId) {
-    case msgIdsCommand::suspensionSetHigh:
-      heightStateMachine.setState(PID::States::HighState);
-      break;
-    case msgIdsCommand::suspensionSetNormal:
+    case C_suspensionCmdSetHigh: {
+      exc = heightStateMachine.setState(PID::States::HighState);
+      if (exc != C_userErrorNone)
+          _sendUserError(exc);
+    } break;
+    case C_suspensionCmdSetNormal: {
       heightStateMachine.setState(PID::States::NormalState);
-      break;
-    case msgIdsCommand::suspensionSetLow:
+      if (exc != C_userErrorNone)
+          _sendUserError(exc);
+    } break;
+    case C_suspensionCmdSetLow: {
       heightStateMachine.setState(PID::States::LowState);
-      break;
-    case msgIdsCommand::suspensionSetRearWheelsUp:
+      if (exc != C_userErrorNone)
+          _sendUserError(exc);
+    } break;
+    case C_suspensionCmdSetRearWheelsUp: {
+      bool up = msg->buf[0] > 0;
       this->_init_CAN_message_t(msg, 10);
-      if (!heightStateMachine.setRearWheels(true)) {
-          msg->id = msgIdsError::suspensionUserError;
-          msg->buf[msg->len++] = (msgId & 0xFF00) >> 8;
-          msg->buf[msg->len++] = msgId & 0x00FF;
-          send(*msg);
-      }
-      break;
-    case msgIdsCommand::suspensionSetRearWheelsDown:
-      this->_init_CAN_message_t(msg, 10);
-      if (!heightStateMachine.setRearWheels(false)) {
-          msg->id = msgIdsError::suspensionUserError;
-          msg->buf[msg->len++] = (msgId & 0xFF00) >> 8;
-          msg->buf[msg->len++] = msgId & 0x00FF;
-          send(*msg);
-      }
-      break;
-    case msgIdsCommand::suspensionSetConfig:
+      exc = heightStateMachine.setRearWheels(up);
+      if (exc != C_userErrorNone)
+          _sendUserError(exc);
+    } break;
+    case C_suspensionCmdSetConfig: {
       heightStateMachine.setConfig(cfgId, valueB4);
-      break;
-    case msgIdsCommand::suspensionGetConfig:
+    } break;
+    case C_suspensionCmdGetConfig: {
       valueB4 = heightStateMachine.getConfig(cfgId);
 
       this->_init_CAN_message_t(msg, 10);
-      msg->id = msgIdsCommand::suspensionRepondConfig;
+      msg->id = C_suspensionCmdGetConfig;
       msg->buf[msg->len++] = cfgId;
-      msg->buf[msg->len++] = valueB4.buf[0];
-      msg->buf[msg->len++] = valueB4.buf[1];
-      msg->buf[msg->len++] = valueB4.buf[2];
-      msg->buf[msg->len++] = valueB4.buf[3];
+      // need to make sure it send little endian
+      uint32_t vlu = valueB4.uint32;
+      msg->buf[msg->len++] = (vlu & 0x000000FF) >> 0;
+      msg->buf[msg->len++] = (vlu & 0x0000FF00) >> 8;
+      if (valueB4.buf[2] > 0 || valueB4.buf[3] > 0) {
+          msg->buf[msg->len++] = (vlu & 0x00FF0000) >> 16;
+          msg->buf[msg->len++] = (vlu & 0xFF000000) >> 24;
+      }
       send(*msg);
-      break;
-    case msgIdsCommand::suspensionSaveConfig:
+    } break;
+    case C_suspensionCmdSaveConfig: {
       heightStateMachine.saveSettings();
-      break;
+    } break;
     default: // ignore
-      ;
+      break;
   }
 }
 
-void CAN::IOController::_recievedError(CAN_message_t *msg,
-                                       senderIds /*senderId*/, msgIdsError /*msgId*/)
+void CAN::IOController::_recievedException(CAN_message_t *msg,
+                                       can_senderIds_e /*senderId*/, can_msgIdsException_e /*msgId*/)
 {
-  // Do nothing, we dont care about others error in this node
+  // Do nothing, we don't care about others error in this node
 }
 
 
@@ -94,8 +99,19 @@ void CAN::IOController::_recievedDiagnose(CAN_message_t *msg,
 }
 */
 
-bool CAN::IOController::sendDTC(DTC *dtc)
+bool CAN::IOController::sendNewDTC(DTC *dtc)
 {
-  CAN::msgIdsError msgId = msgIdsError::suspensionDTC;
-  return CAN::ControllerBase::sendDTC(dtc, msgId);
+  can_msgIdsException_e msgId = C_suspensionExcDTC;
+  return CAN::ControllerBase::sendNewDTC(dtc, msgId);
+}
+
+void CAN::IOController::_sendUserError(can_userError_e exc)
+{
+    CAN_message_t msg;
+    _init_CAN_message_t(&msg, 10);
+    msg.id = C_suspensionExcUserError;
+    // little endian
+    msg.buf[msg.len++] = (exc & 0x00FF) >> 0;
+    msg.buf[msg.len++] = (exc & 0xFF00) >> 8;
+    send(msg);
 }

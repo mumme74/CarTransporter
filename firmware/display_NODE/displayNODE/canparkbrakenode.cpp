@@ -8,7 +8,7 @@
 //#define TEST_DIAG 1
 
 CanParkbrakeNode::CanParkbrakeNode(CanInterface *canInterface, QObject *parent) :
-    CanAbstractNode(canInterface, parent), m_inServiceState(false)
+    CanAbstractNode(C_parkbrakeNode, canInterface, parent), m_inServiceState(false)
 {
     // init some known PIDS
     QCanBusFrame pid1;
@@ -102,94 +102,24 @@ CanParkbrakeNode::~CanParkbrakeNode()
 {
 }
 
-bool CanParkbrakeNode::hasProperty(const QString &key)
-{
-    return m_pids.keys().contains(key);
-}
-
 bool CanParkbrakeNode::fetchDtc(int storedIdx, QJSValue jsCallback)
 {
-    if (storedIdx < 0 || storedIdx > m_dtcCount)
-        return false;
-
-    if (!jsCallback.isCallable())
-        return false;
-
-    // store callback in stack for later use
-    m_dtcFetchCallback.insert(storedIdx, jsCallback);
-
-    // already fetched
-    if (m_dtcs.contains(storedIdx)) {
-        dtcOnArrival(storedIdx);
-        return true;
-    }
-
-    // get from Canbus
-    QByteArray payload;
-    payload.insert(0, (storedIdx & 0xFF));
-    QCanBusFrame f(CAN_MSG_TYPE_DIAG | C_parkbrakeDiagDTC | C_displayNode, payload);
-    f.setExtendedFrameFormat(false);
-    m_canIface->sendFrame(f);
-
-    return true;
+    return CanAbstractNode::fetchDtc(storedIdx, jsCallback, C_parkbrakeDiagDTC);
 }
 
 void CanParkbrakeNode::fetchAllDtcs()
 {
-    // first reset dtcCount then fetch the new dtcCount
-    // when that frame arrives it will automatically retrieve these DTCs
-    m_dtcCount = 0;
-    // must be remote request frame
-    QCanBusFrame f(QCanBusFrame::RemoteRequestFrame);
-    f.setFrameId(CAN_MSG_TYPE_DIAG | C_parkbrakeDiagDTCLength | C_displayNode);
-    m_canIface->sendFrame(f);
+    CanAbstractNode::fetchAllDtcs(C_parkbrakeDiagDTCLength);
 }
 
 void CanParkbrakeNode::clearAllDtcs()
 {
-    // gets cleared when reponse frame arrives
-    QByteArray pl(m_dtcCount, 1);
-    QCanBusFrame f(CAN_MSG_TYPE_DIAG | C_parkbrakeDiagClearDTCs | C_displayNode, pl);
-    f.setExtendedFrameFormat(false);
-    m_canIface->sendFrame(f);
+    CanAbstractNode::clearAllDtcs(C_parkbrakeDiagClearDTCs);
 }
 
 bool CanParkbrakeNode::fetchFreezeFrame(int dtcNr, QJSValue jsCallback)
 {
-    if (dtcNr < 0 || dtcNr > m_dtcCount)
-        return false;
-
-    if (!jsCallback.isCallable())
-        return false;
-
-
-    // already fetched?
-    if (m_freezeFrames.contains(dtcNr)) {
-        if (m_freezeFrames[dtcNr]->isFinished()) {
-            m_freezeFrameFetchCallback.insert(dtcNr, jsCallback);
-            freezeFrameArrival(dtcNr);
-            return true;
-        }
-        // we are waiting for more frames here
-        return true;
-    }
-
-    // we havent yet tried to fetch this frame
-
-    // store in stack for later use
-    m_freezeFrameFetchCallback.insert(dtcNr, jsCallback);
-
-    // create a freezeFrame object for this dtc,
-    // used later to check against multiple fetches
-    CanFreezeFrame *ff = new CanFreezeFrame(this, dtcNr);
-    m_freezeFrames.insert(dtcNr, ff);
-
-    // get from can
-    QByteArray pl(dtcNr, 1);
-    QCanBusFrame f(CAN_MSG_TYPE_DIAG | C_parkbrakeDiagDTCFreezeFrame | C_displayNode, pl);
-    f.setExtendedFrameFormat(false);
-    m_canIface->sendFrame(f);
-    return true;
+    return CanAbstractNode::fetchFreezeFrame(dtcNr, jsCallback, C_parkbrakeDiagDTCFreezeFrame);
 }
 
 bool CanParkbrakeNode::activateOutput(int wheel, bool tighten) const
@@ -228,16 +158,7 @@ bool CanParkbrakeNode::fetchSetting(quint8 idx, QJSValue jsCallback)
     if (idx >= S_EOF)
         return false;
 
-    if (!jsCallback.isCallable())
-        return false;
-
-    m_settingsFetchCallback.insert(idx, jsCallback);
-
-    QByteArray pl(idx & 0xFF, 1);
-    QCanBusFrame f(CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdGetConfig | C_displayNode, pl);
-    f.setExtendedFrameFormat(false);
-    m_canIface->sendFrame(f);
-    return true;
+    return CanAbstractNode::fetchSetting(idx, jsCallback, C_parkbrakeCmdGetConfig);
 }
 
 bool CanParkbrakeNode::setSetting(quint8 idx, quint16 vlu, QJSValue jsCallback)
@@ -245,18 +166,7 @@ bool CanParkbrakeNode::setSetting(quint8 idx, quint16 vlu, QJSValue jsCallback)
     if (idx >= S_EOF)
         return false;
 
-    if (!jsCallback.isCallable())
-        return false;
-
-    m_settingsSetCallback.insert(idx, jsCallback);
-    QByteArray pl("\0\0\0", 3);
-    pl[0] = idx;
-    pl[1] = vlu & 0xFF;
-    pl[2] = (vlu & 0xFF00) >> 8;
-    QCanBusFrame f(CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdSetConfig | C_displayNode, pl);
-    f.setExtendedFrameFormat(false);
-    m_canIface->sendFrame(f);
-    return true;
+    return CanAbstractNode::setSettingU16(idx, vlu, jsCallback, C_parkbrakeCmdSetConfig);
 }
 
 
@@ -280,35 +190,6 @@ bool CanParkbrakeNode::inServiceMode()
         emit serviceModeChanged(ret);
     }
     return ret;
-}
-
-void CanParkbrakeNode::updatedFromCan(QList<QCanBusFrame> &frames)
-{
-    if (frames.size() > 0) {
-        for (const QCanBusFrame &frame : frames) {
-            quint32 sid = frame.frameId();
-            if ((sid & CAN_MSG_SENDER_ID_MASK) != C_parkbrakeNode)
-                continue;
-
-            switch (sid & CAN_MSG_TYPE_MASK) {
-            case CAN_MSG_TYPE_UPDATE:
-                updateCanFrame(frame);
-                break;
-            case CAN_MSG_TYPE_COMMAND:
-                commandCanFrame(frame);
-                break;
-            case CAN_MSG_TYPE_DIAG:
-                diagCanFrame(frame);
-                break;
-            case CAN_MSG_TYPE_EXCEPTION:
-                exceptionCanFrame(frame);
-                break;
-            default:
-                continue;
-                break;
-            }
-        }
-    }
 }
 
 void CanParkbrakeNode::updateCanFrame(const QCanBusFrame &frame)

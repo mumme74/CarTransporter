@@ -11,8 +11,6 @@ public:
     explicit CanParkbrakeNode(CanInterface *canInterface, QObject *parent = nullptr);
     virtual ~CanParkbrakeNode();
 
-    Q_INVOKABLE bool hasProperty(const QString &key);
-
     Q_INVOKABLE bool fetchDtc(int storedIdx, QJSValue jsCallback);
     Q_INVOKABLE void fetchAllDtcs();
     Q_INVOKABLE void clearAllDtcs();
@@ -37,15 +35,14 @@ signals:
     void userError(int userError);
     void newDtcSet(CanDtc *dtc);
 
-protected slots:
-    void updatedFromCan(QList<QCanBusFrame> &frames);
-
-private:
-    bool m_inServiceState;
+protected:
     void updateCanFrame(const QCanBusFrame &frame);
     void commandCanFrame(const QCanBusFrame &frame);
     void exceptionCanFrame(const QCanBusFrame &frame);
     void diagCanFrame(const QCanBusFrame &frame);
+
+private:
+    bool m_inServiceState;
 
     void setStatePid(QString key, quint8 state, PidStore &pidStore);
     void setWheelRevs(QString key, quint8 rev, PidStore &pidStore);

@@ -5,7 +5,7 @@
 
 
 CanSuspensionNode::CanSuspensionNode(CanInterface *canInterface, QObject *parent) :
-    CanAbstractNode(canInterface, parent)
+    CanAbstractNode(C_suspensionNode, canInterface, parent)
 {
     // init some known PIDS
     QCanBusFrame pid1;
@@ -39,61 +39,25 @@ CanSuspensionNode::~CanSuspensionNode()
 {
 }
 
-bool CanSuspensionNode::hasProperty(const QString &key)
-{
-    return m_pids.keys().contains(key);
-}
 
 bool CanSuspensionNode::fetchDtc(int storedIdx, QJSValue jsCallback)
 {
-    if (storedIdx < 0 || storedIdx > m_dtcCount)
-        return false;
-
-    if (!jsCallback.isCallable())
-        return false;
-
-    // store callback in stack for later use
-    m_dtcFetchCallback.insert(storedIdx, jsCallback);
-
-    // already fetched
-    if (m_dtcs.contains(storedIdx)) {
-        dtcOnArrival(storedIdx);
-        return true;
-    }
-
-    // get from Canbus
-    QByteArray payload;
-    payload.insert(0, (storedIdx & 0xFF));
-    QCanBusFrame f(CAN_MSG_TYPE_DIAG | C_suspensionDiagGetDTC | C_displayNode, payload);
-    f.setExtendedFrameFormat(false);
-    m_canIface->sendFrame(f);
-
-    return true;
+    return CanAbstractNode::fetchDtc(storedIdx, jsCallback, C_suspensionDiagGetDTC);
 }
 
 void CanSuspensionNode::fetchAllDtcs()
 {
-    // first reset dtcCount then fetch the new dtcCount
-    // when that frame arrives it will automatically retrieve these DTCs
-    m_dtcCount = 0;
-    // must be remote request frame
-    QCanBusFrame f(QCanBusFrame::RemoteRequestFrame);
-    f.setFrameId(CAN_MSG_TYPE_DIAG | C_suspensionDiagDTCLength | C_displayNode);
-    m_canIface->sendFrame(f);
+    CanAbstractNode::fetchAllDtcs(C_suspensionDiagDTCLength);
 }
 
 void CanSuspensionNode::clearAllDtcs()
 {
-    // gets cleared when reponse frame arrives
-    QByteArray pl(m_dtcCount, 1);
-    QCanBusFrame f(CAN_MSG_TYPE_DIAG | C_suspensionDiagClearDTC | C_displayNode, pl);
-    f.setExtendedFrameFormat(false);
-    m_canIface->sendFrame(f);
+    CanAbstractNode::clearAllDtcs(C_suspensionDiagClearDTC);
 }
 
 bool CanSuspensionNode::activateOutput(int wheel, bool tighten) const
 {
-
+    return false;
 }
 
 bool CanSuspensionNode::fetchSetting(quint8 idx, QJSValue jsCallback)
@@ -101,16 +65,7 @@ bool CanSuspensionNode::fetchSetting(quint8 idx, QJSValue jsCallback)
     if (idx >= Configs::ConfigEnd)
         return false;
 
-    if (!jsCallback.isCallable())
-        return false;
-
-    m_settingsFetchCallback.insert(idx, jsCallback);
-
-    QByteArray pl(idx & 0xFF, 1);
-    QCanBusFrame f(CAN_MSG_TYPE_COMMAND | C_suspensionCmdGetConfig | C_displayNode, pl);
-    f.setExtendedFrameFormat(false);
-    m_canIface->sendFrame(f);
-    return true;
+    return CanAbstractNode::fetchSetting(idx, jsCallback, C_suspensionCmdGetConfig);
 }
 
 bool CanSuspensionNode::setSettingUint16(quint8 idx, quint16 vlu, QJSValue jsCallback)
@@ -118,18 +73,7 @@ bool CanSuspensionNode::setSettingUint16(quint8 idx, quint16 vlu, QJSValue jsCal
     if (idx >= Configs::ConfigEnd)
         return false;
 
-    if (!jsCallback.isCallable())
-        return false;
-
-    m_settingsSetCallback.insert(idx, jsCallback);
-    QByteArray pl("\0\0\0", 3);
-    pl[0] = idx;
-    pl[1] = vlu & 0x00FF;
-    pl[2] = (vlu & 0xFF00) >> 8;
-    QCanBusFrame f(CAN_MSG_TYPE_COMMAND | C_suspensionCmdSetConfig | C_displayNode, pl);
-    f.setExtendedFrameFormat(false);
-    m_canIface->sendFrame(f);
-    return true;
+    return CanAbstractNode::setSettingU16(idx, vlu, jsCallback, C_suspensionCmdSetConfig);
 }
 
 bool CanSuspensionNode::setSettingUint32(quint8 idx, quint32 vlu, QJSValue jsCallback)
@@ -137,20 +81,7 @@ bool CanSuspensionNode::setSettingUint32(quint8 idx, quint32 vlu, QJSValue jsCal
     if (idx >= Configs::ConfigEnd)
         return false;
 
-    if (!jsCallback.isCallable())
-        return false;
-
-    m_settingsSetCallback.insert(idx, jsCallback);
-    QByteArray pl("\0\0\0\0\0", 5);
-    pl[0] = idx;
-    pl[1] = (vlu & 0x000000FF);
-    pl[2] = (vlu & 0x0000FF00) >> 8;
-    pl[3] = (vlu & 0x00FF0000) >> 16;
-    pl[4] = (vlu & 0xFF000000) >> 24;
-    QCanBusFrame f(CAN_MSG_TYPE_COMMAND | C_suspensionCmdSetConfig | C_displayNode, pl);
-    f.setExtendedFrameFormat(false);
-    m_canIface->sendFrame(f);
-    return true;
+    return CanAbstractNode::setSettingU32(idx, vlu, jsCallback, C_suspensionCmdSetConfig);
 }
 
 bool CanSuspensionNode::setSettingFloat(quint8 idx, float vlu, QJSValue jsCallback)
@@ -158,49 +89,7 @@ bool CanSuspensionNode::setSettingFloat(quint8 idx, float vlu, QJSValue jsCallba
     if (idx >= Configs::ConfigEnd)
         return false;
 
-    if (!jsCallback.isCallable())
-        return false;
-
-    m_settingsSetCallback.insert(idx, jsCallback);
-    QByteArray pl("\0\0\0\0\0", 5);
-    pl[0] = idx;
-    pl[1] = (vlu & 0x000000FF);
-    pl[2] = (vlu & 0x0000FF00) >> 8;
-    pl[3] = (vlu & 0x00FF0000) >> 16;
-    pl[4] = (vlu & 0xFF000000) >> 24;
-    QCanBusFrame f(CAN_MSG_TYPE_COMMAND | C_suspensionCmdSetConfig | C_displayNode, pl);
-    f.setExtendedFrameFormat(false);
-    m_canIface->sendFrame(f);
-    return true;
-}
-
-void CanSuspensionNode::updatedFromCan(QList<QCanBusFrame> &frames)
-{
-    if (frames.size() > 0) {
-        for (const QCanBusFrame &frame : frames) {
-            quint32 sid = frame.frameId();
-            if ((sid & CAN_MSG_SENDER_ID_MASK) != C_suspensionNode)
-                continue;
-
-            switch (sid & CAN_MSG_TYPE_MASK) {
-            case CAN_MSG_TYPE_UPDATE:
-                updateCanFrame(frame);
-                break;
-            case CAN_MSG_TYPE_COMMAND:
-                commandCanFrame(frame);
-                break;
-            case CAN_MSG_TYPE_DIAG:
-                diagCanFrame(frame);
-                break;
-            case CAN_MSG_TYPE_EXCEPTION:
-                exceptionCanFrame(frame);
-                break;
-            default:
-                continue;
-                break;
-            }
-        }
-    }
+    return CanAbstractNode::setSettingF(idx, vlu, jsCallback, C_suspensionCmdSetConfig);
 }
 
 void CanSuspensionNode::updateCanFrame(const QCanBusFrame &frame)
@@ -220,7 +109,9 @@ void CanSuspensionNode::commandCanFrame(const QCanBusFrame &frame)
             quint16 vlu = (payload[2] << 8) | payload[1];
             settingsFetchArrival(idx, vlu);
         } else if (payload.size() == 5) {
-            float vlu = (payload[4] << 24) | (payload[3] << 16) | (payload[2] << 8) | (payload[1]);
+            // FIXME need a better algorithm here, 32bit uint also has 4 bytes
+            quint32 u_vlu = (payload[4] << 24) | (payload[3] << 16) | (payload[2] << 8) | (payload[1]);
+            float vlu = (float)u_vlu;
             settingsFetchArrivalFloat(idx, vlu);
         }
     } break;

@@ -11,8 +11,6 @@ public:
     explicit CanSuspensionNode(CanInterface *canInterface, QObject *parent = nullptr);
     virtual ~CanSuspensionNode();
 
-    Q_INVOKABLE bool hasProperty(const QString &key);
-
     Q_INVOKABLE bool fetchDtc(int storedIdx, QJSValue jsCallback);
     Q_INVOKABLE void fetchAllDtcs();
     Q_INVOKABLE void clearAllDtcs();
@@ -28,10 +26,7 @@ signals:
     void userError(int userError);
     void newDtcSet(CanDtc *dtc);
 
-protected slots:
-    void updatedFromCan(QList<QCanBusFrame> &frames);
-
-private:
+protected:
     void updateCanFrame(const QCanBusFrame &frame);
     void commandCanFrame(const QCanBusFrame &frame);
     void exceptionCanFrame(const QCanBusFrame &frame);

@@ -2,6 +2,7 @@
 #define CANNODES_H
 
 #include "canpids.h"
+#include "can_protocol.h"
 
 #include <QObject>
 #include <QQmlEngine>
@@ -89,9 +90,9 @@ class CanAbstractNode : public QObject
     Q_PROPERTY(int dtcCount READ dtcCount NOTIFY dtcCountChanged)
 
 public:
-    explicit CanAbstractNode(CanInterface *canInterface, QObject *parent = nullptr);
+    explicit CanAbstractNode(can_senderIds_e canNodeId, CanInterface *canInterface, QObject *parent = nullptr);
     virtual ~CanAbstractNode();
-    Q_INVOKABLE virtual bool hasProperty(const QString &key) = 0;
+    Q_INVOKABLE virtual bool hasProperty(const QString &key);
     Q_INVOKABLE QList<const CanPid *> getAllPids() const;
 
     // PIDs
@@ -118,8 +119,6 @@ signals:
     void dtcArrived(int storedIndex);
     void dtcsCleared(bool success);
 
-protected slots:
-    virtual void updatedFromCan(QList<QCanBusFrame> &frames) = 0;
 
 
 protected:
@@ -132,12 +131,29 @@ protected:
     void setBoolPid(QString key, quint8 vlu, PidStore &pidStore);
     void setTempPid(QString key, quint8 temp, PidStore &pidStore);
 
+
+    bool fetchDtc(int storedIdx, QJSValue jsCallback, can_msgIdsDiag_e canDiagId);
+    void fetchAllDtcs(can_msgIdsDiag_e canDiagId);
+    void clearAllDtcs(can_msgIdsDiag_e canDiagId);
     void dtcOnArrival(int dtcIdx);
+
+    bool fetchFreezeFrame(int dtcNr, QJSValue jsCallback, can_msgIdsDiag_e canDiagId);
     void freezeFrameArrival(int dtcNr);
+    bool setSettingU16(quint8 idx, quint16 vlu, QJSValue jsCallback, can_msgIdsCommand_e canCmdId);
+    bool setSettingU32(quint8 idx, quint32 vlu, QJSValue jsCallback, can_msgIdsCommand_e canCmdId);
+    bool setSettingF(quint8 idx, float vlu, QJSValue jsCallback, can_msgIdsCommand_e canCmdId);
+    bool fetchSetting(quint8 idx, QJSValue jsCallback, can_msgIdsCommand_e canCmdId);
+
     void settingsFetchArrival(int idx, quint16 vlu);
     void settingsSetArrival(int idx, quint16 vlu);
     void settingsFetchArrivalFloat(int idx, float vlu);
     void settingsSetArrivalFloat(int idx, float vlu);
+
+    // callbacks when we have recived from CAN
+    virtual void updateCanFrame(const QCanBusFrame &frame) = 0;
+    virtual void commandCanFrame(const QCanBusFrame &frame) = 0;
+    virtual void exceptionCanFrame(const QCanBusFrame &frame) = 0;
+    virtual void diagCanFrame(const QCanBusFrame &frame) = 0;
 
     // this is a stack for callbacks to invoke when DTC arrives from CAN bus
     QMap<int, QJSValue> m_dtcFetchCallback;
@@ -152,7 +168,11 @@ protected:
     QMap<int, CanDtc*> m_dtcs;
     QMap<int, CanFreezeFrame*> m_freezeFrames;
 
+protected slots:
+    void updatedFromCan(QList<QCanBusFrame> &frames);
+
 private:
+    can_senderIds_e m_canNodeID;
     static int pidCount(QQmlListProperty<CanPid>* list);
     static CanPid* pid(QQmlListProperty<CanPid>* list, int idx);
 };

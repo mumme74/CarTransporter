@@ -229,8 +229,11 @@ int CanFreezeFrame::dtcNr() const
 
 // -------------------------------------------------------------------------------
 
-CanAbstractNode::CanAbstractNode(CanInterface *canInterface, QObject *parent) :
-    QObject(parent),m_canIface(canInterface), m_dtcCount(0)
+CanAbstractNode::CanAbstractNode(can_senderIds_e canNodeId, CanInterface *canInterface, QObject *parent) :
+    QObject(parent),
+    m_canIface(canInterface),
+    m_dtcCount(0),
+    m_canNodeID(canNodeId)
 {
     connect(canInterface, SIGNAL(recievedFrames(QList<QCanBusFrame>&)),
             this, SLOT(updatedFromCan(QList<QCanBusFrame>&)));
@@ -238,6 +241,11 @@ CanAbstractNode::CanAbstractNode(CanInterface *canInterface, QObject *parent) :
 
 CanAbstractNode::~CanAbstractNode()
 {
+}
+
+bool CanAbstractNode::hasProperty(const QString &key)
+{
+    return m_pids.keys().contains(key);
 }
 
 QList<const CanPid *> CanAbstractNode::getAllPids() const
@@ -303,6 +311,35 @@ int CanAbstractNode::freezeFrameCount() const
     return m_freezeFrames.size();
 }
 
+void CanAbstractNode::updatedFromCan(QList<QCanBusFrame> &frames)
+{
+    if (frames.size() > 0) {
+        for (const QCanBusFrame &frame : frames) {
+            quint32 sid = frame.frameId();
+            if ((sid & CAN_MSG_SENDER_ID_MASK) != m_canNodeID)
+                continue;
+
+            switch (sid & CAN_MSG_TYPE_MASK) {
+            case CAN_MSG_TYPE_UPDATE:
+                updateCanFrame(frame);
+                break;
+            case CAN_MSG_TYPE_COMMAND:
+                commandCanFrame(frame);
+                break;
+            case CAN_MSG_TYPE_DIAG:
+                diagCanFrame(frame);
+                break;
+            case CAN_MSG_TYPE_EXCEPTION:
+                exceptionCanFrame(frame);
+                break;
+            default:
+                continue;
+                break;
+            }
+        }
+    }
+}
+
 void CanAbstractNode::setPidsValue(QString key, QString value, QString unit, PidStore &pidStore)
 {
     if (!pidStore.keys().contains(key)) {
@@ -339,6 +376,91 @@ void CanAbstractNode::setTempPid(QString key, quint8 temp, PidStore &pidStore)
     setPidsValue(key, value, "°C", pidStore);
 }
 
+bool CanAbstractNode::fetchDtc(int storedIdx, QJSValue jsCallback, can_msgIdsDiag_e canDiagId)
+{
+    if (storedIdx < 0 || storedIdx > m_dtcCount)
+        return false;
+
+    if (!jsCallback.isCallable())
+        return false;
+
+    // store callback in stack for later use
+    m_dtcFetchCallback.insert(storedIdx, jsCallback);
+
+    // already fetched
+    if (m_dtcs.contains(storedIdx)) {
+        dtcOnArrival(storedIdx);
+        return true;
+    }
+
+    // get from Canbus
+    QByteArray payload;
+    payload.insert(0, (storedIdx & 0xFF));
+    QCanBusFrame f(CAN_MSG_TYPE_DIAG | canDiagId | C_displayNode, payload);
+    f.setExtendedFrameFormat(false);
+    m_canIface->sendFrame(f);
+
+    return true;
+}
+
+void CanAbstractNode::fetchAllDtcs(can_msgIdsDiag_e canDiagId)
+{
+    // first reset dtcCount then fetch the new dtcCount
+    // when that frame arrives it will automatically retrieve these DTCs
+    m_dtcCount = 0;
+    // must be remote request frame
+    QCanBusFrame f(QCanBusFrame::RemoteRequestFrame);
+    f.setFrameId(CAN_MSG_TYPE_DIAG | canDiagId | C_displayNode);
+    m_canIface->sendFrame(f);
+}
+
+void CanAbstractNode::clearAllDtcs(can_msgIdsDiag_e canDiagId)
+{
+    // gets cleared when reponse frame arrives
+    QByteArray pl(m_dtcCount, 1);
+    QCanBusFrame f(CAN_MSG_TYPE_DIAG | canDiagId | C_displayNode, pl);
+    f.setExtendedFrameFormat(false);
+    m_canIface->sendFrame(f);
+}
+
+bool CanAbstractNode::fetchFreezeFrame(int dtcNr, QJSValue jsCallback, can_msgIdsDiag_e canDiagId)
+{
+    if (dtcNr < 0 || dtcNr > m_dtcCount)
+        return false;
+
+    if (!jsCallback.isCallable())
+        return false;
+
+
+    // already fetched?
+    if (m_freezeFrames.contains(dtcNr)) {
+        if (m_freezeFrames[dtcNr]->isFinished()) {
+            m_freezeFrameFetchCallback.insert(dtcNr, jsCallback);
+            freezeFrameArrival(dtcNr);
+            return true;
+        }
+        // we are waiting for more frames here
+        return true;
+    }
+
+    // we havent yet tried to fetch this frame
+
+    // store in stack for later use
+    m_freezeFrameFetchCallback.insert(dtcNr, jsCallback);
+
+    // create a freezeFrame object for this dtc,
+    // used later to check against multiple fetches
+    CanFreezeFrame *ff = new CanFreezeFrame(this, dtcNr);
+    m_freezeFrames.insert(dtcNr, ff);
+
+    // get from can
+    QByteArray pl(dtcNr, 1);
+    QCanBusFrame f(CAN_MSG_TYPE_DIAG | canDiagId | C_displayNode, pl);
+    f.setExtendedFrameFormat(false);
+    m_canIface->sendFrame(f);
+    return true;
+}
+
 // callback in QML
 void CanAbstractNode::dtcOnArrival(int dtcIdx)
 {
@@ -367,6 +489,60 @@ void CanAbstractNode::freezeFrameArrival(int dtcNr)
     }
 }
 
+bool CanAbstractNode::setSettingU16(quint8 idx, quint16 vlu, QJSValue jsCallback, can_msgIdsCommand_e canCmdId)
+{
+
+    if (!jsCallback.isCallable())
+        return false;
+
+    m_settingsSetCallback.insert(idx, jsCallback);
+    QByteArray pl("\0\0\0", 3);
+    pl[0] = idx;
+    pl[1] = vlu & 0xFF;
+    pl[2] = (vlu & 0xFF00) >> 8;
+    QCanBusFrame f(CAN_MSG_TYPE_COMMAND | canCmdId | C_displayNode, pl);
+    f.setExtendedFrameFormat(false);
+    m_canIface->sendFrame(f);
+    return true;
+}
+
+bool CanAbstractNode::setSettingU32(quint8 idx, quint32 vlu, QJSValue jsCallback, can_msgIdsCommand_e canCmdId)
+{
+    if (!jsCallback.isCallable())
+        return false;
+
+    m_settingsSetCallback.insert(idx, jsCallback);
+    QByteArray pl("\0\0\0\0\0", 5);
+    pl[0] = idx;
+    pl[1] = (vlu & 0x000000FF);
+    pl[2] = (vlu & 0x0000FF00) >> 8;
+    pl[3] = (vlu & 0x00FF0000) >> 16;
+    pl[4] = (vlu & 0xFF000000) >> 24;
+    QCanBusFrame f(CAN_MSG_TYPE_COMMAND | canCmdId | C_displayNode, pl);
+    f.setExtendedFrameFormat(false);
+    m_canIface->sendFrame(f);
+    return true;
+}
+
+bool CanAbstractNode::setSettingF(quint8 idx, float vlu, QJSValue jsCallback, can_msgIdsCommand_e canCmdId)
+{
+    if (!jsCallback.isCallable())
+        return false;
+
+    m_settingsSetCallback.insert(idx, jsCallback);
+    quint32 u_vlu = (quint32)vlu;
+    QByteArray pl("\0\0\0\0\0", 5);
+    pl[0] = idx;
+    pl[1] = (u_vlu & 0x000000FF);
+    pl[2] = (u_vlu & 0x0000FF00) >> 8;
+    pl[3] = (u_vlu & 0x00FF0000) >> 16;
+    pl[4] = (u_vlu & 0xFF000000) >> 24;
+    QCanBusFrame f(CAN_MSG_TYPE_COMMAND | canCmdId | C_displayNode, pl);
+    f.setExtendedFrameFormat(false);
+    m_canIface->sendFrame(f);
+    return true;
+}
+
 void CanAbstractNode::settingsSetArrival(int idx, quint16 vlu)
 {
     if (m_settingsSetCallback.contains(idx)) {
@@ -389,6 +565,21 @@ void CanAbstractNode::settingsSetArrivalFloat(int idx, float vlu)
         QJSValue jsCallback = m_settingsSetCallback.take(idx);
         jsCallback.call(QJSValueList { vlu });
     }
+}
+
+bool CanAbstractNode::fetchSetting(quint8 idx, QJSValue jsCallback, can_msgIdsCommand_e canCmdId)
+{
+
+    if (!jsCallback.isCallable())
+        return false;
+
+    m_settingsFetchCallback.insert(idx, jsCallback);
+
+    QByteArray pl(idx & 0xFF, 1);
+    QCanBusFrame f(CAN_MSG_TYPE_COMMAND | canCmdId | C_displayNode, pl);
+    f.setExtendedFrameFormat(false);
+    m_canIface->sendFrame(f);
+    return true;
 }
 
 void CanAbstractNode::settingsFetchArrival(int idx, quint16 vlu)

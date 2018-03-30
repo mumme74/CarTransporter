@@ -12,7 +12,7 @@ Item {
     }
     PageIndicator {
         id: pageIndicator
-        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.horizontalCenter: root.horizontalCenter
         y: 8
         count: nodeView.count
         currentIndex: nodeView.currentIndex
@@ -22,29 +22,29 @@ Item {
     IconButton {
         id: setOn
         btnText: qsTr("On")+ tr.str
-        anchors.right: parent.right
-        anchors.top: parent.top
+        anchors.right: root.right
+        anchors.top: root.top
         anchors.topMargin: 65
     }
 
     IconButton {
         id: setOff
         btnText: qsTr("Off") + tr.str
-        anchors.right: parent.right
+        anchors.right: root.right
         anchors.top: setOn.bottom
         anchors.topMargin: 20
     }
 
     StackLayout {
         id: nodeView
-        anchors.left: parent.left
+        anchors.left: root.left
         anchors.leftMargin: 10
         anchors.right: setOff.left
         anchors.rightMargin: 10
-        anchors.bottom: parent.bottom
-        anchors.top: parent.top
+        anchors.bottom: root.bottom
+        anchors.top: root.top
         anchors.topMargin: 10
-        height: parent.height - y
+        height: root.height - y
         anchors.bottomMargin: 0
         currentIndex: pageIndicator.currentIndex
 

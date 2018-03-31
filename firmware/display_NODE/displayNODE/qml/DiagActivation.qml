@@ -19,27 +19,11 @@ Item {
         interactive: true
     }
 
-    IconButton {
-        id: setOn
-        btnText: qsTr("On")+ tr.str
-        anchors.right: root.right
-        anchors.top: root.top
-        anchors.topMargin: 65
-    }
-
-    IconButton {
-        id: setOff
-        btnText: qsTr("Off") + tr.str
-        anchors.right: root.right
-        anchors.top: setOn.bottom
-        anchors.topMargin: 20
-    }
-
     StackLayout {
         id: nodeView
         anchors.left: root.left
         anchors.leftMargin: 10
-        anchors.right: setOff.left
+        anchors.right: root.right
         anchors.rightMargin: 10
         anchors.bottom: root.bottom
         anchors.top: root.top
@@ -63,7 +47,7 @@ Item {
                 anchors.top: suspensionActivateLbl.bottom
                 anchors.topMargin: 10
                 anchors.bottom: parent.bottom
-                width: 450
+                width: 350
                 TableViewColumn {
                     role: "param"
                     title: qsTr("Param")+ tr.str
@@ -74,9 +58,68 @@ Item {
                     title: qsTr("Value")+ tr.str
                     width: 100
                 }
-                model: testActivationModel
+                TableViewColumn {
+                    role: "unit"
+                    title: qsTr("Unit")+ tr.str
+                    width: 50
+                }
+                model: suspensionActivationModel
+                onClicked: {
+                    var itm = suspensionActivationModel.get(currentRow)
+                    suspensionActivateValueSlider.value = itm ? itm.value : 0
+                }
             }
-        }
+            Slider {
+                id: suspensionActivateValueSlider
+                anchors.top: suspensionActivateLbl.bottom
+                anchors.topMargin: 10
+                anchors.left: suspensionActivateList.right
+                anchors.leftMargin: 30
+                anchors.bottom: parent.bottom
+                orientation: Qt.Vertical
+                minimumValue: 0
+                maximumValue: 100
+                stepSize: 1
+                onValueChanged: {
+                    if (suspensionActivateList.currentRow > -1) {
+                        var itm = suspensionActivationModel.get(suspensionActivateList.currentRow)
+                        if (itm && itm.value !== undefined)
+                            itm.value = value
+                        /*suspensionActivationModel.setProperty(
+                                suspensionActivateList.currentRow,
+                                "value", value)*/
+                    }
+                }
+            }
+
+            IconButton {
+                id: setOn
+                btnText: qsTr("On")+ tr.str
+                anchors.left: suspensionActivateValueSlider.right
+                anchors.top: suspensionActivatePage.top
+                anchors.topMargin: 65
+                anchors.leftMargin: 20
+                onClicked: {
+                    var itm = suspensionActivationModel.get(suspensionActivateList.currentRow)
+                    if (itm && itm.value !== undefined)
+                        suspensionNode.activateOutput(itm.pid, itm.value)
+                }
+            }
+
+            IconButton {
+                id: setOff
+                btnText: qsTr("Off") + tr.str
+                anchors.left: suspensionActivateValueSlider.right
+                anchors.leftMargin: 20
+                anchors.top: setOn.bottom
+                anchors.topMargin: 20
+                onClicked: {
+                    var itm = suspensionActivationModel.get(suspensionActivateList.currentRow)
+                    if (itm)
+                        suspensionNode.clearActivateOutput(itm.pid)
+                }
+            }
+        } // end suspension
         Item {
             id: parkbrakeActivatePage
             Label {
@@ -204,30 +247,60 @@ Item {
 
 
     ListModel {
-        id: testActivationModel
+        id: suspensionActivationModel
         ListElement {
-            param: "LF current"
-            value: "20A"
+            param: "LeftFill"
+            value: 0
+            unit: "%"
+            pid: 1 // From PIDs::IDs ins suspensionNode code
         }
         ListElement {
-            param: "LF Height"
-            value: "100steps"
+            param: "LeftDump"
+            value: 0
+            unit: "%"
+            pid: 2
         }
         ListElement {
-            param: "LSuck"
-            value: "On"
+            param: "LeftSuck"
+            value: 0
+            unit: "%"
+            pid: 3
+        }
+        ListElement {
+            param: "RightFill"
+            value: 0
+            unit: "%"
+            pid: 4
+        }
+        ListElement {
+            param: "RightDump"
+            value: 0
+            unit: "%"
+            pid: 5
+        }
+        ListElement {
+            param: "RightSuck"
+            value: 0
+            unit: "%"
+            pid: 6
         }
         ListElement {
             param: "Compressor"
-            value: "On"
+            value: 0
+            unit: "%"
+            pid: 7
         }
         ListElement {
-            param: "Compresor temp"
-            value: "100C"
+            param: "Airdryer"
+            value: 0
+            unit: "%"
+            pid: 8
         }
         ListElement {
-            param: "state"
-            value: "Normal"
+            param: "Spare1"
+            value: 0
+            unit: "%"
+            pid: 9
         }
     }
 }

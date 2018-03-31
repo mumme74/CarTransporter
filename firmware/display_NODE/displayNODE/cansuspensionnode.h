@@ -17,6 +17,7 @@ public:
     Q_INVOKABLE void clearAllDtcs();
 
     Q_INVOKABLE bool activateOutput(quint8 pid, quint8 vlu) const;
+    Q_INVOKABLE bool clearActivateOutput(quint8 pid) const;
 
     Q_INVOKABLE bool fetchSetting(quint8 idx, QJSValue jsCallback);
     Q_INVOKABLE bool setSettingUint16(quint8 idx, quint16 vlu, QJSValue jsCallback);

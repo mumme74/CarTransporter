@@ -311,6 +311,13 @@ int CanAbstractNode::freezeFrameCount() const
     return m_freezeFrames.size();
 }
 
+bool CanAbstractNode::fetchFreezeFrame(int dtcNr, QJSValue jsCallback)
+{
+    Q_UNUSED(dtcNr);
+    Q_UNUSED(jsCallback);
+    return false;
+}
+
 void CanAbstractNode::updatedFromCan(QList<QCanBusFrame> &frames)
 {
     if (frames.size() > 0) {

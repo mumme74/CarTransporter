@@ -55,6 +55,10 @@ ITS5215L::~ITS5215L()
 void ITS5215L::setValue(uint8_t duty)
 {
   m_pid->setRawValue(duty);
+  
+  if (m_state != PID::States::ActuatorTest)
+    return;
+    
   if (duty == 0) {
     m_state = PID::States::Off;
     m_pwmCnt = 0;
@@ -71,8 +75,22 @@ void ITS5215L::setValue(uint8_t duty)
 void ITS5215L::setActuatorTest(uint8_t duty)
 {
   setValue(duty);
+  if (duty == 0)
+    duty = 0;
+  else if (duty > 100)
+       duty = 100
+  
+  m_pwmCnt = duty;
   m_state = PID::States::ActuatorTest;
 }
+
+void ITS5215L::clearActuatorTest()
+{
+  if (m_state == PID::States::ActuatorTest) {
+    m_state = PID::States::Off;
+    setValue(0);
+  }
+} 
 
 void ITS5215L::init()
 {
@@ -167,6 +185,14 @@ void BTS6133D::setActuatorTest(uint8_t duty)
 {
   setValue(duty);
   m_state = PID::States::ActuatorTest;
+}
+
+void BTS6133D::clearActuatorTest()
+{
+  if (m_state == PID::States::ActuatorTest) {
+    setValue(0);
+    m_state = PID::States::Off;
+  }
 }
 
 /*

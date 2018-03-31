@@ -300,6 +300,22 @@ void ControllerBase::_recievedDiagnose(CAN_message_t *msg,
               return;
           }
         }
+      } break; case C_suspensionDiagClearActuatorTest: { // Set actuatortest
+        id = msg->buf[0];
+        for (IOutput *outDrv = OutputsController.first();
+             outDrv != nullptr;
+             outDrv = OutputsController.next())
+        {
+          if (outDrv->pid()->id() == id) {
+              // set actuation test on this pid
+              outDrv->clearActuatorTest();
+              // respond to requesting node
+              ++action;
+              msg->id = CAN_MSG_TYPE_DIAG | C_suspensionDiagClearActuatorTest | m_senderId;
+              send(*msg);
+              return;
+          }
+        }
       } break;
       case C_suspensionDiagClearDTC: {
           uint8_t dtcCnt = msg->buf[0],

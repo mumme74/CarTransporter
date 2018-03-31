@@ -21,6 +21,7 @@ public:
   virtual ~IOutput();
   virtual void init() = 0;
   virtual void setActuatorTest(const uint8_t duty) = 0;
+  virtual void clearActuarorTest() = 0;
   virtual void setValue(uint8_t vlu) = 0;
   virtual void interval() = 0; // called by isr each 0.1ms
   inline errorTypes error() const { return m_errType; }

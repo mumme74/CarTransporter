@@ -7,6 +7,7 @@
 #include "settings.h"
 #include "cannodes.h"
 #include "canparkbrakenode.h"
+#include "cansuspensionnode.h"
 
 
 //QQmlApplicationEngine *qmlEngine = nullptr;
@@ -31,6 +32,7 @@ int main(int argc, char *argv[])
     canIface.setConnected(true);
 
     CanParkbrakeNode parkbrakeNode(&canIface);
+    CanSuspensionNode suspensionNode(&canIface);
     CanPids canPidsModel;
 
     Settings settings;
@@ -38,6 +40,7 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty("tr", &transObj);
     engine.rootContext()->setContextProperty("parkbrakeNode", &parkbrakeNode);
+    engine.rootContext()->setContextProperty("suspensionNode", &suspensionNode);
     engine.rootContext()->setContextProperty("canPidsModel", &canPidsModel);
     engine.rootContext()->setContextProperty("settings", &settings);
 

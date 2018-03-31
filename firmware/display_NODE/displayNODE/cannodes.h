@@ -110,7 +110,7 @@ public:
 
     // FreezeFrames
     Q_INVOKABLE int freezeFrameCount() const;
-    Q_INVOKABLE virtual bool fetchFreezeFrame(int dtcNr, QJSValue jsCallback) = 0;
+    Q_INVOKABLE virtual bool fetchFreezeFrame(int dtcNr, QJSValue jsCallback);
 
 
 signals:

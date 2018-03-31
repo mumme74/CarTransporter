@@ -209,6 +209,13 @@ typedef enum {
                                                  // response:
                                                  //  [0:7]         [0:7]
                                                  // pid adress     value
+    C_suspensionDiagClearActuatorTest = 0x14 << 3, // request:
+                                                   //  [0:7]
+                                                   // pid adress
+                                                   //
+                                                   // response:
+                                                   //  [0:7]
+
 
     //C_suspensionDiagActuatorStatus  = 0x14 << 3,
     C_suspensionDiag_LAST           = 0x19 << 3,

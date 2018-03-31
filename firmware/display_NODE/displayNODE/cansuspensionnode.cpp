@@ -8,8 +8,6 @@
 CanSuspensionNode::CanSuspensionNode(CanInterface *canInterface, QObject *parent) :
     CanAbstractNode(C_suspensionNode, canInterface, parent)
 {
-    qmlRegisterUncreatableType<CanSuspensionNode>("mummesoft", 0, 1, "suspensionNode", QStringLiteral("Cant create CanSuspensionNode from QML"));
-
     // init some known PIDS
     QCanBusFrame pid1;
     pid1.setExtendedFrameFormat(false);
@@ -322,6 +320,8 @@ void CanSuspensionNode::diagCanFrame(const QCanBusFrame &frame)
         // response:
         //  [0:7]         [0:7]
         // pid adress     value
+        emit activateOutputComfirmed(payload[0], payload[1]);
+
         quint16 id = payload[0];
         switch (static_cast<PIDs::IDs>(id)) {
         case PIDs::leftFillPWM_8bit: {
@@ -356,6 +356,23 @@ void CanSuspensionNode::diagCanFrame(const QCanBusFrame &frame)
         }
 
     }   break;
+    case C_suspensionDiagClearActuatorTest: {
+        // response:
+        //  [0:7]
+        emit clearActivateOutput(payload[0]);
+
+        // request a update pid from node
+        can_msgIdsUpdate_e canUpdId = C_suspensionUpdPID_1;
+
+        if (static_cast<quint8>(payload[0]) == PIDs::suspensionSpare1PWM_8bit)
+            canUpdId = C_suspensionUpdPID_2;
+
+        QCanBusFrame f(QCanBusFrame::RemoteRequestFrame);
+        f.setFrameId(CAN_MSG_TYPE_DIAG | canUpdId | C_displayNode);
+        f.setExtendedFrameFormat(false);
+        m_canIface->sendFrame(f);
+
+    } break;
     default:
         break;
     }

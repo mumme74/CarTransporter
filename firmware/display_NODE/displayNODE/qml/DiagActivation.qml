@@ -47,7 +47,7 @@ Item {
                 anchors.top: suspensionActivateLbl.bottom
                 anchors.topMargin: 10
                 anchors.bottom: parent.bottom
-                width: 350
+                width: 400
                 TableViewColumn {
                     role: "param"
                     title: qsTr("Param")+ tr.str
@@ -61,6 +61,11 @@ Item {
                 TableViewColumn {
                     role: "unit"
                     title: qsTr("Unit")+ tr.str
+                    width: 50
+                }
+                TableViewColumn {
+                    role: "state"
+                    title: qsTr("State")+ tr.str
                     width: 50
                 }
                 model: suspensionActivationModel
@@ -117,6 +122,28 @@ Item {
                     var itm = suspensionActivationModel.get(suspensionActivateList.currentRow)
                     if (itm)
                         suspensionNode.clearActivateOutput(itm.pid)
+                }
+            }
+
+            Connections {
+                // handles response from our node
+                target: suspensionNode
+                onActivateOutputConfirmed: {
+                    for(var i = 0; i < suspensionActivationModel.count; ++i) {
+                        var itm = suspensionActivationModel.get(i);
+                        if (itm && itm.pid === pid) {
+                            itm.state = "On"
+                            itm.value = value
+                        }
+                    }
+                }
+                onClearActivateOutputConfirmed: {
+                    for(var i = 0; i < suspensionActivationModel.count; ++i) {
+                        var itm = suspensionActivationModel.get(i);
+                        if (itm && itm.pid === pid) {
+                            itm.state = "Off"
+                        }
+                    }
                 }
             }
         } // end suspension
@@ -252,54 +279,63 @@ Item {
             param: "LeftFill"
             value: 0
             unit: "%"
+            state: "off"
             pid: 1 // From PIDs::IDs ins suspensionNode code
         }
         ListElement {
             param: "LeftDump"
             value: 0
             unit: "%"
+            state: "off"
             pid: 2
         }
         ListElement {
             param: "LeftSuck"
             value: 0
             unit: "%"
+            state: "off"
             pid: 3
         }
         ListElement {
             param: "RightFill"
             value: 0
             unit: "%"
+            state: "off"
             pid: 4
         }
         ListElement {
             param: "RightDump"
             value: 0
             unit: "%"
+            state: "off"
             pid: 5
         }
         ListElement {
             param: "RightSuck"
             value: 0
             unit: "%"
+            state: "off"
             pid: 6
         }
         ListElement {
             param: "Compressor"
             value: 0
             unit: "%"
+            state: "off"
             pid: 7
         }
         ListElement {
             param: "Airdryer"
             value: 0
             unit: "%"
+            state: "off"
             pid: 8
         }
         ListElement {
             param: "Spare1"
             value: 0
             unit: "%"
+            state: "off"
             pid: 9
         }
     }

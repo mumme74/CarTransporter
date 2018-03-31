@@ -29,6 +29,8 @@ signals:
     void userErrorHeightNonValidState();
     void userErrorSuckingNotAllowed();
     void newDtcSet(CanDtc *dtc);
+    void activateOutputComfirmed(quint8 pid, quint8 value);
+    void clearActivateOutputComfirmed(quint8 pid);
 
 protected:
     void updateCanFrame(const QCanBusFrame &frame);

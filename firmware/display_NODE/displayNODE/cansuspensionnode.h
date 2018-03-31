@@ -2,6 +2,7 @@
 #define CANSUSPENSIONNODE_H
 
 #include "cannodes.h"
+#include "PID.h"
 
 
 class CanSuspensionNode : public CanAbstractNode
@@ -15,7 +16,7 @@ public:
     Q_INVOKABLE void fetchAllDtcs();
     Q_INVOKABLE void clearAllDtcs();
 
-    Q_INVOKABLE bool activateOutput(int wheel, bool tighten) const;
+    Q_INVOKABLE bool activateOutput(quint8 pid, quint8 vlu) const;
 
     Q_INVOKABLE bool fetchSetting(quint8 idx, QJSValue jsCallback);
     Q_INVOKABLE bool setSettingUint16(quint8 idx, quint16 vlu, QJSValue jsCallback);
@@ -24,6 +25,8 @@ public:
 
 signals:
     void userError(int userError);
+    void userErrorHeightNonValidState();
+    void userErrorSuckingNotAllowed();
     void newDtcSet(CanDtc *dtc);
 
 protected:
@@ -33,6 +36,8 @@ protected:
     void diagCanFrame(const QCanBusFrame &frame);
 
 private:
+    void setAirFeedStatePid(QString key, quint16 state, PidStore &pidStore);
+    void setHeightStatePid(QString key, quint16 state, PidStore &pidStore);
 
 };
 

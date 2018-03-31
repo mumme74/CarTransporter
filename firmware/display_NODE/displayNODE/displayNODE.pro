@@ -48,11 +48,13 @@ HEADERS += \
     ../../system_headers/can_protocol.h \
     canparkbrakenode.h \
     cansuspensionnode.h \
-    ../../suspension_ECU/suspension_config.h
+    ../../suspension_ECU/suspension_config.h  \
+    ../../../libraries/system_things/PID.h
 
 INCLUDEPATH += ../../parkbrake_ECU/ \
                ../../system_headers/ \
-               ../../suspension_ECU
+               ../../suspension_ECU/ \
+               ../../../libraries/system_things/
 
 TRANSLATIONS.path = ts/
 TRANSLATIONS += ts_sv.ts

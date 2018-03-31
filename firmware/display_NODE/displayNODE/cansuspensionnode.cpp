@@ -1,6 +1,7 @@
 #include "cansuspensionnode.h"
 #include "can_protocol.h"
 #include "suspension_config.h"
+#include "PID.h"
 #include <QDebug>
 
 
@@ -55,9 +56,16 @@ void CanSuspensionNode::clearAllDtcs()
     CanAbstractNode::clearAllDtcs(C_suspensionDiagClearDTC);
 }
 
-bool CanSuspensionNode::activateOutput(int wheel, bool tighten) const
+bool CanSuspensionNode::activateOutput(quint8 pid, quint8 vlu) const
 {
-    return false;
+    if (pid == 0 || pid > PIDs::compressorPWM_8bit)
+        return false;
+
+    QByteArray pl(pid, vlu);
+    QCanBusFrame f(CAN_MSG_TYPE_DIAG | C_suspensionDiagActuatorTest | C_displayNode, pl);
+    f.setExtendedFrameFormat(false);
+    m_canIface->sendFrame(f);
+    return true;
 }
 
 bool CanSuspensionNode::fetchSetting(quint8 idx, QJSValue jsCallback)
@@ -94,6 +102,67 @@ bool CanSuspensionNode::setSettingFloat(quint8 idx, float vlu, QJSValue jsCallba
 
 void CanSuspensionNode::updateCanFrame(const QCanBusFrame &frame)
 {
+    quint32 sid = frame.frameId();
+    QByteArray data = frame.payload();
+    quint16 msgId = sid & CAN_MSG_ID_MASK;
+
+    switch (msgId) {
+    case C_suspensionUpdPID_1: {
+        // response:
+        //    [0:7]          [0:7]         [0:7]          [0:7]            [0:7]           [0:7]           [0:7]           [0:7]
+        // leftFillDuty | leftDumpDuty | leftSuckDuty | rightFillDuty | rightDumpDuty | rightSuckDuty | airDryerDuty | compressorDuty
+        setPidsValue(tr("LeftFill_duty"), QString::number(data[0]), "%", m_pids);
+        setPidsValue(tr("LeftDump_duty"), QString::number(data[1]), "%", m_pids);
+        setPidsValue(tr("LeftSuck_duty"), QString::number(data[2]), "%", m_pids);
+        setPidsValue(tr("RightFill_duty"), QString::number(data[3]), "%", m_pids);
+        setPidsValue(tr("RightDump_duty"), QString::number(data[4]), "%", m_pids);
+        setPidsValue(tr("RightSuck_duty"), QString::number(data[5]), "%", m_pids);
+        setPidsValue(tr("AirDryer_duty"), QString::number(data[6]), "%", m_pids);
+        setPidsValue(tr("Compressor_duty"), QString::number(data[7]), "%", m_pids);
+    } break;
+    case C_suspensionUpdPID_2: {
+        // response:
+        //   [0:15]              [0:15]        [0:15]          [0:7]             [0:7]
+        // systemPressure | leftPressure | rightPressure | compressorCurrent | spare1Duty
+        //    12bit              12bit          12bit
+        setPidsValue(tr("System_pressure"), QString::number(data[1] << 8 | data[0]), "bar", m_pids);
+        setPidsValue(tr("Left_pressure"), QString::number(data[3] << 8 | data[2]), "bar", m_pids);
+        setPidsValue(tr("Right_pressure"), QString::number(data[5] << 8 | data[4]), "bar", m_pids);
+        setPidsValue(tr("Compressor_current"), QString::number(data[6]), "A", m_pids);
+        setPidsValue(tr("Spare1_duty"), QString::number(data[7]), "%", m_pids);
+    } break;
+    case C_suspensionUpdPID_3: {
+        // response:
+        //   [0:15]      [0:15]            [0:15]       [0:15]
+        // leftHeight | rightHeight | compressorTemp | spareAnalog1
+        //  12bit          12bit           12bit        12bit
+        setPidsValue(tr("Left_height"), QString::number(data[1] << 8 | data[0]), "steps", m_pids);
+        setPidsValue(tr("Right_height"), QString::number(data[3] << 8 | data[2]), "steps", m_pids);
+        setPidsValue(tr("Compressor_temp"), QString::number(data[5] << 8 | data[4]), "steps", m_pids);
+        setPidsValue(tr("SpareAnalog1_steps"), QString::number(data[7] << 8 | data[6]), "steps", m_pids);
+
+    } break;
+    case C_suspensionUpdPID_4: {
+        // response:
+        //     [0:15]          [0:15]        [0:15]
+        //  airFeedState    heightState     loadedWeight
+        //   Pid::States     Pid::States      in kg
+        setAirFeedStatePid(tr("AirFeed_state"), data[1] << 8 | data[0], m_pids);
+        setHeightStatePid(tr("Height_state"), data[3] << 8 | data[2], m_pids);
+        setPidsValue(tr("Load_weight"), QString::number(data[5] << 8 | data[4]), "kg", m_pids);
+
+    } break;
+    default: {
+        // unknown
+        QString key = QString::number(sid, 16);
+        QString vlu;
+        for (quint8 v : data) {
+            vlu += QString::number(v, 16);
+        }
+        setPidsValue(key, vlu, "", m_pids);
+        break;
+    }
+    }
 
 }
 
@@ -127,12 +196,49 @@ void CanSuspensionNode::commandCanFrame(const QCanBusFrame &frame)
 
 void CanSuspensionNode::exceptionCanFrame(const QCanBusFrame &frame)
 {
+    // when parkbrakeNode sends a exceptionFrame
+    QByteArray payload = frame.payload();
+    quint32 sid = frame.frameId();
+    switch (sid & CAN_MSG_ID_MASK) {
+    case C_suspensionExcDTC: {
+        // a error code has been set in suspension
+        //  [0:7]        [0:15]    [0:6] [:7]
+        // stored nr     dtc code  occurrences & pending mask (1 on 7th bit = real code, 0=pending)
+        quint8 occurences = payload[3] & 0x8F;
+        bool pending = static_cast<quint8>(payload[3]) < 0x8F;
+        quint16 code = (payload[2] << 8) | payload[1];
+        CanDtc *dtc = getDtc(payload[0]);
+        if (dtc == nullptr) {
+            dtc = new CanDtc(this, payload[0], code, occurences, 0);
+            dtc->setPending(pending);
+            m_dtcs.insert(dtc->storedNr(), dtc);
+            emit dtcArrived(dtc->storedNr());
+        } else {
+            dtc->setPending(pending);
+            dtc->setOccurences(occurences);
+        }
+        emit newDtcSet(dtc);
+    }    break;
+    case C_suspensionExcUserError: {
+        // [0:15]
+        // userError id in enum
+        quint16 excId = (payload.at(1) << 8) | payload.at(0);
+        if (excId == C_userErrorHeightNonValidState) {
+            emit userErrorHeightNonValidState();
+        } else if (excId == C_userErrorSuckedRearWheelBlocked) {
+            emit userErrorSuckingNotAllowed();
+        }
 
+        emit userError(excId);
+    } break;
+    default:
+        break;
+    }
 }
 
 void CanSuspensionNode::diagCanFrame(const QCanBusFrame &frame)
 {
-    // when parkbrakeNode sends a diagnose frame
+    // when uspensionNode sends a diagnose frame
     QByteArray payload = frame.payload();
     quint32 sid = frame.frameId();
     switch (sid & CAN_MSG_ID_MASK) {
@@ -166,6 +272,7 @@ void CanSuspensionNode::diagCanFrame(const QCanBusFrame &frame)
             }
             m_dtcCount = 0;
             m_dtcs.clear();
+            m_freezeFrames.clear();
             bool cleared = (quint8)(payload[0]) != 0;
             if (!cleared)
                 cleared = m_dtcCount == 0; // when clearing a empty dtcs list
@@ -201,3 +308,72 @@ void CanSuspensionNode::diagCanFrame(const QCanBusFrame &frame)
         break;
     }
 }
+
+void CanSuspensionNode::setAirFeedStatePid(QString key, quint16 state, PidStore &pidStore)
+{
+    QString value;
+    switch (static_cast<PID::States>(state)) {
+    case PID::Off:
+        value = tr("Off");
+        break;
+    case PID::On:
+        value = tr("On");
+        break;
+    case PID::RevUp:
+        value = tr("SpinUp");
+        break;
+    case PID::FullRev:
+        value = tr("FullRev");
+        break;
+    case PID::RevDown:
+        value = tr("SlowDown");
+        break;
+    case PID::Airdryer:
+        value = tr("Airdryer");
+        break;
+    case PID::Error:
+        value = tr("ErrorState");
+        break;
+    default:
+        value = tr("UnknownState");
+        break;
+    }
+
+    setPidsValue(key, value, "", pidStore);
+}
+
+void CanSuspensionNode::setHeightStatePid(QString key, quint16 state, CanAbstractNode::PidStore &pidStore)
+{
+    QString value;
+    switch (static_cast<PID::States>(state)) {
+    case PID::LowState:
+        value = tr("At_low");
+        break;
+    case PID::ToLowState:
+        value = tr("Lowering");
+        break;
+    case PID::NormalState:
+        value = tr("At_middle");
+        break;
+    case PID::ToNormalState:
+        value = tr("To_middle");
+        break;
+    case PID::HighState:
+        value = tr("At_Max");
+        break;
+    case PID::ToHighState:
+        value = tr("To_Max");
+        break;
+    case PID::Error:
+        value = tr("ErrorState");
+        break;
+    default:
+        value = tr("UnknownState");
+        break;
+    }
+
+    setPidsValue(key, value, "", pidStore);
+}
+
+
+

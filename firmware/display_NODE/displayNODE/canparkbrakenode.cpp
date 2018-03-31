@@ -296,7 +296,12 @@ void CanParkbrakeNode::exceptionCanFrame(const QCanBusFrame &frame)
     quint32 sid = frame.frameId();
     switch (sid & CAN_MSG_ID_MASK) {
     case C_parkbrakeExcNewDTC: {
-        quint16 code = (payload[1] << 8) | payload[0];
+        // a new DTC has been set
+        // broadcasted when a dtc is set
+        // response
+        //  [0:7]        [0:15]    [0:7]
+        // stored nr     dtc code  occurrences
+        quint16 code = (payload[2] << 8) | payload[1];
         CanDtc *dtc = getDtc(payload[0]);
         if (dtc == nullptr) {
             dtc = new CanDtc(this, payload[0], code, payload[3], 0);
@@ -361,6 +366,7 @@ void CanParkbrakeNode::diagCanFrame(const QCanBusFrame &frame)
             }
             m_dtcCount = 0;
             m_dtcs.clear();
+            m_freezeFrames.clear();
             bool cleared = (quint8)(payload[0]) != 0;
             if (!cleared)
                 cleared = m_dtcCount == 0; // when clearing a empty dtcs list

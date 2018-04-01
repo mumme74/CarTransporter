@@ -89,7 +89,7 @@ C_EXTRAFLAGS += -DDEBUG_MODE=yes
 C_EXTRAFLAGS += -DTRACE_MODE=yes
 
 # Imported source files and paths
-CHIBIOS = $(HOME)/workspace/ChibiOS_17.6.0
+#CHIBIOS = $(HOME)/workspace/ChibiOS_17.6.0 # env variable sent by eclipse
 CHIBIOS_CONTRIB = $(CHIBIOS)/community
 
 #system things

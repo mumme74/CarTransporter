@@ -124,6 +124,211 @@ const QString CanDtc::dtcDescription() const
     case C_dtc_OverCurrent_RR_service:
         desc = tr("Overcurrent when RR service"); break;
 
+    // suspension outputs
+    case C_dtc_leftFill_openLoad:
+        desc = tr("Leftfill open or positive short"); break;
+    case C_dtc_leftFill_shorted:
+        desc = tr("Leftfill negative short"); break;
+    case C_dtc_leftFill_overtemp:
+        desc = tr("Leftfill output overtemp"); break;
+    case C_dtc_leftFill_overload:
+        desc = tr("Leftfill output overload"); break;
+    case C_dtc_leftFill_hardwarefault:
+        desc = tr("Leftfill output hardwarfault"); break;
+
+    case C_dtc_leftDump_openLoad:
+        desc = tr("Leftdump open or positive short"); break;
+    case C_dtc_leftDump_shorted:
+        desc = tr("Leftdump negative short"); break;
+    case C_dtc_leftDump_overtemp:
+        desc = tr("Leftdump output overtemp"); break;
+    case C_dtc_leftDump_overload:
+        desc = tr("Leftdump output overload"); break;
+    case C_dtc_leftDump_hardwarefault:
+        desc = tr("Leftdump output hardwarfault"); break;
+
+    case C_dtc_leftSuck_openLoad:
+        desc = tr("Leftsuck open or positive short"); break;
+    case C_dtc_leftSuck_shorted:
+        desc = tr("Leftsuck negative short"); break;
+    case C_dtc_leftSuck_overtemp:
+        desc = tr("Leftsuck output overtemp"); break;
+    case C_dtc_leftSuck_overload:
+        desc = tr("Leftsuck output overload"); break;
+    case C_dtc_leftSuck_hardwarefault:
+        desc = tr("Leftsuck output hardwarfault"); break;
+
+    case C_dtc_rightFill_openLoad:
+        desc = tr("Rightfill open or positive short"); break;
+    case C_dtc_rightFill_shorted:
+        desc = tr("Rightfill negative short"); break;
+    case C_dtc_rightFill_overtemp:
+        desc = tr("Rightfill output overtemp"); break;
+    case C_dtc_rightFill_overload:
+        desc = tr("Rightfill output overload"); break;
+    case C_dtc_rightFill_hardwarefault:
+        desc = tr("Rightfill output hardwarfault"); break;
+
+    case C_dtc_rightDump_openLoad:
+        desc = tr("Rightdump open or positive short"); break;
+    case C_dtc_rightDump_shorted:
+        desc = tr("Rightdump negative short"); break;
+    case C_dtc_rightDump_overtemp:
+        desc = tr("Rightdump output overtemp"); break;
+    case C_dtc_rightDump_overload:
+        desc = tr("Rightdump output overload"); break;
+    case C_dtc_rightDump_hardwarefault:
+        desc = tr("Rightdump output hardwarfault"); break;
+
+    case C_dtc_rightSuck_openLoad:
+        desc = tr("Rightsuck open or positive short"); break;
+    case C_dtc_rightSuck_shorted:
+        desc = tr("Rightsuck negative short"); break;
+    case C_dtc_rightSuck_overtemp:
+        desc = tr("Rightsuck output overtemp"); break;
+    case C_dtc_rightSuck_overload:
+        desc = tr("Rightsuck output overload"); break;
+    case C_dtc_rightSuck_hardwarefault:
+        desc = tr("Rightsuck output hardwarfault"); break;
+
+    case C_dtc_airDryer_openLoad:
+        desc = tr("Airdryer open or positive short"); break;
+    case C_dtc_airDryer_shorted:
+        desc = tr("Airdryer negative short"); break;
+    case C_dtc_airDryer_overtemp:
+        desc = tr("Airdryer output overtemp"); break;
+    case C_dtc_airDryer_overload:
+        desc = tr("Airdryer output overload"); break;
+    case C_dtc_airDryer_hardwarefault:
+        desc = tr("Airdryer output hardwarfault"); break;
+
+    case C_dtc_spare1_openLoad:
+        desc = tr("Spare1 open or positive short"); break;
+    case C_dtc_spare1_shorted:
+        desc = tr("Spare1 negative short"); break;
+    case C_dtc_spare1_overtemp:
+        desc = tr("Spare1 output overtemp"); break;
+    case C_dtc_spare1_overload:
+        desc = tr("Spare1 output overload"); break;
+    case C_dtc_spare1_hardwarefault:
+        desc = tr("Spare1 output hardwarfault"); break;
+
+    case C_dtc_compressor_openLoad:
+        desc = tr("Compressor open or positive short"); break;
+    case C_dtc_compressor_shorted:
+        desc = tr("Compressor negative short"); break;
+    case C_dtc_compressor_overtemp:
+        desc = tr("Compressor output overtemp"); break;
+    case C_dtc_compressor_overload:
+        desc = tr("Compressor output overload"); break;
+    case C_dtc_compressor_hardwarefault:
+        desc = tr("Compressor output hardwarfault"); break;
+
+    // suspension inputs
+    case C_dtc_airPressure_nonValidValue:
+        desc = tr("airpressure invalid value"); break;
+    case C_dtc_airPressure_tooLowValue:
+        desc =tr("airpressure value too low"); break;
+    case C_dtc_airPressure_tooHighValue:
+        desc = tr("airpressure value too high"); break;
+    case C_dtc_airPressure_tooFastFalling:
+        desc = tr("airpressure value falls too fast"); break;
+    case C_dtc_airPressure_tooFastRising:
+        desc = tr("airpressure value rises too fast"); break;
+
+    case C_dtc_leftPressure_nonValidValue:
+        desc = tr("left pressure invalid value"); break;
+    case C_dtc_leftPressure_tooLowValue:
+        desc = tr("left pressure too low"); break;
+    case C_dtc_leftPressure_tooHighValue:
+        desc = tr("left pressure too high"); break;
+    case C_dtc_leftPressure_tooFastFalling:
+        desc = tr("left pressure falls too fast"); break;
+    case C_dtc_leftPressure_tooFastRising:
+        desc = tr("left pressure rises too fast"); break;
+
+    case C_dtc_leftHeight_nonValidValue:
+        desc = tr("left height value invalid"); break;
+    case C_dtc_leftHeight_tooLowValue:
+        desc = tr("left height value too low"); break;
+    case C_dtc_leftHeight_tooHighValue:
+        desc = tr("left height value too high"); break;
+    case C_dtc_leftHeight_tooFastFalling:
+        desc = tr("left height value falls too fast"); break;
+    case C_dtc_leftHeight_tooFastRising:
+        desc = tr("left height value rises too fast"); break;
+
+    case C_dtc_rightPressure_nonValidValue:
+        desc = tr("right pressure invalid value"); break;
+    case C_dtc_rightPressure_tooLowValue:
+        desc = tr("right pressure too low"); break;
+    case C_dtc_rightPresure_tooHighValue:
+        desc = tr("right pressure too high"); break;
+    case C_dtc_rightPresure_tooFastFalling:
+        desc = tr("right pressure falls too fast"); break;
+    case C_dtc_rightPresure_tooFastRising:
+        desc = tr("right pressure rises too fast"); break;
+
+    case C_dtc_rightHeight_nonValidValue:
+        desc = tr("right height invalid value"); break;
+    case C_dtc_rightHeight_tooLowValue:
+        desc = tr("right height too low value"); break;
+    case C_dtc_rightHeight_tooHighValue:
+        desc = tr("right height too high value"); break;
+    case C_dtc_rightHeight_tooFastFalling:
+        desc = tr("right height value falls too fast"); break;
+    case C_dtc_rightHeight_tooFastRising:
+        desc = tr("right height value rises too fast"); break;
+
+    case C_dtc_compressorTemp_nonValidValue:
+        desc = tr("compressortemp invalid value"); break;
+    case C_dtc_compressorTemp_tooLowValue:
+        desc = tr("compressortemp value too low"); break;
+    case C_dtc_compressorTemp_tooHighValue:
+        desc = tr("compressortemp value too high"); break;
+    case C_dtc_compressorTemp_tooFastFalling:
+        desc = tr("compressortemp value falls too fast"); break;
+    case C_dtc_compressorTemp_tooFastRising:
+        desc = tr("compressortemp value rises too fast"); break;
+
+    case C_dtc_systemPressure_nonValidValue:
+        desc = tr("systempressure invalid value"); break;
+    case C_dtc_systemPressure_tooLowValue:
+        desc =tr("systempressure value too low"); break;
+    case C_dtc_systemPressure_tooHighValue:
+        desc = tr("systempressure value too high"); break;
+    case C_dtc_systemPressure_tooFastFalling:
+        desc = tr("systempressure value falls too fast"); break;
+    case C_dtc_systemPressure_tooFastRising:
+        desc = tr("systempressure value rises too fast"); break;
+
+    case C_dtc_spareAnalog1_nonValidValue:
+        desc = tr("spareAnalog1 invalid value"); break;
+    case C_dtc_spareAnalog1_tooLowValue:
+        desc = tr("spareAnalog1 too low value"); break;
+    case C_dtc_spareAnalog1_tooHighValue:
+        desc = tr("spareAnalog1 too high value"); break;
+    case C_dtc_spareAnalog1_tooFastFalling:
+        desc = tr("spareAnalog1 value falls too fast"); break;
+    case C_dtc_spareAnalog1_tooFastRising:
+        desc = tr("spareAnalog1 value rises too fast"); break;
+
+    case C_dtc_spareTemp1_nonValidValue:
+        desc = tr("spareTemp1 invalid value"); break;
+    case C_dtc_spareTemp1_tooLowValue:
+        desc = tr("spareTemp1 value too low"); break;
+    case C_dtc_spareTemp1_tooHighValue:
+        desc = tr("spareTemp1 value too high"); break;
+    case C_dtc_spareTemp1_tooFastFalling:
+        desc = tr("spareTemp1 value falls too fast"); break;
+    case C_dtc_spareTemp1_tooFastRising:
+        desc = tr("spareTemp1 value rises too fast"); break;
+
+    case C_dtc_airFeed_overCurrent:
+        desc = tr("Airfeed overcurrent"); break;
+    case C_dtc_airFeed_overHeated:
+        desc = tr("Airfeed overheated"); break;
+
     default:
         desc = tr("Unknown DTC"); break;
     }

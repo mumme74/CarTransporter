@@ -4,6 +4,8 @@
 #include "PID.h"
 #include <QDebug>
 
+#define TEST_DIAG 1
+
 
 CanSuspensionNode::CanSuspensionNode(CanInterface *canInterface, QObject *parent) :
     CanAbstractNode(C_suspensionNode, canInterface, parent)
@@ -31,6 +33,33 @@ CanSuspensionNode::CanSuspensionNode(CanInterface *canInterface, QObject *parent
 
     QList<QCanBusFrame> frames;
     frames << pid1 << pid2 << pid3 << pid4;
+
+#ifdef TEST_DIAG
+    // ------------- test ------------------------
+    // for test
+    QCanBusFrame dtcLength;
+    dtcLength.setExtendedFrameFormat(false);
+    dtcLength.setFrameId(CAN_MSG_TYPE_DIAG | C_suspensionDiagDTCLength | C_suspensionNode);
+    QByteArray pl;
+    pl.insert(0, 1);
+    dtcLength.setPayload(pl);
+
+    QCanBusFrame dtc1;
+    dtc1.setExtendedFrameFormat(false);
+    dtc1.setFrameId(CAN_MSG_TYPE_EXCEPTION | C_suspensionExcDTC | C_suspensionNode);
+    pl.clear();
+    pl.insert(0, '\0');
+    pl.insert(1, 0x81);
+    pl.insert(2, 0x11);
+    pl.insert(3, 0x87);
+    pl.insert(4, 0x3A);
+    pl.insert(5, 0x42);
+    dtc1.setPayload(pl);
+
+    frames << dtcLength << dtc1;
+
+    // ------------ end test -------------------
+#endif
 
     updatedFromCan(frames);
 
@@ -140,9 +169,9 @@ void CanSuspensionNode::updateCanFrame(const QCanBusFrame &frame)
         //   [0:15]              [0:15]        [0:15]          [0:7]             [0:7]
         // systemPressure | leftPressure | rightPressure | compressorCurrent | spare1Duty
         //    12bit              12bit          12bit
-        setPidsValue(tr("System_pressure"), QString::number(data[1] << 8 | data[0]), "bar", m_pids, C_suspensionNode);
-        setPidsValue(tr("Left_pressure"), QString::number(data[3] << 8 | data[2]), "bar", m_pids, C_suspensionNode);
-        setPidsValue(tr("Right_pressure"), QString::number(data[5] << 8 | data[4]), "bar", m_pids, C_suspensionNode);
+        setPidsValue(tr("System_pressure"), QString::number(data[1] << 8 | (0x00ff & data[0])), "bar", m_pids, C_suspensionNode);
+        setPidsValue(tr("Left_pressure"), QString::number(data[3] << 8 | (0x00ff & data[2])), "bar", m_pids, C_suspensionNode);
+        setPidsValue(tr("Right_pressure"), QString::number(data[5] << 8 | (0x00ff & data[4])), "bar", m_pids, C_suspensionNode);
         setPidsValue(tr("Compressor_current"), QString::number(data[6]), "A", m_pids, C_suspensionNode);
         setPidsValue(tr("Spare1_duty"), QString::number(data[7]), "%", m_pids, C_suspensionNode);
     } break;
@@ -151,10 +180,10 @@ void CanSuspensionNode::updateCanFrame(const QCanBusFrame &frame)
         //   [0:15]      [0:15]            [0:15]       [0:15]
         // leftHeight | rightHeight | compressorTemp | spareAnalog1
         //  12bit          12bit           12bit        12bit
-        setPidsValue(tr("Left_height"), QString::number(data[1] << 8 | data[0]), "steps", m_pids, C_suspensionNode);
-        setPidsValue(tr("Right_height"), QString::number(data[3] << 8 | data[2]), "steps", m_pids, C_suspensionNode);
-        setPidsValue(tr("Compressor_temp"), QString::number(data[5] << 8 | data[4]), "steps", m_pids, C_suspensionNode);
-        setPidsValue(tr("SpareAnalog1_steps"), QString::number(data[7] << 8 | data[6]), "steps", m_pids, C_suspensionNode);
+        setPidsValue(tr("Left_height"), QString::number(data[1] << 8 | (0x00ff & data[0])), "steps", m_pids, C_suspensionNode);
+        setPidsValue(tr("Right_height"), QString::number(data[3] << 8 | (0x00ff & data[2])), "steps", m_pids, C_suspensionNode);
+        setPidsValue(tr("Compressor_temp"), QString::number(data[5] << 8 | (0x00ff & data[4])), "steps", m_pids, C_suspensionNode);
+        setPidsValue(tr("SpareAnalog1_steps"), QString::number(data[7] << 8 | (0x00ff & data[6])), "steps", m_pids, C_suspensionNode);
 
     } break;
     case C_suspensionUpdPID_4: {
@@ -162,9 +191,9 @@ void CanSuspensionNode::updateCanFrame(const QCanBusFrame &frame)
         //     [0:15]          [0:15]        [0:15]
         //  airFeedState    heightState     loadedWeight
         //   Pid::States     Pid::States      in kg
-        setAirFeedStatePid(tr("AirFeed_state"), data[1] << 8 | data[0], m_pids);
-        setHeightStatePid(tr("Height_state"), data[3] << 8 | data[2], m_pids);
-        setPidsValue(tr("Load_weight"), QString::number(data[5] << 8 | data[4]), "kg", m_pids, C_suspensionNode);
+        setAirFeedStatePid(tr("AirFeed_state"), data[1] << 8 | (0x00ff & data[0]), m_pids);
+        setHeightStatePid(tr("Height_state"), data[3] << 8 | (0x00ff & data[2]), m_pids);
+        setPidsValue(tr("Load_weight"), QString::number(data[5] << 8 | (0x00ff & data[4])), "kg", m_pids, C_suspensionNode);
 
     } break;
     default: {
@@ -190,11 +219,11 @@ void CanSuspensionNode::commandCanFrame(const QCanBusFrame &frame)
     case C_suspensionCmdGetConfig: {
         quint8 idx = payload[0];
         if (frame.payload().size() == 3) {
-            quint16 vlu = (payload[2] << 8) | payload[1];
+            quint16 vlu = (payload[2] << 8) | (0x00ff & payload[1]);
             settingsFetchArrival(idx, vlu);
         } else if (payload.size() == 5) {
             // FIXME need a better algorithm here, 32bit uint also has 4 bytes
-            quint32 u_vlu = (payload[4] << 24) | (payload[3] << 16) | (payload[2] << 8) | (payload[1]);
+            quint32 u_vlu = (payload[4] << 24) | (payload[3] << 16) | (payload[2] << 8) | (0x000000ff & payload[1]);
             float vlu = (float)u_vlu;
             settingsFetchArrivalFloat(idx, vlu);
         }
@@ -219,9 +248,9 @@ void CanSuspensionNode::exceptionCanFrame(const QCanBusFrame &frame)
         // a error code has been set in suspension
         //  [0:7]        [0:15]    [0:6] [:7]
         // stored nr     dtc code  occurrences & pending mask (1 on 7th bit = real code, 0=pending)
-        quint8 occurences = payload[3] & 0x8F;
-        bool pending = static_cast<quint8>(payload[3]) < 0x8F;
-        quint16 code = (payload[2] << 8) | payload[1];
+        quint8 occurences = payload[3] & 0x7F;
+        bool pending = static_cast<quint8>(payload[3]) < 0x80;
+        quint16 code = (payload[2] << 8) | (0x00ff & payload[1]);
         CanDtc *dtc = getDtc(payload[0]);
         if (dtc == nullptr) {
             dtc = new CanDtc(this, payload[0], code, occurences, 0);
@@ -237,7 +266,7 @@ void CanSuspensionNode::exceptionCanFrame(const QCanBusFrame &frame)
     case C_suspensionExcUserError: {
         // [0:15]
         // userError id in enum
-        quint16 excId = (payload.at(1) << 8) | payload.at(0);
+        quint16 excId = (payload.at(1) << 8) | (0x00ff & payload.at(0));
         if (excId == C_userErrorHeightNonValidState) {
             emit userErrorHeightNonValidState();
         } else if (excId == C_userErrorSuckedRearWheelBlocked) {
@@ -303,7 +332,7 @@ void CanSuspensionNode::diagCanFrame(const QCanBusFrame &frame)
         //  [0:7]        [0:15]    [0:6] [:7]
         // stored nr     dtc code  occurrences & pending mask
         int storedNr = payload[0];
-        quint16 code = (payload[2] << 8) | payload[1];
+        quint16 code = (payload[2] << 8) | (0x00ff & payload[1]);
         quint8 occurences = payload[3];
         if (m_dtcs.contains(storedNr)) {
             CanDtc *dtc = m_dtcs[storedNr];

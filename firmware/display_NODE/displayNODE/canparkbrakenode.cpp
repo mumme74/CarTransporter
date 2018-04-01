@@ -5,7 +5,7 @@
 #include <QQmlEngine>
 #include <QDebug>
 
-//#define TEST_DIAG 1
+#define TEST_DIAG 1
 
 CanParkbrakeNode::CanParkbrakeNode(CanInterface *canInterface, QObject *parent) :
     CanAbstractNode(C_parkbrakeNode, canInterface, parent), m_inServiceState(false)
@@ -41,7 +41,7 @@ CanParkbrakeNode::CanParkbrakeNode(CanInterface *canInterface, QObject *parent) 
 
     QCanBusFrame dtc1;
     dtc1.setExtendedFrameFormat(false);
-    dtc1.setFrameId(CAN_MSG_TYPE_DIAG | C_parkbrakeDiagDTC | C_parkbrakeNode);
+    dtc1.setFrameId(CAN_MSG_TYPE_EXCEPTION | C_parkbrakeExcNewDTC | C_parkbrakeNode);
     pl.clear();
     pl.insert(0, '\0');
     pl.insert(1, 0x30U);
@@ -237,10 +237,10 @@ void CanParkbrakeNode::updateCanFrame(const QCanBusFrame &frame)
         // IGN|B.LIGHTS|BTN|BTN_INV|LF_LIM|RF_LIM|LR_LIM|RR_LIM
         // [7 -   6   -  5  -  4  -   3  -   2  -  1  -   0  ]
         //  bits so the whole data is 5bytes + 8bit = 6bytes
-        quint16 vlu = (data[1] << 8) | data[0];
+        quint16 vlu = (data[1] << 8) | (0x00ff & data[0]);
         setVoltPid(tr("Ignition volt"), vlu, m_pids, C_parkbrakeNode);
 
-        vlu = (data[1] << 8) | data[0];
+        vlu = (data[1] << 8) | (0x00ff & data[0]);
         setVoltPid(tr("Battery"), vlu, m_pids, C_parkbrakeNode);
 
         setTempPid(tr("ChipTemp"), data[4], m_pids, C_parkbrakeNode);
@@ -275,7 +275,7 @@ void CanParkbrakeNode::commandCanFrame(const QCanBusFrame &frame)
     switch (sid & CAN_MSG_ID_MASK) {
     case C_parkbrakeCmdGetConfig: {
         quint8 idx = payload[0];
-        quint16 vlu = (payload[2] << 8) | payload[1];
+        quint16 vlu = (payload[2] << 8) | (0x00ff & payload[1]);
         settingsFetchArrival(idx, vlu);
     } break;
     case C_parkbrakeCmdSetConfig: {
@@ -301,7 +301,7 @@ void CanParkbrakeNode::exceptionCanFrame(const QCanBusFrame &frame)
         // response
         //  [0:7]        [0:15]    [0:7]
         // stored nr     dtc code  occurrences
-        quint16 code = (payload[2] << 8) | payload[1];
+        quint16 code = (payload[2] << 8) | (0x00ff & payload[1]);
         CanDtc *dtc = getDtc(payload[0]);
         if (dtc == nullptr) {
             dtc = new CanDtc(this, payload[0], code, payload[3], 0);
@@ -314,7 +314,7 @@ void CanParkbrakeNode::exceptionCanFrame(const QCanBusFrame &frame)
 
     }   break;
     case C_parkbrakeExcUserError: {
-        quint16 excId = (payload.at(1) << 8) | payload.at(0);
+        quint16 excId = (payload.at(1) << 8) | (0x00ff & payload.at(0));
         if (excId == C_userErrorBrakeOff) {
             emit userErrorBrakeOff();
         } else if (excId == C_userErrorBtnInvOff) {
@@ -382,8 +382,8 @@ void CanParkbrakeNode::diagCanFrame(const QCanBusFrame &frame)
         //  [0:7]        [0:15]    [0:7]        [0:15]
         // stored nr     dtc code  occurrences  time since startup when set
         int storedNr = payload[0];
-        quint16 code = (payload[2] << 8) | payload[1];
-        quint16 time = (payload[5] << 8) | payload[4];
+        quint16 code = (payload[2] << 8) | (0x00ff & payload[1]);
+        quint16 time = (payload[5] << 8) | (0x00ff & payload[4]);
         if (m_dtcs.contains(storedNr)) {
             CanDtc *dtc = m_dtcs[storedNr];
             dtc->setOccurences(payload[3]);
@@ -448,10 +448,10 @@ void CanParkbrakeNode::diagCanFrame(const QCanBusFrame &frame)
             setAmpPid("LeftRear_motorMax", payload[4], ff->m_pids, C_parkbrakeNode);
             setAmpPid("RightRear_motorMax", payload[5], ff->m_pids, C_parkbrakeNode);
         } else if (frameNr == 4) {
-            quint16 vlu = (payload[3] << 8) | payload[2];
+            quint16 vlu = (payload[3] << 8) | (0x00ff & payload[2]);
             setVoltPid(tr("Ignition volt"), vlu, ff->m_pids, C_parkbrakeNode);
 
-            vlu = (payload[5] << 8) | payload[4];
+            vlu = (payload[5] << 8) | (0x00ff & payload[4]);
             setVoltPid(tr("Battery"), vlu, ff->m_pids, C_parkbrakeNode);
 
             setTempPid(tr("ChipTemp"), payload[6], ff->m_pids, C_parkbrakeNode);

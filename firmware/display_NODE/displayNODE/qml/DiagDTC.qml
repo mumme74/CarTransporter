@@ -28,7 +28,12 @@ Item {
         anchors.left: parent.left
         anchors.top: parent.top
         anchors.topMargin: 65
-        onClicked: parkbrakeNode.fetchAllDtcs();
+        onClicked: {
+            if (nodeView.currentIndex === 0)
+                suspensionNode.fetchAllDtcs();
+            else
+                parkbrakeNode.fetchAllDtcs();
+        }
     }
 
     IconButton {
@@ -37,7 +42,12 @@ Item {
         anchors.left: parent.left
         anchors.top: readDtcs.bottom
         anchors.topMargin: 20
-        onClicked: parkbrakeNode.clearAllDtcs();
+        onClicked: {
+            if (nodeView.currentIndex === 0)
+                suspensionNode.clearAllDtcs();
+            else
+                parkbrakeNode.clearAllDtcs();
+        }
     }
 
     StackLayout {
@@ -67,8 +77,10 @@ Item {
                 anchors.top: suspensionDtcLbl.bottom
                 anchors.topMargin: 10
                 anchors.bottom: parent.bottom
-                width: 450
-                model: testDtcModel
+                anchors.right: parent.right
+                anchors.rightMargin: 10
+                width: 650
+                model: dtcSuspensionModel
                 TableViewColumn {
                     role: "code"
                     title: qsTr("Code")+ tr.str
@@ -77,37 +89,20 @@ Item {
                 TableViewColumn {
                     role: "desc"
                     title: qsTr("Description")+ tr.str
-                    width: 300
-                }
-            }
-            Label {
-                id: suspensionFFLbl
-                text: qsTr("Freeze Frame")+ tr.str
-                color: "white"
-                font.pointSize: 20
-                anchors.horizontalCenter: suspensionFreezeFrameList.horizontalCenter
-                anchors.top: suspensionDtcLbl.top
-            }
-            TableView {
-                id: suspensionFreezeFrameList
-                anchors.top: suspensionDtcList.top
-                anchors.left: suspensionDtcList.right
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-
-                TableViewColumn {
-                    role: "param"
-                    title: qsTr("Param")+ tr.str
-                    width: 100
+                    width: 400
                 }
                 TableViewColumn {
-                    role: "value"
-                    title: qsTr("Value")+ tr.str
-                    width: 80
+                    role: "occurrences"
+                    title: qsTr("Occurrences")+ tr.str
+                    width: 70
                 }
-                model: testFreezeFrameModel
+                TableViewColumn {
+                    role: "pending"
+                    title: qsTr("Pending")+ tr.str
+                    width: 70
+                }
             }
-        }
+        } // end suspension
         Item {
             id: parkbrakeDtcPage
             Label {
@@ -269,46 +264,24 @@ Item {
 
     // these can be erased when bridge to C++ is finished
     ListModel {
-        id: testDtcModel
-        ListElement {
-            code: "0x1F0A"
-            desc: "Dtc:1"
+        id: dtcSuspensionModel
+        function rebuild() {
+            clear();
+            for (var i = 0; i < suspensionNode.dtcCount; ++i) {
+                var dtc = suspensionNode.getDtc(i);
+                append({code: dtc.dtcCodeStr, desc: dtc.dtcDescription,
+                        occurrences: dtc.occurences, pending: dtc.isPending});
+            }
         }
-        ListElement {
-            code: "0xFF01"
-            desc: "My 2 DTC"
-        }
-        ListElement {
-            code: "0x0234"
-            desc: "This is stupid DTC"
-        }
+        Component.onCompleted: rebuild()
     }
 
-    ListModel {
-        id: testFreezeFrameModel
-        ListElement {
-            param: "LF current"
-            value: "20A"
-        }
-        ListElement {
-            param: "LF Height"
-            value: "100steps"
-        }
-        ListElement {
-            param: "LSuck"
-            value: "On"
-        }
-        ListElement {
-            param: "Compressor"
-            value: "On"
-        }
-        ListElement {
-            param: "Compresor temp"
-            value: "100C"
-        }
-        ListElement {
-            param: "state"
-            value: "Normal"
-        }
+    Connections {
+        target: suspensionNode
+        onDtcArrived: dtcSuspensionModel.rebuild();
+    }
+    Connections {
+        target: suspensionNode
+        onDtcsCleared: dtcSuspensionModel.clear();
     }
 }

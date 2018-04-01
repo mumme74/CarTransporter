@@ -398,15 +398,15 @@ typedef enum {
 
     // suspension node inputs
     C_dtc_airPressure_nonValidValue   = 0x1200, // non sensical value from a sensor
-    C_dtc_airPresssure_tooLowValue    = 0x1201, // value to low to be valid
-    C_dtc_airPresssure_tooHighValue   = 0x1202, // value to high to be valid
-    C_dtc_airPresssure_tooFastFalling = 0x1203, // when value changes to fast to lower
+    C_dtc_airPressure_tooLowValue     = 0x1201, // value to low to be valid
+    C_dtc_airPressure_tooHighValue    = 0x1202, // value to high to be valid
+    C_dtc_airPressure_tooFastFalling  = 0x1203, // when value changes to fast to lower
     C_dtc_airPressure_tooFastRising   = 0x1204, // when value changes to fast to higher value
 
     C_dtc_leftPressure_nonValidValue   = 0x1210,
-    C_dtc_leftPresssure_tooLowValue    = 0x1211,
-    C_dtc_leftPresssure_tooHighValue   = 0x1212,
-    C_dtc_leftPresssure_tooFastFalling = 0x1213,
+    C_dtc_leftPressure_tooLowValue     = 0x1211,
+    C_dtc_leftPressure_tooHighValue    = 0x1212,
+    C_dtc_leftPressure_tooFastFalling  = 0x1213,
     C_dtc_leftPressure_tooFastRising   = 0x1214,
 
     C_dtc_leftHeight_nonValidValue     = 0x1220,
@@ -416,10 +416,10 @@ typedef enum {
     C_dtc_leftHeight_tooFastRising     = 0x1224,
 
     C_dtc_rightPressure_nonValidValue  = 0x1230,
-    C_dtc_rightPresssure_tooLowValue   = 0x1231,
-    C_dtc_rightPressure_tooHighValue   = 0x1232,
-    C_dtc_rightPressure_tooFastFalling = 0x1233,
-    C_dtc_rightPressure_tooFastRising  = 0x1234,
+    C_dtc_rightPressure_tooLowValue    = 0x1231,
+    C_dtc_rightPresure_tooHighValue    = 0x1232,
+    C_dtc_rightPresure_tooFastFalling  = 0x1233,
+    C_dtc_rightPresure_tooFastRising   = 0x1234,
 
     C_dtc_rightHeight_nonValidValue    = 0x1240,
     C_dtc_rightHeight_tooLowValue      = 0x1241,

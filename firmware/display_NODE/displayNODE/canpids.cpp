@@ -7,15 +7,18 @@ CanPid::CanPid() :
     QObject(),
     m_key("invalid"),
     m_value("invalid"),
-    m_unit("invalid")
+    m_unit("invalid"),
+    m_originNode(C_nodeInValid)
 {
 }
 
-CanPid::CanPid(const QString &key, QString value, QString unit, QObject *parent) :
+CanPid::CanPid(const QString &key, QString value, QString unit,
+               can_senderIds_e senderId, QObject *parent) :
     QObject(parent),
     m_key(key),
     m_value(value),
-    m_unit(unit)
+    m_unit(unit),
+    m_originNode(senderId)
 {
 }
 
@@ -23,7 +26,8 @@ CanPid::CanPid(const CanPid &other) :
     QObject(other.parent()),
     m_key(other.m_key),
     m_value(other.m_value),
-    m_unit(other.m_unit)
+    m_unit(other.m_unit),
+    m_originNode(other.m_originNode)
 {
 }
 
@@ -55,9 +59,19 @@ float CanPid::valueFloat() const
     return vlu;
 }
 
-
-
-
+const QString CanPid::originName() const
+{
+    switch (m_originNode) {
+    case C_parkbrakeNode:
+        return tr("parkbrakeNode");
+    case C_suspensionNode:
+        return tr("suspensionNode");
+    case C_displayNode:
+        return tr("displayNode");
+    default:
+        return tr("unknown Node");
+    }
+}
 
 
 // -----------------------------------------------------------------------------------------------
@@ -87,11 +101,14 @@ CanPid *CanPids::getPid(int idx) const
 
 bool CanPids::addPid(CanPid *pid)
 {
-    if (!pid)
+    if (!pid || m_pids.contains(pid->key()))
         return false;
 
-    beginInsertRows(QModelIndex(), m_pids.size(), m_pids.size());
-    m_pids.insertMulti(pid->key(), pid);
+    // QMap sorts by key, we must insert it first in order to get index (before beginInsertRows)
+    m_pids.insert(pid->key(), pid);
+    int i = m_pids.keys().indexOf(pid->key());
+
+    beginInsertRows(QModelIndex(), i, i);
     connect(pid, SIGNAL(valueChanged(const CanPid*)),
             this, SLOT(pidUpdated(const CanPid*)));
     endInsertRows();
@@ -99,38 +116,24 @@ bool CanPids::addPid(CanPid *pid)
     return true;
 }
 
-bool CanPids::removePid(int idx)
+bool CanPids::removePid(CanPid *pid)
 {
-    CanPid *pid = nullptr;
-    int i = 0;
-    for (CanPid *p : m_pids) {
-        if (i == idx) {
-            pid = p;
-            break;
-        }
-        ++i;
-    }
-
-    if (pid == nullptr)
+    if (!pid || !m_pids.contains(pid->key()))
         return false;
+
+    int i = m_pids.keys().indexOf(pid->key());
 
     beginRemoveRows(QModelIndex(), i, i);
     disconnect(pid, SIGNAL(valueChanged(const CanPid*)),
                this, SLOT(pidUpdated(const CanPid*)));
-    m_pids.remove(pid->key(), pid);
+    m_pids.remove(pid->key());
     endRemoveRows();
     return true;
 }
 
 int CanPids::indexOf(const CanPid *pid)
 {
-    int i = 0;
-    for (CanPid *p : m_pids) {
-        if (p == pid)
-            return i;
-        ++i;
-    }
-    return -1;
+    return m_pids.keys().indexOf(pid->key());
 }
 
 bool CanPids::contains(const QString &key) const
@@ -140,7 +143,7 @@ bool CanPids::contains(const QString &key) const
 
 bool CanPids::contains(CanPid *pid) const
 {
-    return m_pids.contains(pid->key(), pid);
+    return m_pids.contains(pid->key());
 }
 
 size_t CanPids::count() const
@@ -182,6 +185,8 @@ QVariant CanPids::headerData(int section, Qt::Orientation orientation, int role)
         return QVariant(tr("Parameter"));
     else if (section == 1)
         return QVariant(tr("Value"));
+    else if (section == 2)
+        return QVariant(tr("Origin"));
     return QVariant();
 }
 
@@ -201,6 +206,8 @@ QVariant CanPids::data(const QModelIndex &index, int role) const
         return QVariant(pid->key());
     else if (role == ValueRole)
         return QVariant(pid->valueStr() + pid->unit());
+    else if (role == OriginRole)
+        return QVariant(pid->originName());
     else
         return QVariant();
 }
@@ -222,6 +229,7 @@ QHash<int, QByteArray> CanPids::roleNames() const
     QHash<int, QByteArray> roles;
     roles[KeyRole] = "name";
     roles[ValueRole] = "value";
+    roles[OriginRole] = "origin";
     return roles;
 
 }

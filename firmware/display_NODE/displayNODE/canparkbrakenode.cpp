@@ -219,15 +219,15 @@ void CanParkbrakeNode::updateCanFrame(const QCanBusFrame &frame)
         // amps momentary      |  amps maximum this seq.
         // [0:7][0:7][0:7][0:7] [0:7][0:7][0:7][0:7]
         //  LF   RF   LR   RR    LF   RF   LR   RR
-        setAmpPid(tr("LeftFront_motor"), data[0], m_pids);
-        setAmpPid(tr("RightFront_motor"), data[1], m_pids);
-        setAmpPid(tr("LeftRear_motor"), data[2], m_pids);
-        setAmpPid(tr("RightRear_motor"), data[3], m_pids);
+        setAmpPid(tr("LeftFront_motor"), data[0], m_pids, C_parkbrakeNode);
+        setAmpPid(tr("RightFront_motor"), data[1], m_pids, C_parkbrakeNode);
+        setAmpPid(tr("LeftRear_motor"), data[2], m_pids, C_parkbrakeNode);
+        setAmpPid(tr("RightRear_motor"), data[3], m_pids, C_parkbrakeNode);
         // maximum
-        setAmpPid(tr("LeftFront_motorMax"), data[4], m_pids);
-        setAmpPid(tr("RightFront_motorMax"), data[5], m_pids);
-        setAmpPid(tr("LeftRear_motorMax"), data[6], m_pids);
-        setAmpPid(tr("RightRear_motorMax"), data[7], m_pids);
+        setAmpPid(tr("LeftFront_motorMax"), data[4], m_pids, C_parkbrakeNode);
+        setAmpPid(tr("RightFront_motorMax"), data[5], m_pids, C_parkbrakeNode);
+        setAmpPid(tr("LeftRear_motorMax"), data[6], m_pids, C_parkbrakeNode);
+        setAmpPid(tr("RightRear_motorMax"), data[7], m_pids, C_parkbrakeNode);
 
         break;
     case C_parkbrakeUpdPID_3: {
@@ -238,21 +238,21 @@ void CanParkbrakeNode::updateCanFrame(const QCanBusFrame &frame)
         // [7 -   6   -  5  -  4  -   3  -   2  -  1  -   0  ]
         //  bits so the whole data is 5bytes + 8bit = 6bytes
         quint16 vlu = (data[1] << 8) | data[0];
-        setVoltPid(tr("Ignition volt"), vlu, m_pids);
+        setVoltPid(tr("Ignition volt"), vlu, m_pids, C_parkbrakeNode);
 
         vlu = (data[1] << 8) | data[0];
-        setVoltPid(tr("Battery"), vlu, m_pids);
+        setVoltPid(tr("Battery"), vlu, m_pids, C_parkbrakeNode);
 
-        setTempPid(tr("ChipTemp"), data[4], m_pids);
+        setTempPid(tr("ChipTemp"), data[4], m_pids, C_parkbrakeNode);
 
-        setBoolPid(tr("Ignition"), data[5] & 0x80, m_pids);
-        setBoolPid(tr("Brakelights"), data[5] & 0x40, m_pids);
-        setBoolPid(tr("Button"), data[5] & 0x20, m_pids);
-        setBoolPid(tr("Button inv"), data[5] & 0x10, m_pids);
-        setBoolPid(tr("LF_currentLimit"), data[5] & 0x08, m_pids);
-        setBoolPid(tr("RF_currentLimit"), data[5] & 0x04, m_pids);
-        setBoolPid(tr("LR_currentLimit"), data[5] & 0x02, m_pids);
-        setBoolPid(tr("RR_currentLimit"), data[5] & 0x01, m_pids);
+        setBoolPid(tr("Ignition"), data[5] & 0x80, m_pids, C_parkbrakeNode);
+        setBoolPid(tr("Brakelights"), data[5] & 0x40, m_pids, C_parkbrakeNode);
+        setBoolPid(tr("Button"), data[5] & 0x20, m_pids, C_parkbrakeNode);
+        setBoolPid(tr("Button inv"), data[5] & 0x10, m_pids, C_parkbrakeNode);
+        setBoolPid(tr("LF_currentLimit"), data[5] & 0x08, m_pids, C_parkbrakeNode);
+        setBoolPid(tr("RF_currentLimit"), data[5] & 0x04, m_pids, C_parkbrakeNode);
+        setBoolPid(tr("LR_currentLimit"), data[5] & 0x02, m_pids, C_parkbrakeNode);
+        setBoolPid(tr("RR_currentLimit"), data[5] & 0x01, m_pids, C_parkbrakeNode);
 
      }   break;
     default:
@@ -262,7 +262,7 @@ void CanParkbrakeNode::updateCanFrame(const QCanBusFrame &frame)
         for (quint8 v : data) {
             vlu += QString::number(v, 16);
         }
-        setPidsValue(key, vlu, "", m_pids);
+        setPidsValue(key, vlu, "", m_pids, C_parkbrakeNode);
         break;
     }
 }
@@ -438,32 +438,32 @@ void CanParkbrakeNode::diagCanFrame(const QCanBusFrame &frame)
             setWheelRevs("LeftRear_rev", payload[4], ff->m_pids);
             setWheelRevs("RightRear_rev", payload[5], ff->m_pids);
         } else if (frameNr == 2) {
-            setAmpPid("LeftFront_motor", payload[2], ff->m_pids);
-            setAmpPid("RightFront_motor", payload[3], ff->m_pids);
-            setAmpPid("LeftRear_motor", payload[4], ff->m_pids);
-            setAmpPid("RightRear_motor", payload[5], ff->m_pids);
+            setAmpPid("LeftFront_motor", payload[2], ff->m_pids, C_parkbrakeNode);
+            setAmpPid("RightFront_motor", payload[3], ff->m_pids, C_parkbrakeNode);
+            setAmpPid("LeftRear_motor", payload[4], ff->m_pids, C_parkbrakeNode);
+            setAmpPid("RightRear_motor", payload[5], ff->m_pids, C_parkbrakeNode);
         } else if (frameNr == 3) {
-            setAmpPid("LeftFront_motorMax", payload[2], ff->m_pids);
-            setAmpPid("RightFront_motorMax", payload[3], ff->m_pids);
-            setAmpPid("LeftRear_motorMax", payload[4], ff->m_pids);
-            setAmpPid("RightRear_motorMax", payload[5], ff->m_pids);
+            setAmpPid("LeftFront_motorMax", payload[2], ff->m_pids, C_parkbrakeNode);
+            setAmpPid("RightFront_motorMax", payload[3], ff->m_pids, C_parkbrakeNode);
+            setAmpPid("LeftRear_motorMax", payload[4], ff->m_pids, C_parkbrakeNode);
+            setAmpPid("RightRear_motorMax", payload[5], ff->m_pids, C_parkbrakeNode);
         } else if (frameNr == 4) {
             quint16 vlu = (payload[3] << 8) | payload[2];
-            setVoltPid(tr("Ignition volt"), vlu, ff->m_pids);
+            setVoltPid(tr("Ignition volt"), vlu, ff->m_pids, C_parkbrakeNode);
 
             vlu = (payload[5] << 8) | payload[4];
-            setVoltPid(tr("Battery"), vlu, ff->m_pids);
+            setVoltPid(tr("Battery"), vlu, ff->m_pids, C_parkbrakeNode);
 
-            setTempPid(tr("ChipTemp"), payload[6], ff->m_pids);
+            setTempPid(tr("ChipTemp"), payload[6], ff->m_pids, C_parkbrakeNode);
 
-            setBoolPid(tr("Ignition"), payload[7] & 0x80, ff->m_pids);
-            setBoolPid(tr("Brakelights"), payload[7] & 0x40, ff->m_pids);
-            setBoolPid(tr("Button"), payload[7] & 0x20, ff->m_pids);
-            setBoolPid(tr("Button inv"), payload[7] & 0x10, ff->m_pids);
-            setBoolPid(tr("LF_currentLimit"), payload[7] & 0x08, ff->m_pids);
-            setBoolPid(tr("RF_currentLimit"), payload[7] & 0x04, ff->m_pids);
-            setBoolPid(tr("LR_currentLimit"), payload[7] & 0x02, ff->m_pids);
-            setBoolPid(tr("RR_currentLimit"), payload[7] & 0x01, ff->m_pids);
+            setBoolPid(tr("Ignition"), payload[7] & 0x80, ff->m_pids, C_parkbrakeNode);
+            setBoolPid(tr("Brakelights"), payload[7] & 0x40, ff->m_pids, C_parkbrakeNode);
+            setBoolPid(tr("Button"), payload[7] & 0x20, ff->m_pids, C_parkbrakeNode);
+            setBoolPid(tr("Button inv"), payload[7] & 0x10, ff->m_pids, C_parkbrakeNode);
+            setBoolPid(tr("LF_currentLimit"), payload[7] & 0x08, ff->m_pids, C_parkbrakeNode);
+            setBoolPid(tr("RF_currentLimit"), payload[7] & 0x04, ff->m_pids, C_parkbrakeNode);
+            setBoolPid(tr("LR_currentLimit"), payload[7] & 0x02, ff->m_pids, C_parkbrakeNode);
+            setBoolPid(tr("RR_currentLimit"), payload[7] & 0x01, ff->m_pids, C_parkbrakeNode);
         }
 
         // maybe we have all frames?
@@ -508,12 +508,12 @@ void CanParkbrakeNode::setStatePid(QString key, quint8 state, PidStore &pidStore
         break;
     }
 
-    setPidsValue(key, value, "", pidStore);
+    setPidsValue(key, value, "", pidStore, C_parkbrakeNode);
 }
 
 void CanParkbrakeNode::setWheelRevs(QString key, quint8 rev, PidStore &pidStore)
 {
     QString value = QString::number(rev);
-    setPidsValue(key, value, "r/s", pidStore);
+    setPidsValue(key, value, "r/s", pidStore, C_parkbrakeNode);
 }
 

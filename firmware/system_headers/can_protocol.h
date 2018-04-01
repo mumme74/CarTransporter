@@ -17,7 +17,7 @@ typedef enum  {
   C_node5          = 0x04,
   C_node6          = 0x05,
   C_node7          = 0x06,
-  C_node8          = 0x07,
+  C_nodeInValid    = 0x07,
   //maxNodeId      = 0x07,
 } can_senderIds_e;
 

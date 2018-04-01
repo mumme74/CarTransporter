@@ -125,11 +125,12 @@ protected:
 
     typedef QMap<QString, CanPid*> PidStore;
 
-    void setPidsValue(QString key, QString value, QString unit, PidStore &pidStore);
-    void setAmpPid(QString key, quint8 amp, PidStore &pidStore);
-    void setVoltPid(QString key, quint16 volt, PidStore &pidStore);
-    void setBoolPid(QString key, quint8 vlu, PidStore &pidStore);
-    void setTempPid(QString key, quint8 temp, PidStore &pidStore);
+    void setPidsValue(QString key, QString value, QString unit,
+                      PidStore &pidStore, can_senderIds_e senderId);
+    void setAmpPid(QString key, quint8 amp, PidStore &pidStore, can_senderIds_e senderId);
+    void setVoltPid(QString key, quint16 volt, PidStore &pidStore, can_senderIds_e senderId);
+    void setBoolPid(QString key, quint8 vlu, PidStore &pidStore, can_senderIds_e senderId);
+    void setTempPid(QString key, quint8 temp, PidStore &pidStore, can_senderIds_e senderId);
 
 
     bool fetchDtc(int storedIdx, QJSValue jsCallback, can_msgIdsDiag_e canDiagId);

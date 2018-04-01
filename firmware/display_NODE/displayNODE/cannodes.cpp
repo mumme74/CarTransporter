@@ -347,10 +347,11 @@ void CanAbstractNode::updatedFromCan(QList<QCanBusFrame> &frames)
     }
 }
 
-void CanAbstractNode::setPidsValue(QString key, QString value, QString unit, PidStore &pidStore)
+void CanAbstractNode::setPidsValue(QString key, QString value, QString unit,
+                                   PidStore &pidStore, can_senderIds_e senderId)
 {
     if (!pidStore.keys().contains(key)) {
-        CanPid *pid = new CanPid(key, value, unit, this);
+        CanPid *pid = new CanPid(key, value, unit, senderId, this);
         pidStore[key] = pid;
         emit newPid(pid);
     } else {
@@ -358,29 +359,33 @@ void CanAbstractNode::setPidsValue(QString key, QString value, QString unit, Pid
     }
 }
 
-void CanAbstractNode::setAmpPid(QString key, quint8 amp, PidStore &pidStore)
+void CanAbstractNode::setAmpPid(QString key, quint8 amp,
+                                PidStore &pidStore, can_senderIds_e senderId)
 {
     QString value = QString::number(amp);
-    setPidsValue(key, value, "A", pidStore);
+    setPidsValue(key, value, "A", pidStore, senderId);
 }
 
-void CanAbstractNode::setVoltPid(QString key, quint16 volt, PidStore &pidStore)
+void CanAbstractNode::setVoltPid(QString key, quint16 volt,
+                                 PidStore &pidStore, can_senderIds_e senderId)
 {
     double fVolt = volt / 1000;
     QString value = QString::number(fVolt, 'g', 1);
-    setPidsValue(key, value, "V", pidStore);
+    setPidsValue(key, value, "V", pidStore, senderId);
 }
 
-void CanAbstractNode::setBoolPid(QString key, quint8 vlu, PidStore &pidStore)
+void CanAbstractNode::setBoolPid(QString key, quint8 vlu,
+                                 PidStore &pidStore, can_senderIds_e senderId)
 {
     QString value = vlu != 0 ? "On" : "Off";
-    setPidsValue(key, value, "", pidStore);
+    setPidsValue(key, value, "", pidStore, senderId);
 }
 
-void CanAbstractNode::setTempPid(QString key, quint8 temp, PidStore &pidStore)
+void CanAbstractNode::setTempPid(QString key, quint8 temp,
+                                 PidStore &pidStore, can_senderIds_e senderId)
 {
     QString value = QString::number(temp);
-    setPidsValue(key, value, "°C", pidStore);
+    setPidsValue(key, value, "°C", pidStore, senderId);
 }
 
 bool CanAbstractNode::fetchDtc(int storedIdx, QJSValue jsCallback, can_msgIdsDiag_e canDiagId)

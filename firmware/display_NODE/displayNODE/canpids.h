@@ -8,6 +8,7 @@
 #include <QAbstractTableModel>
 #include <QQmlListProperty>
 #include "caninterface.h"
+#include "can_protocol.h"
 
 
 /**
@@ -21,10 +22,13 @@ class CanPid : public QObject
     Q_PROPERTY(float valueFloat READ valueFloat NOTIFY valueChanged)
     Q_PROPERTY(QString key READ key)
     Q_PROPERTY(QString unit READ unit)
+    Q_PROPERTY(QString originName READ originName)
+    Q_PROPERTY(can_senderIds_e origin READ origin)
 
 public:
     explicit CanPid();
-    explicit CanPid(const QString &key, QString value, QString unit, QObject *parent);
+    explicit CanPid(const QString &key, QString value, QString unit,
+                    can_senderIds_e senderId, QObject *parent);
     explicit CanPid(const CanPid &other);
     ~CanPid();
 
@@ -34,6 +38,9 @@ public:
     float valueFloat() const;
     const QString key() const { return m_key; }
     const QString unit() const { return m_unit; }
+    const QString originName() const;
+    can_senderIds_e origin() const { return m_originNode; }
+
 
 
 signals:
@@ -43,6 +50,7 @@ private:
     const QString m_key;
     QString  m_value;
     QString m_unit;
+    can_senderIds_e m_originNode;
 };
 
 Q_DECLARE_METATYPE(CanPid)
@@ -60,7 +68,7 @@ public:
     // get pointer to the can pid
     Q_INVOKABLE CanPid *getPid(int idx) const;
     Q_INVOKABLE bool addPid(CanPid *pid);
-    Q_INVOKABLE bool removePid(int idx);
+    Q_INVOKABLE bool removePid(CanPid *pid);
 
     Q_INVOKABLE int indexOf(const CanPid *pid);
     Q_INVOKABLE bool contains(const QString &key) const;
@@ -80,7 +88,8 @@ public:
     // for QML to be able to use this model
     enum CanPidsRoles {
         KeyRole = Qt::UserRole + 1,
-        ValueRole
+        ValueRole,
+        OriginRole
     };
 
 
@@ -95,8 +104,8 @@ private:
     static CanPid* pid(QQmlListProperty<CanPid>* list, int idx);
 
 
-    typedef QMultiMap<QString, CanPid*> PidStore;
-    const int colCount = 2;
+    typedef QMap<QString, CanPid*> PidStore;
+    const int colCount = 3;
     PidStore m_pids;
 };
 

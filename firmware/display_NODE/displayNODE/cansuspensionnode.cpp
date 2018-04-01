@@ -32,6 +32,8 @@ CanSuspensionNode::CanSuspensionNode(CanInterface *canInterface, QObject *parent
     QList<QCanBusFrame> frames;
     frames << pid1 << pid2 << pid3 << pid4;
 
+    updatedFromCan(frames);
+
     qmlRegisterUncreatableType<CanSuspensionNode>("mummesoft", 0, 1, "suspensionNode", QStringLiteral("Cant create CanSuspensionNode from QML"));
 
 }
@@ -124,35 +126,35 @@ void CanSuspensionNode::updateCanFrame(const QCanBusFrame &frame)
         // response:
         //    [0:7]          [0:7]         [0:7]          [0:7]            [0:7]           [0:7]           [0:7]           [0:7]
         // leftFillDuty | leftDumpDuty | leftSuckDuty | rightFillDuty | rightDumpDuty | rightSuckDuty | airDryerDuty | compressorDuty
-        setPidsValue(tr("LeftFill_duty"), QString::number(data[0]), "%", m_pids);
-        setPidsValue(tr("LeftDump_duty"), QString::number(data[1]), "%", m_pids);
-        setPidsValue(tr("LeftSuck_duty"), QString::number(data[2]), "%", m_pids);
-        setPidsValue(tr("RightFill_duty"), QString::number(data[3]), "%", m_pids);
-        setPidsValue(tr("RightDump_duty"), QString::number(data[4]), "%", m_pids);
-        setPidsValue(tr("RightSuck_duty"), QString::number(data[5]), "%", m_pids);
-        setPidsValue(tr("Airdryer_duty"), QString::number(data[6]), "%", m_pids);
-        setPidsValue(tr("Compressor_duty"), QString::number(data[7]), "%", m_pids);
+        setPidsValue(tr("LeftFill_duty"), QString::number(data[0]), "%", m_pids, C_suspensionNode);
+        setPidsValue(tr("LeftDump_duty"), QString::number(data[1]), "%", m_pids, C_suspensionNode);
+        setPidsValue(tr("LeftSuck_duty"), QString::number(data[2]), "%", m_pids, C_suspensionNode);
+        setPidsValue(tr("RightFill_duty"), QString::number(data[3]), "%", m_pids, C_suspensionNode);
+        setPidsValue(tr("RightDump_duty"), QString::number(data[4]), "%", m_pids, C_suspensionNode);
+        setPidsValue(tr("RightSuck_duty"), QString::number(data[5]), "%", m_pids, C_suspensionNode);
+        setPidsValue(tr("Airdryer_duty"), QString::number(data[6]), "%", m_pids, C_suspensionNode);
+        setPidsValue(tr("Compressor_duty"), QString::number(data[7]), "%", m_pids, C_suspensionNode);
     } break;
     case C_suspensionUpdPID_2: {
         // response:
         //   [0:15]              [0:15]        [0:15]          [0:7]             [0:7]
         // systemPressure | leftPressure | rightPressure | compressorCurrent | spare1Duty
         //    12bit              12bit          12bit
-        setPidsValue(tr("System_pressure"), QString::number(data[1] << 8 | data[0]), "bar", m_pids);
-        setPidsValue(tr("Left_pressure"), QString::number(data[3] << 8 | data[2]), "bar", m_pids);
-        setPidsValue(tr("Right_pressure"), QString::number(data[5] << 8 | data[4]), "bar", m_pids);
-        setPidsValue(tr("Compressor_current"), QString::number(data[6]), "A", m_pids);
-        setPidsValue(tr("Spare1_duty"), QString::number(data[7]), "%", m_pids);
+        setPidsValue(tr("System_pressure"), QString::number(data[1] << 8 | data[0]), "bar", m_pids, C_suspensionNode);
+        setPidsValue(tr("Left_pressure"), QString::number(data[3] << 8 | data[2]), "bar", m_pids, C_suspensionNode);
+        setPidsValue(tr("Right_pressure"), QString::number(data[5] << 8 | data[4]), "bar", m_pids, C_suspensionNode);
+        setPidsValue(tr("Compressor_current"), QString::number(data[6]), "A", m_pids, C_suspensionNode);
+        setPidsValue(tr("Spare1_duty"), QString::number(data[7]), "%", m_pids, C_suspensionNode);
     } break;
     case C_suspensionUpdPID_3: {
         // response:
         //   [0:15]      [0:15]            [0:15]       [0:15]
         // leftHeight | rightHeight | compressorTemp | spareAnalog1
         //  12bit          12bit           12bit        12bit
-        setPidsValue(tr("Left_height"), QString::number(data[1] << 8 | data[0]), "steps", m_pids);
-        setPidsValue(tr("Right_height"), QString::number(data[3] << 8 | data[2]), "steps", m_pids);
-        setPidsValue(tr("Compressor_temp"), QString::number(data[5] << 8 | data[4]), "steps", m_pids);
-        setPidsValue(tr("SpareAnalog1_steps"), QString::number(data[7] << 8 | data[6]), "steps", m_pids);
+        setPidsValue(tr("Left_height"), QString::number(data[1] << 8 | data[0]), "steps", m_pids, C_suspensionNode);
+        setPidsValue(tr("Right_height"), QString::number(data[3] << 8 | data[2]), "steps", m_pids, C_suspensionNode);
+        setPidsValue(tr("Compressor_temp"), QString::number(data[5] << 8 | data[4]), "steps", m_pids, C_suspensionNode);
+        setPidsValue(tr("SpareAnalog1_steps"), QString::number(data[7] << 8 | data[6]), "steps", m_pids, C_suspensionNode);
 
     } break;
     case C_suspensionUpdPID_4: {
@@ -162,7 +164,7 @@ void CanSuspensionNode::updateCanFrame(const QCanBusFrame &frame)
         //   Pid::States     Pid::States      in kg
         setAirFeedStatePid(tr("AirFeed_state"), data[1] << 8 | data[0], m_pids);
         setHeightStatePid(tr("Height_state"), data[3] << 8 | data[2], m_pids);
-        setPidsValue(tr("Load_weight"), QString::number(data[5] << 8 | data[4]), "kg", m_pids);
+        setPidsValue(tr("Load_weight"), QString::number(data[5] << 8 | data[4]), "kg", m_pids, C_suspensionNode);
 
     } break;
     default: {
@@ -172,7 +174,7 @@ void CanSuspensionNode::updateCanFrame(const QCanBusFrame &frame)
         for (quint8 v : data) {
             vlu += QString::number(v, 16);
         }
-        setPidsValue(key, vlu, "", m_pids);
+        setPidsValue(key, vlu, "", m_pids, C_suspensionNode);
         break;
     }
     }
@@ -325,31 +327,31 @@ void CanSuspensionNode::diagCanFrame(const QCanBusFrame &frame)
         quint16 id = payload[0];
         switch (static_cast<PIDs::IDs>(id)) {
         case PIDs::leftFillPWM_8bit: {
-            setPidsValue(tr("LeftFill_duty"), QString::number(payload[1]), "%", m_pids);
+            setPidsValue(tr("LeftFill_duty"), QString::number(payload[1]), "%", m_pids, C_suspensionNode);
         } break;
         case PIDs::leftDumpPWM_8bit: {
-            setPidsValue(tr("LeftDump_duty"), QString::number(payload[1]), "%", m_pids);
+            setPidsValue(tr("LeftDump_duty"), QString::number(payload[1]), "%", m_pids, C_suspensionNode);
         } break;
         case PIDs::leftSuckPWM_8bit: {
-            setPidsValue(tr("LeftSuck_duty"), QString::number(payload[1]), "%", m_pids);
+            setPidsValue(tr("LeftSuck_duty"), QString::number(payload[1]), "%", m_pids, C_suspensionNode);
         } break;
         case PIDs::rightFillPWM_8bit: {
-            setPidsValue(tr("RightFill_duty"), QString::number(payload[1]), "%", m_pids);
+            setPidsValue(tr("RightFill_duty"), QString::number(payload[1]), "%", m_pids, C_suspensionNode);
         } break;
         case PIDs::rightDumpPWM_8bit: {
-            setPidsValue(tr("RightDump_duty"), QString::number(payload[1]), "%", m_pids);
+            setPidsValue(tr("RightDump_duty"), QString::number(payload[1]), "%", m_pids, C_suspensionNode);
         } break;
         case PIDs::rightSuckPWM_8bit: {
-            setPidsValue(tr("RightSuck_duty"), QString::number(payload[1]), "%", m_pids);
+            setPidsValue(tr("RightSuck_duty"), QString::number(payload[1]), "%", m_pids, C_suspensionNode);
         } break;
         case PIDs::airdryerPWM_8bit: {
-            setPidsValue(tr("Airdryer_duty"), QString::number(payload[1]), "%", m_pids);
+            setPidsValue(tr("Airdryer_duty"), QString::number(payload[1]), "%", m_pids, C_suspensionNode);
         } break;
         case PIDs::suspensionSpare1PWM_8bit: {
-            setPidsValue(tr("Spare1_duty"), QString::number(payload[1]), "%", m_pids);
+            setPidsValue(tr("Spare1_duty"), QString::number(payload[1]), "%", m_pids, C_suspensionNode);
         } break;
         case PIDs::compressorPWM_8bit: {
-            setPidsValue(tr("Compressor_duty"), QString::number(payload[1]), "%", m_pids);
+            setPidsValue(tr("Compressor_duty"), QString::number(payload[1]), "%", m_pids, C_suspensionNode);
         } break;
         default:
             break;
@@ -408,7 +410,7 @@ void CanSuspensionNode::setAirFeedStatePid(QString key, quint16 state, PidStore 
         break;
     }
 
-    setPidsValue(key, value, "", pidStore);
+    setPidsValue(key, value, "", pidStore, C_suspensionNode);
 }
 
 void CanSuspensionNode::setHeightStatePid(QString key, quint16 state, CanAbstractNode::PidStore &pidStore)
@@ -441,7 +443,7 @@ void CanSuspensionNode::setHeightStatePid(QString key, quint16 state, CanAbstrac
         break;
     }
 
-    setPidsValue(key, value, "", pidStore);
+    setPidsValue(key, value, "", pidStore, C_suspensionNode);
 }
 
 

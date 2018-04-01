@@ -49,7 +49,7 @@ Item {
                 anchors.topMargin: 10
                 anchors.bottom: parent.bottom
                 width: nodeView.width
-                model: testPIDsModel
+                model: suspensionAvailablePids
                 TableViewColumn {
                     role: "param"
                     title: qsTr("Param") + tr.str
@@ -61,7 +61,7 @@ Item {
                     width: 100
                 }
             }
-        }
+        } // end suspension
         Item {
             id: parkbrakePIDsPage
             Label {
@@ -101,8 +101,9 @@ Item {
                 pid = suspensionNode.getPid(suspensionPIDsList.currentRow);
             } else if (nodeView.currentIndex == 1) {
                 pid = parkbrakeNode.getPid(parkbarkePIDsList.currentRow);
-                console.log(pid);
+
             }
+            console.log(pid, pid.key);
 
             if (pid)
                 canPidsModel.addPid(pid);
@@ -119,6 +120,7 @@ Item {
         onClicked: {
             var pid = canPidsModel.getPid(selectedPIDsList.currentRow);
             canPidsModel.removePid(pid);
+            console.log(pid, pid.key)
         }
     }
 
@@ -152,6 +154,11 @@ Item {
             title: qsTr("Value") + tr.str
             width: 100
         }
+        TableViewColumn {
+            role: "origin"
+            title: qsTr("Origin") + tr.str
+            width: 200
+        }
     }
 
 
@@ -174,31 +181,22 @@ Item {
         }
     }
 
+    // currently avaliable PIDs in parkbrake
     ListModel {
-        id: testPIDsModel
-        ListElement {
-            param: "LF current"
-            value: "20A"
+        id: suspensionAvailablePids
+
+        Component.onCompleted: {
+            var pidsList = suspensionNode.pids;
+            for (var i = 0; i < pidsList.length; ++i) {
+                suspensionAvailablePids.append({name: pidsList[i].key });
+            }
         }
-        ListElement {
-            param: "LF Height"
-            value: "100steps"
-        }
-        ListElement {
-            param: "LSuck"
-            value: "On"
-        }
-        ListElement {
-            param: "Compressor"
-            value: "On"
-        }
-        ListElement {
-            param: "Compresor temp"
-            value: "100C"
-        }
-        ListElement {
-            param: "state"
-            value: "Normal"
+    }
+    // add new PIDs as they appear
+    Connections {
+        target: suspensionNode
+        onNewPid: {
+            suspensionAvailablePids.append({name: pid.key});
         }
     }
 }

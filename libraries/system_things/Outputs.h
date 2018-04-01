@@ -21,7 +21,7 @@ public:
   virtual ~IOutput();
   virtual void init() = 0;
   virtual void setActuatorTest(const uint8_t duty) = 0;
-  virtual void clearActuarorTest() = 0;
+  virtual void clearActuatorTest() = 0;
   virtual void setValue(uint8_t vlu) = 0;
   virtual void interval() = 0; // called by isr each 0.1ms
   inline errorTypes error() const { return m_errType; }
@@ -49,6 +49,7 @@ public:
   void init();
   void setValue(uint8_t duty);
   void setActuatorTest(uint8_t duty);
+  void clearActuatorTest();
 
   inline void interval(); // called by isr each 0.1ms
 
@@ -76,6 +77,7 @@ public:
   void init();
   void setValue(uint8_t duty);
   void setActuatorTest(uint8_t duty);
+  void clearActuatorTest();
   PID::sensor_Current *pidCs() const { return m_pidCs; }
 
   inline void interval(); // called by isr each 0.1ms

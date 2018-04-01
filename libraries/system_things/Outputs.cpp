@@ -78,7 +78,7 @@ void ITS5215L::setActuatorTest(uint8_t duty)
   if (duty == 0)
     duty = 0;
   else if (duty > 100)
-       duty = 100
+       duty = 100;
   
   m_pwmCnt = duty;
   m_state = PID::States::ActuatorTest;

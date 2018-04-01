@@ -40,13 +40,13 @@ private:
                   // they need to occur several times during drivecycle
 };
 
-/**
- * Storage Freeze Frame data
- */
-class FreezeFrame {
-public:
-  FreezeFrame(PID::Base *pid, errorTypes err);
-};
+///**
+// * Storage Freeze Frame data
+// */
+//class FreezeFrame {
+//public:
+//  FreezeFrame(PID::Base *pid, errorTypes err);
+//};
 
 /**
  * Stores errors in EEPROM

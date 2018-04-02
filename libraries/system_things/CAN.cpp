@@ -459,7 +459,7 @@ void ControllerBase::loop()
 {
   CAN_message_t msg;
   msg.timeout = 0; // no wait when receiving
-  while(m_can.read(msg)) {
+  while(m_can.read(msg) != 0) {
     Serial.println("can msg");
     can_senderIds_e senderId = static_cast<can_senderIds_e>(msg.id & CAN_MSG_SENDER_ID_MASK);
 
@@ -492,55 +492,53 @@ void ControllerBase::loop()
   }
 
   // send all pids which has updates
-  for (PID::Base *pid = PIDs::collection.first();
-       pid == nullptr;
-       pid = PIDs::collection.next())
-  {
-    if (pid->updated()) {
-      // find which frame this pid belongs to
-      const Frame_t *frame = frame_from_id(pid->id());
-      if (frame == nullptr)
-        continue;
+  // sends in consecutive order, one at each loop time
+  // eases out on our poor network
+  PID::Base *pid = PIDs::collection.nextUpdated();
+  if (pid) {
+	  // find which frame this pid belongs to
+	  const Frame_t *frame = frame_from_id(pid->id());
+	  if (frame == nullptr)
+		return;
 
-      // read the pids and send them
-      this->_init_CAN_message_t(&msg);
-      msg.id = static_cast<uint16_t>(frame->msgId);
+	  // read the pids and send them
+	  this->_init_CAN_message_t(&msg);
+	  msg.id = static_cast<uint16_t>(frame->msgId);
 
-      // stuff the bytes into this frame
-      for(int i = 0; i < 8; ++i) {
-        PIDs::IDs tID = frame->ids[i];
-        pid = PIDs::collection.find(tID);
-        if(pid == nullptr)
-          break;
+	  // stuff the bytes into this frame
+	  for(int i = 0; i < 8; ++i) {
+		PIDs::IDs tID = frame->ids[i];
+		pid = PIDs::collection.find(tID);
+		if(pid == nullptr)
+		  break;
 
-        // mark as read
-        pid->setUpdated(false);
+		// mark as read
+		pid->setUpdated(false);
 
-        // output the PID value to the CAN frame
-        switch(pid->size()){
-          case PID::byteSizes::oneByte:
-            msg.buf[msg.len++] = static_cast<uint8_t>(pid->rawValue());
-            break;
-          case PID::byteSizes::twoByte:
-            // little endian, highest byte first
-            uint16_t vlu16;
-            vlu16 = pid->rawValue();
-            msg.buf[msg.len++] = (vlu16 & 0x00FF) >> 0;
-            msg.buf[msg.len++] = (vlu16 & 0xFF00) >> 8;
-            break;
-          case PID::byteSizes::fourByte:
-            // little endian, highest byte first
-            uint32_t vlu32;
-            vlu32 = pid->rawData32();
-            msg.buf[msg.len++] = (vlu32 & 0x000000FF) >> 0;
-            msg.buf[msg.len++] = (vlu32 & 0x0000FF00) >> 8;
-            msg.buf[msg.len++] = (vlu32 & 0x00FF0000) >> 16;
-            msg.buf[msg.len++] = (vlu32 & 0xFF000000) >> 24;
-            break;
-        }
-      }
-    }
-  }
+		// output the PID value to the CAN frame
+		switch(pid->size()){
+		  case PID::byteSizes::oneByte:
+			msg.buf[msg.len++] = static_cast<uint8_t>(pid->rawValue());
+			break;
+		  case PID::byteSizes::twoByte:
+			// little endian, highest byte first
+			uint16_t vlu16;
+			vlu16 = pid->rawValue();
+			msg.buf[msg.len++] = (vlu16 & 0x00FF) >> 0;
+			msg.buf[msg.len++] = (vlu16 & 0xFF00) >> 8;
+			break;
+		  case PID::byteSizes::fourByte:
+			// little endian, highest byte first
+			uint32_t vlu32;
+			vlu32 = pid->rawData32();
+			msg.buf[msg.len++] = (vlu32 & 0x000000FF) >> 0;
+			msg.buf[msg.len++] = (vlu32 & 0x0000FF00) >> 8;
+			msg.buf[msg.len++] = (vlu32 & 0x00FF0000) >> 16;
+			msg.buf[msg.len++] = (vlu32 & 0xFF000000) >> 24;
+			break;
+		}
+	  }
+	}
 }
 
 bool ControllerBase::send(CAN_message_t &msg)

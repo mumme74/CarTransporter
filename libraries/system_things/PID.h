@@ -241,8 +241,14 @@ enum IDs : uint16_t {
 template<typename T>
 class _Handler : public List<T>
 {
+	PID::Base *m_updatePid;
 public:
-  _Handler<T>() : List<T>() {}
+  _Handler<T>() :
+  	  List<T>(),
+	  m_updatePid(nullptr)
+  {
+  }
+
   PID::Base* find(IDs id) {
     // a cache speedup if consecutive finds are in order
     if (this->m_current != nullptr &&
@@ -262,6 +268,21 @@ public:
       }
     }
     return nullptr;
+  }
+
+  PID::Base *nextUpdated() {
+	  if (m_updatePid == nullptr)
+		  m_updatePid = this->m_first;
+
+	  if (m_updatePid == nullptr)
+		  return nullptr;
+
+	  // find first updated
+	  while (m_updatePid && !m_updatePid->updated())
+		  m_updatePid = m_updatePid->next;
+
+	  return m_updatePid;
+
   }
 };
 

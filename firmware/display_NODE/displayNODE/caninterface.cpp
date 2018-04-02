@@ -241,16 +241,13 @@ bool CanInterface::sendFrame(const QCanBusFrame &frame)
     }
 
     bool success = m_canDevice->writeFrame(frame);
-    if (!success) {
-        if (displayErr) {
-            setErrorString(m_canDevice->errorString());
-            qWarning() << qPrintable(m_errorString) << endl;
-            displayErr = false;
-        }
-        return false;
+    if (!success && displayErr) {
+        setErrorString(m_canDevice->errorString());
+        qWarning() << qPrintable(m_errorString) << endl;
+        displayErr = false;
     }
 
-    return true;
+    return success;
 }
 
 void CanInterface::receiveError(QCanBusDevice::CanBusError error)

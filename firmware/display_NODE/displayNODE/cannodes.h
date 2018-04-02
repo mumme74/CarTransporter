@@ -105,8 +105,8 @@ public:
     int dtcCount() const;
     Q_INVOKABLE CanDtc *getDtc(int idx) const;
     Q_INVOKABLE virtual bool fetchDtc(int storedIdx, QJSValue jsCallback) = 0;
-    Q_INVOKABLE virtual void fetchAllDtcs() = 0;
-    Q_INVOKABLE virtual void clearAllDtcs() = 0;
+    Q_INVOKABLE virtual bool fetchAllDtcs() = 0;
+    Q_INVOKABLE virtual bool clearAllDtcs() = 0;
 
     // FreezeFrames
     Q_INVOKABLE int freezeFrameCount() const;
@@ -134,8 +134,8 @@ protected:
 
 
     bool fetchDtc(int storedIdx, QJSValue jsCallback, can_msgIdsDiag_e canDiagId);
-    void fetchAllDtcs(can_msgIdsDiag_e canDiagId);
-    void clearAllDtcs(can_msgIdsDiag_e canDiagId);
+    bool fetchAllDtcs(can_msgIdsDiag_e canDiagId);
+    bool clearAllDtcs(can_msgIdsDiag_e canDiagId);
     void dtcOnArrival(int dtcIdx);
 
     bool fetchFreezeFrame(int dtcNr, QJSValue jsCallback, can_msgIdsDiag_e canDiagId);

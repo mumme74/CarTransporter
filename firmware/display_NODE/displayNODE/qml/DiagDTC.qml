@@ -30,9 +30,11 @@ Item {
         anchors.topMargin: 65
         onClicked: {
             if (nodeView.currentIndex === 0)
-                suspensionNode.fetchAllDtcs();
+                if (!suspensionNode.fetchAllDtcs())
+                    Helpers.notifyCanIsOff();
             else
-                parkbrakeNode.fetchAllDtcs();
+                if (!parkbrakeNode.fetchAllDtcs())
+                    Helpers.notifyCanIsOff();
         }
     }
 
@@ -44,9 +46,11 @@ Item {
         anchors.topMargin: 20
         onClicked: {
             if (nodeView.currentIndex === 0)
-                suspensionNode.clearAllDtcs();
+                if (!suspensionNode.clearAllDtcs())
+                    Helpers.notifyCanIsOff();
             else
-                parkbrakeNode.clearAllDtcs();
+                if (!parkbrakeNode.clearAllDtcs())
+                    Helpers.notifyCanIsOff();
         }
     }
 

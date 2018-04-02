@@ -38,7 +38,7 @@ Item {
                     append({ text: qsTr("Swedish"), lang: "sv"});
                     var lang = tr.getLang();
                     for (var i = 0; i < languageItems.count; ++i) {
-                        if (languageItems.get(i).lang == lang) {
+                        if (languageItems.get(i).lang === lang) {
                             languageBox.currentIndex = i;
                             break;
                         }
@@ -52,7 +52,7 @@ Item {
                 if (!itm)
                     return;
                 var lang = itm.lang;
-                if (lang != tr.getLang())
+                if (lang !== tr.getLang())
                     tr.selectLanguage(lang)
             }
             Connections {

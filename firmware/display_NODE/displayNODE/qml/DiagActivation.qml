@@ -107,7 +107,8 @@ Item {
                 onClicked: {
                     var itm = suspensionActivationModel.get(suspensionActivateList.currentRow)
                     if (itm && itm.value !== undefined)
-                        suspensionNode.activateOutput(itm.pid, itm.value)
+                        if (!suspensionNode.activateOutput(itm.pid, itm.value))
+                            Helpers.notifyCanIsOff();
                 }
             }
 
@@ -121,7 +122,8 @@ Item {
                 onClicked: {
                     var itm = suspensionActivationModel.get(suspensionActivateList.currentRow)
                     if (itm)
-                        suspensionNode.clearActivateOutput(itm.pid)
+                        if (!suspensionNode.clearActivateOutput(itm.pid))
+                            Helpers.notifyCanIsOff();
                 }
             }
 
@@ -166,6 +168,16 @@ Item {
                 text: qsTr("You must press brake til brakelights and hold release button") + tr.str
             }
 
+            function parkbrakeActivate(output, state) {
+                if (!parkbrakeNode.activateOutput(output, state))
+                    Helpers.notifyCanIsOff();
+            }
+
+            function parkbrakeSetServiceState(state) {
+                if (!parkbrakeNode.setServiceState(state))
+                    Helpers.notifyCanIsOff();
+            }
+
             Grid {
                 anchors.top: parkbrakeHelpLbl.bottom
                 anchors.topMargin: 10
@@ -183,11 +195,11 @@ Item {
                     Row {
                         IconButton {
                             btnText: qsTr("LF release") + tr.str
-                            onClicked: parkbrakeNode.activateOutput(0, false);
+                            onClicked: parkbrakeActivate(0, false);
                         }
                         IconButton {
                             btnText: qsTr("LF tighten") + tr.str
-                            onClicked: parkbrakeNode.activateOutput(0, true);
+                            onClicked: parkbrakeActivate(0, true);
                         }
                     }
                 }
@@ -200,11 +212,11 @@ Item {
                     Row {
                         IconButton {
                             btnText: qsTr("RF release") + tr.str
-                            onClicked: parkbrakeNode.activateOutput(1, false);
+                            onClicked: parkbrakeActivate(1, false);
                         }
                         IconButton {
                             btnText: qsTr("RF tighten") + tr.str
-                            onClicked: parkbrakeNode.activateOutput(1, true);
+                            onClicked: parkbrakeActivate(1, true);
                         }
                     }
                 }
@@ -217,11 +229,11 @@ Item {
                     Row {
                         IconButton {
                             btnText: qsTr("LR release") + tr.str
-                            onClicked: parkbrakeNode.activateOutput(2, false);
+                            onClicked: parkbrakeActivate(2, false);
                         }
                         IconButton {
                             btnText: qsTr("LR tighten") + tr.str
-                            onClicked: parkbrakeNode.activateOutput(2, true);
+                            onClicked: parkbrakeActivate(2, true);
                         }
                     }
                 }
@@ -234,11 +246,11 @@ Item {
                     Row {
                         IconButton {
                             btnText: qsTr("RR release") + tr.str
-                            onClicked: parkbrakeNode.activateOutput(3, false);
+                            onClicked: parkbrakeActivate(3, false);
                         }
                         IconButton {
                             btnText: qsTr("RR tighten") + tr.str
-                            onClicked: parkbrakeNode.activateOutput(3, true);
+                            onClicked: parkbrakeActivate(3, true);
                         }
                     }
                 }
@@ -260,13 +272,13 @@ Item {
                     id: parkbrakeSetServiceBtn
                     btnText: qsTr("Set service mode") + tr.str
                     enabled: !parkbrakeNode.serviceMode
-                    onClicked: parkbrakeNode.setServiceState(true);
+                    onClicked: parkbrakeSetServiceState(true);
                 }
                 IconButton {
                     id: parkbrakeUnsetServiceBtn
                     btnText: qsTr("Unset service mode") + tr.str
                     enabled: parkbrakeNode.serviceMode
-                    onClicked: parkbrakeNode.setServiceState(false);
+                    onClicked: parkbrakeSetServiceState(false);
                 }
             }
         }

@@ -77,14 +77,14 @@ bool CanSuspensionNode::fetchDtc(int storedIdx, QJSValue jsCallback)
     return CanAbstractNode::fetchDtc(storedIdx, jsCallback, C_suspensionDiagGetDTC);
 }
 
-void CanSuspensionNode::fetchAllDtcs()
+bool CanSuspensionNode::fetchAllDtcs()
 {
-    CanAbstractNode::fetchAllDtcs(C_suspensionDiagDTCLength);
+    return CanAbstractNode::fetchAllDtcs(C_suspensionDiagDTCLength);
 }
 
-void CanSuspensionNode::clearAllDtcs()
+bool CanSuspensionNode::clearAllDtcs()
 {
-    CanAbstractNode::clearAllDtcs(C_suspensionDiagClearDTC);
+    return CanAbstractNode::clearAllDtcs(C_suspensionDiagClearDTC);
 }
 
 bool CanSuspensionNode::activateOutput(quint8 pid, quint8 vlu) const
@@ -95,8 +95,7 @@ bool CanSuspensionNode::activateOutput(quint8 pid, quint8 vlu) const
     QByteArray pl(pid, vlu);
     QCanBusFrame f(CAN_MSG_TYPE_DIAG | C_suspensionDiagActuatorTest | C_displayNode, pl);
     f.setExtendedFrameFormat(false);
-    m_canIface->sendFrame(f);
-    return true;
+    return m_canIface->sendFrame(f);
 }
 
 bool CanSuspensionNode::clearActivateOutput(quint8 pid) const
@@ -108,8 +107,7 @@ bool CanSuspensionNode::clearActivateOutput(quint8 pid) const
     pl.append(pid);
     QCanBusFrame f(CAN_MSG_TYPE_DIAG | C_suspensionDiagClearActuatorTest | C_displayNode, pl);
     f.setExtendedFrameFormat(false);
-    m_canIface->sendFrame(f);
-    return true;
+    return m_canIface->sendFrame(f);
 }
 
 bool CanSuspensionNode::fetchSetting(quint8 idx, QJSValue jsCallback)
@@ -142,6 +140,32 @@ bool CanSuspensionNode::setSettingFloat(quint8 idx, float vlu, QJSValue jsCallba
         return false;
 
     return CanAbstractNode::setSettingF(idx, vlu, jsCallback, C_suspensionCmdSetConfig);
+}
+
+bool CanSuspensionNode::setHeightState(const QString &state, QJSValue jsCallback)
+{
+    if (!jsCallback.isCallable())
+        return false;
+
+    can_msgIdsCommand_e canCmdId;
+
+    if (state == QStringLiteral("ToLowState")) {
+        canCmdId = C_suspensionCmdSetLow;
+    } else if (state == QStringLiteral("ToNormalState")) {
+        canCmdId = C_suspensionCmdSetNormal;
+    } else if (state == QStringLiteral("ToHighState")) {
+        canCmdId = C_suspensionCmdSetHigh;
+    } else {
+        return false;
+    }
+
+    m_heightStateSetCallback.insert(canCmdId, jsCallback);
+
+    // send to Canbus
+    QCanBusFrame f(QCanBusFrame::RemoteRequestFrame);
+    f.setFrameId(CAN_MSG_TYPE_DIAG | canCmdId | C_displayNode);
+    f.setExtendedFrameFormat(false);
+    return m_canIface->sendFrame(f);
 }
 
 void CanSuspensionNode::updateCanFrame(const QCanBusFrame &frame)
@@ -187,6 +211,7 @@ void CanSuspensionNode::updateCanFrame(const QCanBusFrame &frame)
 
     } break;
     case C_suspensionUpdPID_4: {
+
         // response:
         //     [0:15]          [0:15]        [0:15]
         //  airFeedState    heightState     loadedWeight
@@ -194,7 +219,6 @@ void CanSuspensionNode::updateCanFrame(const QCanBusFrame &frame)
         setAirFeedStatePid(tr("AirFeed_state"), data[1] << 8 | (0x00ff & data[0]), m_pids);
         setHeightStatePid(tr("Height_state"), data[3] << 8 | (0x00ff & data[2]), m_pids);
         setPidsValue(tr("Load_weight"), QString::number(data[5] << 8 | (0x00ff & data[4])), "kg", m_pids, C_suspensionNode);
-
     } break;
     default: {
         // unknown
@@ -233,6 +257,15 @@ void CanSuspensionNode::commandCanFrame(const QCanBusFrame &frame)
         quint8 res = payload[1];
         settingsSetArrival(idx, res);
     } break;
+    case C_suspensionCmdSetLow: // fallthrough
+    case C_suspensionCmdSetNormal:
+    case C_suspensionCmdSetHigh: {
+        int idx = sid & CAN_MSG_ID_MASK;
+        if (m_heightStateSetCallback.contains(idx)) {
+            QJSValue jsCallback = m_heightStateSetCallback.take(idx);
+            jsCallback.call(QJSValueList { static_cast<quint8>(payload[0]) });
+        }
+    }   break;
     default:
         break;
     }
@@ -444,36 +477,55 @@ void CanSuspensionNode::setAirFeedStatePid(QString key, quint16 state, PidStore 
 
 void CanSuspensionNode::setHeightStatePid(QString key, quint16 state, CanAbstractNode::PidStore &pidStore)
 {
-    QString value;
+    QString value, stateStr;
     switch (static_cast<PID::States>(state)) {
     case PID::LowState:
         value = tr("At_low");
+        stateStr = "LowState";
         break;
     case PID::ToLowState:
         value = tr("Lowering");
+        stateStr = "ToLowerState";
         break;
     case PID::NormalState:
         value = tr("At_middle");
+        stateStr = "NormalState";
         break;
     case PID::ToNormalState:
         value = tr("To_middle");
+        stateStr = "ToNormalState";
         break;
     case PID::HighState:
         value = tr("At_Max");
+        stateStr = "HighState";
         break;
     case PID::ToHighState:
         value = tr("To_Max");
+        stateStr = "ToHighState";
         break;
     case PID::Error:
         value = tr("ErrorState");
+        stateStr = "ErrorState";
         break;
     default:
         value = tr("UnknownState");
+        stateStr = "UnknownState";
         break;
     }
 
+    // first find our old value on state
+    bool stateChanged = false;
+    if (m_pids.keys().contains(tr("Height_state")) &&
+        m_pids[tr("Height_state")]->valueStr() != value)
+        stateChanged = true;
+
     setPidsValue(key, value, "", pidStore, C_suspensionNode);
+
+    // now that state has changed we can emit
+    if (stateChanged)
+        emit heightStateChanged(stateStr);
 }
+
 
 
 

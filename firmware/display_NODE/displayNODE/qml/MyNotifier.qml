@@ -7,10 +7,14 @@ Rectangle {
     color: "#f9c5a2"
     radius: 10
     anchors.centerIn: parent
-    visible: false
+    visible: true
     opacity: 0.0
+    width: Math.max(notifierText.width, notifierHeadline.width) +
+                    notifierIcon.width + 30
+    height: Math.max(notifierIcon.height,
+                     notifierHeadline.height + notifierText.height + 40)
     Row {
-        anchors.fill: parent
+        anchors.centerIn: parent
         spacing: 10
         Image {
             id: notifierIcon
@@ -70,10 +74,15 @@ Rectangle {
     }
     function showNotification() {
         visible = true
+        if (notifierWgt.opacity !== 0.0) {
+            notifierHideTmr.restart();
+        }
+
         notifierAnimator.to = 1.0
-        notifierAnimator.from = 0.0
+        notifierAnimator.from = notifierWgt.opacity
         notifierAnimator.running = true
-        notifierHideTmr.start()
+        notifierHideTmr.start();
+
     }
 
     Connections {
@@ -131,6 +140,30 @@ Rectangle {
 
            notifierWgt.showNotification();
            bleepSnd.play()
+        }
+    }
+
+    Connections {
+        target: suspensionNode
+        onUserErrorHeightNonValidState: {
+            setContent("qrc:/images/warning.svg",
+                       qsTr("Non valid height"),
+                       qsTr("You tried a non valid height change"));
+            notifierWgt.showNotification();
+            bleepSnd.play()
+        }
+    }
+
+    Connections {
+        target: suspensionNode
+        onUserErrorSuckingNotAllowed: {
+            setContent("qrc:/images/warning.svg",
+                                    qsTr("Not allowed"),
+                                    qsTr("You can't lift rear wheels\n" +
+                                        "Perhaps you forgot lowering first\n" +
+                                        "Or weight is to high"));
+            notifierWgt.showNotification();
+            bleepSnd.play()
         }
     }
 }

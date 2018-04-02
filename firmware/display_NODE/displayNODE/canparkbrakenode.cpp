@@ -109,14 +109,14 @@ bool CanParkbrakeNode::fetchDtc(int storedIdx, QJSValue jsCallback)
     return CanAbstractNode::fetchDtc(storedIdx, jsCallback, C_parkbrakeDiagDTC);
 }
 
-void CanParkbrakeNode::fetchAllDtcs()
+bool CanParkbrakeNode::fetchAllDtcs()
 {
-    CanAbstractNode::fetchAllDtcs(C_parkbrakeDiagDTCLength);
+    return CanAbstractNode::fetchAllDtcs(C_parkbrakeDiagDTCLength);
 }
 
-void CanParkbrakeNode::clearAllDtcs()
+bool CanParkbrakeNode::clearAllDtcs()
 {
-    CanAbstractNode::clearAllDtcs(C_parkbrakeDiagClearDTCs);
+    return CanAbstractNode::clearAllDtcs(C_parkbrakeDiagClearDTCs);
 }
 
 bool CanParkbrakeNode::fetchFreezeFrame(int dtcNr, QJSValue jsCallback)
@@ -140,11 +140,10 @@ bool CanParkbrakeNode::activateOutput(int wheel, bool tighten) const
     QByteArray pl(msk, 1);
     QCanBusFrame f(CAN_MSG_TYPE_DIAG | C_parkbrakeDiagActuatorTest | C_displayNode, pl);
     f.setExtendedFrameFormat(false);
-    m_canIface->sendFrame(f);
-    return true;
+    return m_canIface->sendFrame(f);
 }
 
-void CanParkbrakeNode::setServiceState(bool service)
+bool CanParkbrakeNode::setServiceState(bool service)
 {
     QCanBusFrame f(QCanBusFrame::RemoteRequestFrame);
     if (service)
@@ -152,7 +151,7 @@ void CanParkbrakeNode::setServiceState(bool service)
     else
         f.setFrameId(CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdServiceUnset | C_displayNode);
     f.setExtendedFrameFormat(false);
-    m_canIface->sendFrame(f);
+    return m_canIface->sendFrame(f);
 }
 
 bool CanParkbrakeNode::fetchSetting(quint8 idx, QJSValue jsCallback)

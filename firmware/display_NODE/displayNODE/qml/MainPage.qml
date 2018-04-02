@@ -7,34 +7,103 @@ import "helpers.js" as Helpers
 
 Page {
     id: mainPage
+
     Item {
         id: car
         anchors.fill:parent
 
+        property string previousState: "NormalState"
+        state: "NormalState"
+
         // this is the state we are currently at
         states: [
             State {
-                name: "low"
-                PropertyChanges {
-                    target: rot
-                    angle: 2
-                }
+                name: "LowState"
+                changes: [
+                    PropertyChanges {
+                        target: rot
+                        angle: 2
+                    },
+                    PropertyChanges {
+                        target: carMovingState
+                        state: ""
+                    }
+                ]
             },
 
             State {
-                name: ""
-                PropertyChanges {
-                    target: rot
-                    angle: 0
-                }
+                name: "ToLowState"
+                changes: [
+                    PropertyChanges {
+                        target: rot
+                        angle: 2
+                    },
+                    PropertyChanges {
+                        target: carMovingState
+                        state: "movingDown"
+                    }
+                ]
             },
 
             State {
-                name: "top"
-                PropertyChanges {
-                    target: rot
-                    angle: -2
-                }
+                name: "NormalState"
+                changes: [
+                    PropertyChanges {
+                        target: rot
+                        angle: 0
+                    },
+                    PropertyChanges {
+                        target: carMovingState
+                        state: ""
+                    }
+                ]
+            },
+
+            State {
+                name: "ToNormalState"
+                changes: [
+                    PropertyChanges {
+                        target: rot
+                        angle: 0
+                    },
+                    PropertyChanges {
+                        target: carMovingState
+                        state: {
+                            if (Helpers.carState === "LowState" ||
+                                Helpers.carState === "ToLowState")
+                                return "movingUp"
+                            return "movingDown"
+                        }
+                    }
+                ]
+            },
+
+            State {
+                name: "HighState"
+                changes: [
+                    PropertyChanges {
+                        target: rot
+                        angle: -2
+                    },
+                    PropertyChanges {
+                        target: carMovingState
+                        state: ""
+                    }
+                ]
+            },
+
+            State {
+                name: "ToHighState"
+                changes: [
+                    PropertyChanges {
+                        target: rot
+                        angle: -2
+                    },
+                    PropertyChanges {
+                        target: carMovingState
+                        state: "movingUp"
+                    }
+                ]
             }
         ]
 
@@ -86,10 +155,12 @@ Page {
         onStateChanged: {
             if (rearWheel.state == "lifted") {
                 switch (car.state) {
-                case "low":
+                case "ToLowState":
+                case "LowState":
                     rotRearWheel.angle = 0;
                     return;
-                case "top":
+                case "ToHighState":
+                case "HighState":
                     rotRearWheel.angle = -4;
                     return;
                 default:
@@ -170,12 +241,15 @@ Page {
             MouseArea {
                 anchors.fill: parent
                 onClicked: {
-                    if (car.state == "low") {
+                    if (car.state == "LowState") {
                         rearWheel.state = rearWheel.state == "lifted" ? "" : "lifted";
                         rearWheelLiftArrow.opacity = rearWheel.state == "lifted" ?  0.6 : 0.0
                     } else {
                         // display warning dialog
-                        carLiftedDialog.open();
+                        Helpers.getNotifier().setContent("qrc:/images/warning.svg",
+                                                         qsTr("Forbidden!")+ tr.str,
+                                                         qsTr("Can't operate rear wheels when not in confirmed low state")+ tr.str);
+                        Helpers.getNotifier().showNotification();
                     }
                 }
             }
@@ -199,6 +273,13 @@ Page {
             source: "qrc:/images/ground.svg"
         }
 
+        Timer {
+            id: networkTimeout
+            interval: 2000
+            onTriggered: {
+                Helpers.getNotifier().showNotification();
+            }
+        }
 
         Slider {
             id: heightSlider
@@ -211,26 +292,57 @@ Page {
             orientation: Qt.Vertical
             stepSize: 1
             snapMode: "SnapAlways"
-            onMoved: {
-                console.log(value);
-                if(value == 0) {
-                    car.state = "low";
-                    carMovingState.state = "movingDown"
-                } else if (value == 1) {
-                    carMovingState.state = car.state == "low" ? "movingUp" : "movingDown";
-                    car.state = ""; // normal
-                } else if (value == 2) {
-                    car.state = "top";
-                    carMovingState.state = "movingUp"
+            function setState(vlu) {
+                if (vlu === undefined)
+                    vlu = value;
+
+                switch (vlu) {
+                case 0:
+                    car.state = "ToLowState";
+                    //carMovingState.state = "movingDown";
+                    break;
+                case 2:
+                    car.state = "ToHighState";
+                    //carMovingState.state = "movingUp";
+                    break;
+                case 1: // fallthrough
+                default:
+                    //carMovingState.state = car.state == "low" ? "movingUp" : "movingDown";
+                    car.state = "ToNormalState"; // normal
                 }
+                // save until next state propertychange
+                Helpers.carState = car.state;
+                Helpers.getNotifier().setContent("qrc:/images/error.svg", qsTr("NetworkError"), qsTr("No resonse from CAN"))
+                networkTimeout.start();
+            }
+            onMoved: {
+                setState(value);
+                var res = suspensionNode.setHeightState(state, function(res){
+                    if (res === 0xAA)
+                        networkTimeout.stop();
+                });
+
+                if (!res)
+                    Helpers.notifyCanIsOff();
             }
         }
 
+        Connections {
+            target: suspensionNode
+            onHeightStateChanged: function(state) {
+                if (state === "UnknownState" ||
+                    state === "ErrorState")
+                {
+                    Helpers.getNotifier().setContent("qrc:/images/error.svg",
+                                                     "Wrong response from suspensionNode",
+                                                     state);
+                    Helpers.getNotifier().showNotification();
+                    return;
+                }
 
-        MessageDialog {
-            id: carLiftedDialog
-            title: qsTr("Forbidden!")+ tr.str
-            text: qsTr("Can't operate rear wheels when not in low state")+ tr.str;
+                car.state = state;
+            }
+
         }
 
     } // end car

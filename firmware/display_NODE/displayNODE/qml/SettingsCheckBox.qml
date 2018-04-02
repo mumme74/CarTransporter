@@ -11,7 +11,8 @@ CheckBox {
 
     onCheckedChanged: {
         var vlu = checked ? 1 : 0;
-        Settings.setSetting(node, dataType, settingsIndex, vlu);
+        if (!Settings.setSetting(node, dataType, settingsIndex, vlu))
+            Helpers.notifyCanIsOff();
     }
 
     Component.onCompleted: {

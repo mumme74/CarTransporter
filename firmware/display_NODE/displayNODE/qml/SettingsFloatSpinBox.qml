@@ -23,8 +23,11 @@ SpinBox {
         id: delay
         interval: 800
         onTriggered: {
-            Settings.setSetting(node, Settings.DataTypes.type_float,
-                                settingsIndex, realValue);
+            if (!Settings.setSetting(node, Settings.DataTypes.type_float,
+                                settingsIndex, realValue))
+            {
+                Helpers.notifyCanIsOff();
+            }
         }
     }
 

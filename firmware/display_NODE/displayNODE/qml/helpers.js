@@ -6,13 +6,23 @@ var _initObj = {
     mainView: null,
     diagHeader: null,
     settingsHeader: null,
-    forwardBtn: null
+    forwardBtn: null,
+    notifierWgt: null
 };
 
-function init(globalApp, mainView, forwardBtn) {
+function init(globalApp, mainView, forwardBtn, notifierWgt) {
     _initObj.globalApp = globalApp;
     _initObj.mainView = mainView;
     _initObj.forwardBtn = forwardBtn;
+    _initObj.notifierWgt = notifierWgt;
+}
+
+function getNotifier() { return _initObj.notifierWgt; }
+function notifyCanIsOff() {
+    getNotifier().setContent("qrc:/images/error.svg",
+                                     qsTr("Network error"),
+                                     qsTr("Can't send on CAN network"));
+    getNotifier().showNotification();
 }
 
 
@@ -88,3 +98,7 @@ function checkForward() {
         _initObj.forwardBtn.enabled = false;
     }
 }
+
+var carState = "NormalState";
+
+

@@ -13,6 +13,8 @@ public:
     Q_ENUM(Configs)
 };
 
+
+
 // ----------------------------------------------------------------
 
 class CanSuspensionNode : public CanAbstractNode
@@ -23,8 +25,8 @@ public:
     virtual ~CanSuspensionNode();
 
     Q_INVOKABLE bool fetchDtc(int storedIdx, QJSValue jsCallback);
-    Q_INVOKABLE void fetchAllDtcs();
-    Q_INVOKABLE void clearAllDtcs();
+    Q_INVOKABLE bool fetchAllDtcs();
+    Q_INVOKABLE bool clearAllDtcs();
 
     Q_INVOKABLE bool activateOutput(quint8 pid, quint8 vlu) const;
     Q_INVOKABLE bool clearActivateOutput(quint8 pid) const;
@@ -34,6 +36,8 @@ public:
     Q_INVOKABLE bool setSettingUint32(quint8 idx, quint32 vlu, QJSValue jsCallback);
     Q_INVOKABLE bool setSettingFloat(quint8 idx, float vlu, QJSValue jsCallback);
 
+    Q_INVOKABLE bool setHeightState(const QString &state, QJSValue jsCallback);
+
 signals:
     void userError(int userError);
     void userErrorHeightNonValidState();
@@ -41,6 +45,7 @@ signals:
     void newDtcSet(CanDtc *dtc);
     void activateOutputComfirmed(quint8 pid, quint8 value);
     void clearActivateOutputComfirmed(quint8 pid);
+    void heightStateChanged(QString state);
 
 protected:
     void updateCanFrame(const QCanBusFrame &frame);
@@ -52,6 +57,7 @@ private:
     void setAirFeedStatePid(QString key, quint16 state, PidStore &pidStore);
     void setHeightStatePid(QString key, quint16 state, PidStore &pidStore);
 
+    QMap<int, QJSValue> m_heightStateSetCallback;
 };
 
 #endif // CANSUSPENSIONNODE_H

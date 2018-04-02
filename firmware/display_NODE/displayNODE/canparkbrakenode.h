@@ -23,14 +23,14 @@ public:
     virtual ~CanParkbrakeNode();
 
     Q_INVOKABLE bool fetchDtc(int storedIdx, QJSValue jsCallback);
-    Q_INVOKABLE void fetchAllDtcs();
-    Q_INVOKABLE void clearAllDtcs();
+    Q_INVOKABLE bool fetchAllDtcs();
+    Q_INVOKABLE bool clearAllDtcs();
 
     Q_INVOKABLE bool fetchFreezeFrame(int dtcNr, QJSValue jsCallback);
 
     Q_INVOKABLE bool activateOutput(int wheel, bool tighten) const;
 
-    Q_INVOKABLE void setServiceState(bool service);
+    Q_INVOKABLE bool setServiceState(bool service);
 
     Q_INVOKABLE bool fetchSetting(quint8 idx, QJSValue jsCallback);
     Q_INVOKABLE bool setSettingUInt16(quint8 idx, quint16 vlu, QJSValue jsCallback);

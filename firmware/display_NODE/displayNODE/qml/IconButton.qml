@@ -31,11 +31,11 @@ Button {
 
     Image {
         id: icon
-        anchors.left: parent.left
+        anchors.left: iconBtn.left
         anchors.leftMargin: 5
-        anchors.top: parent.top
-        anchors.verticalCenter: parent.verticalCenter
-        source: parent.source
+        anchors.top: iconBtn.top
+        anchors.verticalCenter: iconBtn.verticalCenter
+        source: iconBtn.source
         fillMode: Image.PreserveAspectFit
         width: iconSize
         height: iconSize
@@ -49,7 +49,7 @@ Button {
         font.pointSize: 20
         anchors.left: icon.right
         anchors.leftMargin: 5
-        anchors.verticalCenter: parent.verticalCenter
+        anchors.verticalCenter: iconBtn.verticalCenter
     }
 
     TextMetrics {
@@ -60,7 +60,7 @@ Button {
     }
 
     MouseArea {
-        anchors.fill: parent
+        anchors.fill: iconBtn
         hoverEnabled: true
         onEntered: ParallelAnimation {
             OpacityAnimator {

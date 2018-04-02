@@ -11,7 +11,7 @@ ApplicationWindow {
     height: 480
     title: qsTr("DisplayNode")+ tr.str
 
-    Component.onCompleted: Helpers.init(root, mainView, forwardBtn);
+    Component.onCompleted: Helpers.init(root, mainView, forwardBtn, notifier);
 
     StackView {
         id: mainView

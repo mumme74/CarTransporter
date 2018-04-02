@@ -8,10 +8,8 @@
 #ifndef SUSPENSION_CONFIG_H_
 #define SUSPENSION_CONFIG_H_
 
-#include <stdint.h>
 
-
-enum Configs : uint8_t {
+enum Configs : unsigned char {
   NoConfig = 0,
   KP_factor_float = 1,
   KI_factor_float = 2,
@@ -25,6 +23,8 @@ enum Configs : uint8_t {
   DeadWeight_uint16 = 10,
   DeadBand_uint16 = 11,
   CylDia_mm  = 12,
+  LeftHeightSensorReversed = 13,
+  RightHeightSensorReversed = 14,
   ConfigEnd,
 };
 

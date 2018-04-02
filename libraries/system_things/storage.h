@@ -68,7 +68,9 @@ static const uint16_t
   HEIGHT_DEAD_WEIGHT_ADR   = 0x0028, // the chassi weight without anything on top flatbed
   HEIGHT_DEAD_WEIGHT_SIZE  = 2,
   HEIGHT_DEAD_BAND_ADR     = 0x002A,
-  HEIGHT_DEAD_BAND_SIZE    = 2
+  HEIGHT_DEAD_BAND_SIZE    = 2,
+  HEIGHT_SENSORS_REVERSED_ADR  = 0x002C, // bit0 = left, bit1 = right
+  HEIGHT_SENSORS_REVERSED_SIZE = 1
   ;
 }; // namespace Suspension
 
@@ -85,10 +87,17 @@ union byte2 {
   int16_t  int16;
 };
 
+union byte1 {
+	uint8_t uint8;
+	int8_t  int8;
+};
+
 byte4 read4_from_eeprom(uint16_t startAdr);
 byte2 read2_from_eeprom(uint16_t startAdr);
+byte1 read1_from_eeprom(uint16_t startAdr);
 void  write4_to_eeprom(uint16_t startAdr, byte4 &vlu);
 void  write2_to_eeprom(uint16_t startAdr, byte2 &vlu);
+void  write1_to_eeprom(uint16_t startAdr, byte1 &vlu);
 
 }; // namespace store
 

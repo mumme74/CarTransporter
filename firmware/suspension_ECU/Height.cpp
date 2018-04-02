@@ -244,6 +244,22 @@ int HeightController::setConfig(Configs cfg, store::byte4 value)
       calcCylArea(); // update weight calc params
 
     }  break;
+    case Configs::LeftHeightSensorReversed: {
+    	uint8_t curVlu = EEPROM.read(store::Suspension::HEIGHT_SENSORS_REVERSED_ADR);
+    	uint8_t	newVlu = curVlu & 0xFE; // save all but bit0
+    	newVlu &= value.buf[0] & 0x01;  // set the left sensor bit
+    	EEPROM.write(store::Suspension::HEIGHT_SENSORS_REVERSED_ADR, newVlu);
+    	m_leftHeightDrv->setReversed(value.buf[0] & 0x01);
+
+    } break;
+    case Configs::RightHeightSensorReversed: {
+    	uint8_t curVlu = EEPROM.read(store::Suspension::HEIGHT_SENSORS_REVERSED_ADR);
+    	uint8_t	newVlu = curVlu & 0xFD; // save all but bit1
+    	newVlu &= value.buf[0] & 0x02;  // set the right sensor bit
+    	EEPROM.write(store::Suspension::HEIGHT_SENSORS_REVERSED_ADR, newVlu);
+    	m_rightHeightDrv->setReversed(value.buf[0] & 0x02);
+
+    } break;
     default:
         return 0; // ignore
   }
@@ -291,12 +307,15 @@ store::byte4 HeightController::getConfig(Configs cfg)
   switch (cfg) {
     case Configs::KP_factor_float:
       value.decimal = m_p;
+      resetPidLoop();
       break;
     case Configs::KI_factor_float:
       value.decimal = m_i;
+      resetPidLoop();
       break;
     case Configs::KD_factor_float:
       value.decimal = m_d;
+      resetPidLoop();
       break;
     case Configs::LeftLowSetpoint_uint16:
       value.uint32 = m_leftLowSetpoint;
@@ -325,6 +344,12 @@ store::byte4 HeightController::getConfig(Configs cfg)
     case Configs::CylDia_mm:
       value.uint32 = store::read2_from_eeprom(store::Suspension::HEIGHT_CYL_DIA_MM_ADR).uint16;
       break;
+    case Configs::LeftHeightSensorReversed:
+    	value.buf[0] = EEPROM.read(store::Suspension::HEIGHT_SENSORS_REVERSED_ADR) & 0x01;
+    	break;
+    case Configs::RightHeightSensorReversed:
+    	value.buf[0] = (EEPROM.read(store::Suspension::HEIGHT_SENSORS_REVERSED_ADR) & 0x02) >> 1;
+    	break;
     default: ;
       value.uint32 = 0;
   }
@@ -387,6 +412,11 @@ void HeightController::readSettings()
   if (m_deadBand == 0)
       m_deadBand = defaultDeadBand;
 
+  uint8_t revByte = EEPROM.read(store::Suspension::HEIGHT_SENSORS_REVERSED_ADR);
+  if (revByte & 0x01)
+	  m_leftHeightDrv->setReversed(true);
+  if (revByte & 0x02)
+	  m_rightHeightDrv->setReversed(true);
 
   calcCylArea();
 }

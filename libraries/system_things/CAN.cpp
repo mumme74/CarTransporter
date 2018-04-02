@@ -425,7 +425,7 @@ CAN_message_t ControllerBase::_buildDTC_Msg(DTC *dtc, uint8_t idx) const
       break;
   default:
       // unhandled ??
-      msg.len = 0;
+      dtcCode = 0;
       break;
   }
 

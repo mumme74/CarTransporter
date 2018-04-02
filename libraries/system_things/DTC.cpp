@@ -147,7 +147,7 @@ DTC *DTC_controller::setDTC(uint16_t id, errorTypes errType)
 
   uint8_t errCount = EEPROM.read(store::DTC_COUNT_ADR);
   uint16_t startAdr = EEPROM.read(store::DTC_STARTPTR_ADR_HI) << 8;
-  startAdr |= EEPROM.read(store::DTC_STARTPTR_ADR_LO);
+  startAdr |= 0x00FF & EEPROM.read(store::DTC_STARTPTR_ADR_LO);
   if (startAdr < store::DTC_STARTPTR_ADR_LO)
      startAdr = store::DTC_STORE_START_ADR;
 

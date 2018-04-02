@@ -62,7 +62,7 @@ void AnalogIn::interval()
       vlu = 4095 - vlu;
   }
   m_pid->setRawValue(vlu);
-  m_pid->setUpdated(true);
+  m_pid->setUpdated(oldVlu != vlu);
   if (vlu < m_minVlu) {
       m_errType = errorTypes::ToLowValue;
   } else if (vlu > m_maxVlu) {

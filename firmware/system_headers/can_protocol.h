@@ -71,9 +71,9 @@ typedef enum  {
     C_parkbrakeCmd_last              = 0x19 << 3,
 
     C_suspensionCmd_first            = 0x1A << 3,
-    C_suspensionCmdSetLow            = 0x1A << 3, //0x0088,
-    C_suspensionCmdSetNormal         = 0x1B << 3,
-    C_suspensionCmdSetHigh           = 0x1C << 3,
+    C_suspensionCmdSetLow            = 0x1A << 3, //0x0088,all height state is 0 len on request
+    C_suspensionCmdSetNormal         = 0x1B << 3, // responds with same can_msgIdsCommand_e and
+    C_suspensionCmdSetHigh           = 0x1C << 3, //      [0:7] = 0xAA for ok, sends a UserError if not
     C_suspensionCmdSetRearWheelsUp   = 0x1E << 3, // request: [0:7] 1 = up, 0 = down
                                                   // responds with a userException frame if on error
 

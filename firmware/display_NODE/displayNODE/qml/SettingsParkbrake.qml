@@ -1,6 +1,7 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.2
 
+import mummesoft 0.1
 import "helpers.js" as Helpers
 
 Item {
@@ -15,17 +16,17 @@ Item {
         text: qsTr("Parkbrake settings")+ tr.str
         color: "white"
         font.pointSize: 20
-        anchors.left: parent.left
+        anchors.left: root.left
         anchors.leftMargin: 10
-        anchors.top: parent.top
+        anchors.top: root.top
         anchors.topMargin: 10
     }
 
     PageIndicator {
         id: pageIndicator
-        anchors.top: parent.top
+        anchors.top: root.top
         anchors.topMargin: 10
-        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.horizontalCenter: root.horizontalCenter
         currentIndex: pageView.currentIndex
         interactive: true
         count: pageView.count
@@ -34,9 +35,9 @@ Item {
     SwipeView {
         id: pageView
         anchors.top: pageHeadline.bottom
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
+        anchors.left: root.left
+        anchors.right: root.right
+        anchors.bottom: root.bottom
         currentIndex: 0
 
         Item {
@@ -44,17 +45,19 @@ Item {
 
             GroupBox {
                 id: absSettings
-                anchors.top: parent.top
+                anchors.top: absSettingsPage.top
                 anchors.topMargin: 10
-                anchors.left: parent.left
+                anchors.left: absSettingsPage.left
                 anchors.leftMargin: 10
-                anchors.right: parent.right
+                anchors.right: absSettingsPage.right
                 anchors.rightMargin: 10
 
                 title: qsTr("ABS settings") + tr.str
                 Grid {
-                    columns: 4
-                    anchors.fill:absSettings
+                    columns: 3
+                    //anchors.fill:absSettings
+                    anchors.horizontalCenter: absSettings.horizontalCenter
+                    spacing: 20
                     Column {
                         Label {
                             text: qsTr("Pulses per rev.") + tr.str
@@ -62,9 +65,10 @@ Item {
                         }
                         SettingsSpinBox {
                             id: pulsesPerRevolution
-                            settingsIndex: 20
+                            settingsIndex: ParkbrakeConfig.S_PulsesPerRevolution //20
                             from: 20
                             to: 120
+                            node: parkbrakeNode
                         }
                     }
                     Column {
@@ -74,9 +78,10 @@ Item {
                         }
                         SettingsSpinBox {
                             id: rimDiameter
-                            settingsIndex: 21
+                            settingsIndex: ParkbrakeConfig.S_RimDiameter // 21
                             from: 13
                             to: 20
+                            node: parkbrakeNode
                         }
                     }
                     Column {
@@ -86,12 +91,13 @@ Item {
                         }
                         SettingsSpinBox {
                             id: tireThread
-                            settingsIndex: 22
+                            settingsIndex: ParkbrakeConfig.S_TireThread // 22
                             from: 150
                             to: 320
                             stepSize: 5
+                            node: parkbrakeNode
                         }
-                    }
+                    } // new row
                     Column {
                         Label {
                             text: qsTr("Tire profile") + tr.str
@@ -99,19 +105,19 @@ Item {
                         }
                         SettingsSpinBox {
                             id: tireProfile
-                            settingsIndex: 23
+                            settingsIndex: ParkbrakeConfig.S_TireProfile // 23
                             from: 35
                             to: 80
                             stepSize: 5
+                            node: parkbrakeNode
                         }
                     }
-                    // new row
                     Column {
                         SettingsCheckBox {
                             id: parkbrakeUseAbs
-                            settingsIndex: 11
+                            settingsIndex: ParkbrakeConfig.S_AntilockParkbrake // 11
                             text: qsTr("ABS parkbrake when moving") + tr.str
-
+                            node: parkbrakeNode
                         }
                     }
                 } // end grid
@@ -120,19 +126,19 @@ Item {
         }
 
         Item {
-            id: motorSettings
+            id: motorSettingsPage
             GroupBox {
                 id: motorCurrents
                 title: qsTr("Motor currents") + tr.str;
-                anchors.top: parent.top
+                anchors.top: motorSettingsPage.top
                 anchors.topMargin: 10
-                anchors.left: parent.left
+                anchors.left: motorSettingsPage.left
                 anchors.leftMargin: 10
-                anchors.right: parent.right
+                anchors.right: motorSettingsPage.right
                 anchors.rightMargin: 10
 
                 Grid {
-                    anchors.fill: parent
+                    anchors.horizontalCenter: motorCurrents.horizontalCenter
                     columns: 4
                     Column {
                         Label {
@@ -141,7 +147,8 @@ Item {
                         }
                         SettingsSpinBox {
                             id: currentMaxRelease
-                            settingsIndex: 3
+                            settingsIndex: ParkbrakeConfig.S_CurrentMaxRelease // 3
+                            node: parkbrakeNode
                             from: 0
                             to: 30
                         }
@@ -154,7 +161,8 @@ Item {
                         }
                         SettingsSpinBox {
                             id: currentMaxTighten
-                            settingsIndex: 9
+                            settingsIndex: ParkbrakeConfig.S_CurrentRevupMaxTighten // 9
+                            node: parkbrakeNode
                             from: 0
                             to: 30
                         }
@@ -166,7 +174,8 @@ Item {
                         }
                         SettingsSpinBox {
                             id: currentFreeThreshold
-                            settingsIndex: 2
+                            settingsIndex: ParkbrakeConfig.S_CurrentFreeThreshold // 2
+                            node: parkbrakeNode
                             from: 0
                             to: 30
                         }
@@ -178,7 +187,8 @@ Item {
                         }
                         SettingsSpinBox {
                             id: currentTightenedThreshold
-                            settingsIndex: 7
+                            settingsIndex: ParkbrakeConfig.S_CurrentTightenedThreshold // 7
+                            node: parkbrakeNode
                             from: 0
                             to: 30
                         }
@@ -191,9 +201,9 @@ Item {
                 title: qsTr("Motor timings (milliseconds)") + tr.str;
                 anchors.top: motorCurrents.bottom
                 anchors.topMargin: 10
-                anchors.left: parent.left
+                anchors.left: motorSettingsPage.left
                 anchors.leftMargin: 10
-                anchors.right: parent.right
+                anchors.right: motorSettingsPage.right
                 anchors.rightMargin: 10
                 Grid {
                     anchors.fill: parent
@@ -205,7 +215,8 @@ Item {
                         }
                         SettingsSpinBox {
                             id: timeRevUpRelease
-                            settingsIndex: 0
+                            settingsIndex: ParkbrakeConfig.S_TimeRevupRelease // 0
+                            node: parkbrakeNode
                             from: 0
                             to: 300
                         }
@@ -216,7 +227,8 @@ Item {
                         }
                         SettingsSpinBox {
                             id: currentStartupRelease
-                            settingsIndex: 4
+                            settingsIndex: ParkbrakeConfig.S_CurrentRevupMaxRelease // 4
+                            node: parkbrakeNode
                             from: 0
                             to: 30
                         }
@@ -229,7 +241,8 @@ Item {
                         }
                         SettingsSpinBox {
                             id: timeRevUpTighten
-                            settingsIndex: 5
+                            settingsIndex: ParkbrakeConfig.S_TimeRevupTighten // 5
+                            node: parkbrakeNode
                             from: 0
                             to: 300
                         }
@@ -240,7 +253,8 @@ Item {
                         }
                         SettingsSpinBox {
                             id: currentStartupTighten
-                            settingsIndex: 8
+                            settingsIndex: ParkbrakeConfig.S_CurrentRevupMaxTighten // 8
+                            node: parkbrakeNode
                             from: 0
                             to: 30
                         }
@@ -252,7 +266,8 @@ Item {
                         }
                         SettingsSpinBox {
                             id: timeAfterFreed
-                            settingsIndex: 1
+                            settingsIndex: ParkbrakeConfig.S_TimeContinueAfterFreed // 1
+                            node: parkbrakeNode
                             from: 0
                             to: 1000
                         }
@@ -264,7 +279,8 @@ Item {
                         }
                         SettingsSpinBox {
                             id: timeAfterTightened
-                            settingsIndex: 6
+                            settingsIndex: ParkbrakeConfig.S_TimeContinueAfterTightened // 6
+                            node: parkbrakeNode
                             from: 0
                             to: 300
                         }
@@ -272,6 +288,5 @@ Item {
                 }
             }
         } // end motor page
-
     }
 }

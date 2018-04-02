@@ -16,24 +16,24 @@ Page {
             State {
                 name: "low"
                 PropertyChanges {
-                        target: rot
-                        angle: 2
+                    target: rot
+                    angle: 2
                 }
             },
 
             State {
                 name: ""
                 PropertyChanges {
-                        target: rot
-                        angle: 0
+                    target: rot
+                    angle: 0
                 }
             },
 
             State {
                 name: "top"
                 PropertyChanges {
-                        target: rot
-                        angle: -2
+                    target: rot
+                    angle: -2
                 }
             }
         ]
@@ -107,9 +107,9 @@ Page {
             anchors.leftMargin: 10
             source: "qrc:/images/car.svg"
             transform: Rotation{ id:rot
-                          origin.x: 107; origin.y: 157;
-                          angle: 0
-                          Behavior on angle { SmoothedAnimation { velocity: 2.5 }}
+                origin.x: 107; origin.y: 157;
+                angle: 0
+                Behavior on angle { SmoothedAnimation { velocity: 2.5 }}
             }
 
 
@@ -158,11 +158,11 @@ Page {
             anchors.bottom: carImage.bottom
             source: "qrc:/images/wheel.svg"
             transform: Rotation{
-                        id:rotRearWheel
-                                 origin.x: 107 - 508; origin.y: 157-65;
-                                 angle: 0
-                                 Behavior on angle { SmoothedAnimation { velocity: 2.5 }}
-                   }
+                id:rotRearWheel
+                origin.x: 107 - 508; origin.y: 157-65;
+                angle: 0
+                Behavior on angle { SmoothedAnimation { velocity: 2.5 }}
+            }
             states: [
                 State { name: "lifted" }
             ]

@@ -17,5 +17,7 @@
         <file>SettingsParkbrake.qml</file>
         <file>SettingsSpinBox.qml</file>
         <file>SettingsCheckBox.qml</file>
+        <file>settings.js</file>
+        <file>SettingsFloatSpinBox.qml</file>
     </qresource>
 </RCC>

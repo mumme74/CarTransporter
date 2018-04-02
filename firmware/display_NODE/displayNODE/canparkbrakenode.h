@@ -3,6 +3,17 @@
 
 #include "cannodes.h"
 
+class ParkbrakeConfig {
+    Q_GADGET
+public:
+    explicit ParkbrakeConfig() {}
+
+#include "park_settings.h"
+    Q_ENUM(settings_e)
+};
+
+// ----------------------------------------------------------------
+
 class CanParkbrakeNode : public CanAbstractNode
 {
     Q_OBJECT
@@ -22,7 +33,7 @@ public:
     Q_INVOKABLE void setServiceState(bool service);
 
     Q_INVOKABLE bool fetchSetting(quint8 idx, QJSValue jsCallback);
-    Q_INVOKABLE bool setSetting(quint8 idx, quint16 vlu, QJSValue jsCallback);
+    Q_INVOKABLE bool setSettingUInt16(quint8 idx, quint16 vlu, QJSValue jsCallback);
 
 public slots:
     bool inServiceMode();

@@ -1,23 +1,17 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.2
 import "helpers.js" as Helpers
+import "settings.js" as Settings
 
 CheckBox {
     id: root
     property int settingsIndex: 255
+    property int dataType: Settings.DataTypes.type_u16
+    property variant node
 
     onCheckedChanged: {
-        function callbackSet(ok) {
-            if (!ok) {
-                var notifier = Helpers.globalApp().notifier
-                notifier.setContent("qrc:/images/error.svg",
-                                    qsTr("Error saving!"),
-                                    qsTr("A error ourred during saving setting"))
-                notifier.errorSnd.play();
-            }
-        }
         var vlu = checked ? 1 : 0;
-        parkbrakeNode.setSetting(settingsIndex, vlu, callbackSet);
+        Settings.setSetting(node, dataType, settingsIndex, vlu);
     }
 
     Component.onCompleted: {
@@ -25,7 +19,7 @@ CheckBox {
             checked = vlu > 0  ? true: false;
         }
 
-        parkbrakeNode.fetchSetting(settingsIndex, callbackGet);
+        node.fetchSetting(settingsIndex, callbackGet);
     }
 }
 

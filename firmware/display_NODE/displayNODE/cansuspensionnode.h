@@ -4,6 +4,16 @@
 #include "cannodes.h"
 #include "PID.h"
 
+class SuspensionConfig {
+    Q_GADGET
+public:
+    explicit SuspensionConfig() {}
+
+#include "suspension_config.h"
+    Q_ENUM(Configs)
+};
+
+// ----------------------------------------------------------------
 
 class CanSuspensionNode : public CanAbstractNode
 {

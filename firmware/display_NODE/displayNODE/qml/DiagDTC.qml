@@ -232,12 +232,26 @@ Item {
                         time: dtc.timeSinceStartup});
             }
         }
+        function update(newDtc) {
+            for (var i = 0; i < count; ++i) {
+                var dtc = parkbrakeNode.getDtc(i);
+                if (dtc.codeStr !== newDtc.codeStr) {
+                    dtc.occurences = newDtc.occurences;
+                    dtc.pending = newDtc.pending
+                    return;
+                }
+            }
+
+            // new dtc
+            append({code: newDtc.dtcCodeStr, desc: newDtc.dtcDescription,
+                    occurrences: newDtc.occurences, pending: newDtc.isPending});
+        }
         Component.onCompleted: rebuild()
     }
 
     Connections {
         target: parkbrakeNode
-        onDtcArrived: dtcParkbrakeModel.rebuild();
+        onDtcArrived: dtcParkbrakeModel.update(dtc);
     }
     Connections {
         target: parkbrakeNode
@@ -273,12 +287,27 @@ Item {
                         occurrences: dtc.occurences, pending: dtc.isPending});
             }
         }
+        function update(newDtc) {
+            for (var i = 0; i < count; ++i) {
+                var dtc = suspensionNode.getDtc(i);
+                if (dtc.codeStr !== newDtc.codeStr) {
+                    dtc.occurences = newDtc.occurences;
+                    dtc.pending = newDtc.pending
+                    return;
+                }
+            }
+
+            // new dtc
+            append({code: newDtc.dtcCodeStr, desc: newDtc.dtcDescription,
+                    occurrences: newDtc.occurences, pending: newDtc.isPending});
+        }
+
         Component.onCompleted: rebuild()
     }
 
     Connections {
         target: suspensionNode
-        onDtcArrived: dtcSuspensionModel.rebuild();
+        onDtcArrived: dtcSuspensionModel.update(dtc);
     }
     Connections {
         target: suspensionNode

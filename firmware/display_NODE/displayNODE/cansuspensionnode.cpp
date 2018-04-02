@@ -1,6 +1,5 @@
 #include "cansuspensionnode.h"
 #include "can_protocol.h"
-#include "suspension_config.h"
 #include "PID.h"
 #include <QDebug>
 
@@ -64,7 +63,8 @@ CanSuspensionNode::CanSuspensionNode(CanInterface *canInterface, QObject *parent
     updatedFromCan(frames);
 
     qmlRegisterUncreatableType<CanSuspensionNode>("mummesoft", 0, 1, "suspensionNode", QStringLiteral("Cant create CanSuspensionNode from QML"));
-
+    qmlRegisterUncreatableType<SuspensionConfig>("mummesoft", 0, 1, "SuspensionConfig",
+                                                 "Cannot create SuspensionConfig in QML");
 }
 
 CanSuspensionNode::~CanSuspensionNode()
@@ -114,7 +114,7 @@ bool CanSuspensionNode::clearActivateOutput(quint8 pid) const
 
 bool CanSuspensionNode::fetchSetting(quint8 idx, QJSValue jsCallback)
 {
-    if (idx >= Configs::ConfigEnd)
+    if (idx >= SuspensionConfig::ConfigEnd)
         return false;
 
     return CanAbstractNode::fetchSetting(idx, jsCallback, C_suspensionCmdGetConfig);
@@ -122,7 +122,7 @@ bool CanSuspensionNode::fetchSetting(quint8 idx, QJSValue jsCallback)
 
 bool CanSuspensionNode::setSettingUint16(quint8 idx, quint16 vlu, QJSValue jsCallback)
 {
-    if (idx >= Configs::ConfigEnd)
+    if (idx >= SuspensionConfig::ConfigEnd)
         return false;
 
     return CanAbstractNode::setSettingU16(idx, vlu, jsCallback, C_suspensionCmdSetConfig);
@@ -130,7 +130,7 @@ bool CanSuspensionNode::setSettingUint16(quint8 idx, quint16 vlu, QJSValue jsCal
 
 bool CanSuspensionNode::setSettingUint32(quint8 idx, quint32 vlu, QJSValue jsCallback)
 {
-    if (idx >= Configs::ConfigEnd)
+    if (idx >= SuspensionConfig::ConfigEnd)
         return false;
 
     return CanAbstractNode::setSettingU32(idx, vlu, jsCallback, C_suspensionCmdSetConfig);
@@ -138,7 +138,7 @@ bool CanSuspensionNode::setSettingUint32(quint8 idx, quint32 vlu, QJSValue jsCal
 
 bool CanSuspensionNode::setSettingFloat(quint8 idx, float vlu, QJSValue jsCallback)
 {
-    if (idx >= Configs::ConfigEnd)
+    if (idx >= SuspensionConfig::ConfigEnd)
         return false;
 
     return CanAbstractNode::setSettingF(idx, vlu, jsCallback, C_suspensionCmdSetConfig);

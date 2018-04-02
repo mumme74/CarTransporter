@@ -86,7 +86,9 @@ CanParkbrakeNode::CanParkbrakeNode(CanInterface *canInterface, QObject *parent) 
 
     updatedFromCan(frames);
 
-    qmlRegisterUncreatableType<CanParkbrakeNode>("mummesoft", 0, 1, "parkbrakeNode", QStringLiteral("Cant create CanParkbrakeNode from QML"));
+    qmlRegisterUncreatableType<CanParkbrakeNode>("mummesoft", 0, 1, "ParkbrakeNode", QStringLiteral("Cant create ParkbrakeNode from QML"));
+    qmlRegisterUncreatableType<ParkbrakeConfig>("mummesoft", 0, 1, "ParkbrakeConfig", QStringLiteral("Cant create ParkbrakeConfig from QML"));
+
     // detect changes in state
     connect(getPid("LeftFront_state"), SIGNAL(valueChanged(const CanPid*)),
             this, SLOT(inServiceMode()));
@@ -155,15 +157,15 @@ void CanParkbrakeNode::setServiceState(bool service)
 
 bool CanParkbrakeNode::fetchSetting(quint8 idx, QJSValue jsCallback)
 {
-    if (idx >= S_EOF)
+    if (idx >= ParkbrakeConfig::S_EOF)
         return false;
 
     return CanAbstractNode::fetchSetting(idx, jsCallback, C_parkbrakeCmdGetConfig);
 }
 
-bool CanParkbrakeNode::setSetting(quint8 idx, quint16 vlu, QJSValue jsCallback)
+bool CanParkbrakeNode::setSettingUInt16(quint8 idx, quint16 vlu, QJSValue jsCallback)
 {
-    if (idx >= S_EOF)
+    if (idx >= ParkbrakeConfig::S_EOF)
         return false;
 
     return CanAbstractNode::setSettingU16(idx, vlu, jsCallback, C_parkbrakeCmdSetConfig);

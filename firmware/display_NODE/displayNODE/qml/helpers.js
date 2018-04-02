@@ -52,7 +52,7 @@ function hideDiagHeader() {
 
 function pushPage(strPageObj) {
     var comp = Qt.createComponent(strPageObj + ".qml");
-    if (comp.status == QtQuick2.Component.Error) {
+    if (comp.status === QtQuick2.Component.Error) {
         console.log("Error loading component " + strPageObj + " :", comp.errorString());
     }
     var page = comp.createObject(mainView());

@@ -19,5 +19,9 @@
         <file>SettingsCheckBox.qml</file>
         <file>settings.js</file>
         <file>SettingsFloatSpinBox.qml</file>
+        <file>ParkbrakeStatusDlg.qml</file>
+        <file>WeightStatusDlg.qml</file>
+        <file>PressureStatusDlg.qml</file>
+        <file>PID_Label.qml</file>
     </qresource>
 </RCC>

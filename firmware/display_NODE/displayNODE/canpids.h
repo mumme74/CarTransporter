@@ -21,7 +21,7 @@ class CanPid : public QObject
     Q_PROPERTY(int valueInt READ valueInt NOTIFY valueChanged)
     Q_PROPERTY(float valueFloat READ valueFloat NOTIFY valueChanged)
     Q_PROPERTY(QString key READ key)
-    Q_PROPERTY(QString unit READ unit)
+    Q_PROPERTY(QString unit READ unit NOTIFY unitChanged)
     Q_PROPERTY(QString originName READ originName)
     Q_PROPERTY(can_senderIds_e origin READ origin)
 
@@ -45,6 +45,7 @@ public:
 
 signals:
     void valueChanged(const CanPid *pid);
+    void unitChanged(const CanPid *pid);
 
 private:
     const QString m_key;
@@ -108,5 +109,37 @@ private:
     const int colCount = 3;
     PidStore m_pids;
 };
+
+// ---------------------------------------------------------------
+/*
+class QmlPidCls : public QObject
+{
+    Q_OBJECT
+    Q_PROPERTY(QString format READ format WRITE setFormat NOTIFY formatChanged)
+    Q_PROPERTY(QString pidKeyStr READ pidKeyStr WRITE setPidKeyStr NOTIFY pidKeyStrChanged)
+    Q_PROPERTY(QString text READ text NOTIFY textChanged)
+public:
+    explicit QmlPidCls(QObject *parent = nullptr);
+    ~QmlPidCls();
+
+    const QString format() const;
+    void setFormat(const QString format);
+
+    const QString pidKeyStr() const;
+    void setPidKeyStr(const QString pidKey);
+
+    const QString text() const;
+
+signals:
+    void textChanged();
+    void formatChanged();
+    void pidKeyStrChanged();
+
+private:
+    QString m_format;
+    QString m_pidKeyStr;
+
+};
+*/
 
 #endif // CANPIDS_H

@@ -60,4 +60,39 @@ private:
     QMap<int, QJSValue> m_heightStateSetCallback;
 };
 
+// ---------------------------------------------------------------
+
+// model for systempressure dialog
+class SuspensionPressureDlgModel : public QAbstractTableModel
+{
+    Q_OBJECT
+public:
+    explicit SuspensionPressureDlgModel(CanSuspensionNode *node,
+                                        QObject *parent = 0);
+    ~SuspensionPressureDlgModel();
+
+    QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
+    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
+    int columnCount(const QModelIndex &parent = QModelIndex()) const;
+    int rowCount(const QModelIndex &parent = QModelIndex()) const;
+
+    // for QML to be able to use this model
+    enum Roles {
+        KeyRole = Qt::UserRole + 1,
+        ValueRole
+    };
+
+private slots:
+    void pidUpdated(const CanPid *pid);
+
+protected:
+    QHash<int, QByteArray> roleNames() const;
+
+private:
+    CanPid *getPidForIdx(int idx) const;
+    CanSuspensionNode *m_node;
+    const int colCount = 2;
+    int m_rowCount;
+};
+
 #endif // CANSUSPENSIONNODE_H

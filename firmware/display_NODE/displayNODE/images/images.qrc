@@ -19,5 +19,6 @@
         <file>service.svg</file>
         <file>error.svg</file>
         <file>warning.svg</file>
+        <file>delete.svg</file>
     </qresource>
 </RCC>

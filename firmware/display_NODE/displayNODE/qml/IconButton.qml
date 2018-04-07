@@ -4,11 +4,12 @@ import QtQuick.Controls.Styles 1.4
 
 Button {
     id: iconBtn
-    opacity: 0.5
+    property real restOpacity: 0.5
     property real restScale: 0.6
     property string source: ""
     property string btnText: ""
     property int iconSize: 48
+    opacity: restOpacity
     signal clicked
 
     transform: Scale { id: iconBtnTransform;

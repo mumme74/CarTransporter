@@ -10,7 +10,7 @@ Rectangle {
     visible: true
     opacity: 0.0
     width: Math.max(notifierText.width, notifierHeadline.width) +
-                    notifierIcon.width + 30
+                    notifierIcon.width + closeIcon.width + 30
     height: Math.max(notifierIcon.height,
                      notifierHeadline.height + notifierText.height + 40)
     Row {
@@ -29,6 +29,27 @@ Rectangle {
                 id: notifierText
                 color: "#00032d"
                 font.pointSize: 14
+            }
+        }
+    }
+    Image {
+        id: closeIcon
+        source: "qrc:/images/delete.svg"
+        width: 10
+        height: 10
+        x: notifierWgt.width - width - 10
+        y: 10
+        z: 1
+        opacity: 0.5
+        MouseArea {
+            anchors.fill: closeIcon
+            hoverEnabled: true
+            onClicked: hideNotification();
+            onContainsMouseChanged: {
+                if (containsMouse)
+                    closeIcon.opacity = 1.0;
+                else
+                    closeIcon.opacity = 0.5;
             }
         }
     }
@@ -82,6 +103,13 @@ Rectangle {
         notifierAnimator.from = notifierWgt.opacity
         notifierAnimator.running = true
         notifierHideTmr.start();
+
+    }
+    function hideNotification() {
+        notifierHideTmr.stop();
+        notifierAnimator.stop();
+        notifierAnimator.to = 0.0
+        notifierAnimator.running = true
 
     }
 

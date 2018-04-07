@@ -527,5 +527,125 @@ void CanSuspensionNode::setHeightStatePid(QString key, quint16 state, CanAbstrac
 }
 
 
+// -------------------------------------------------------------------
 
 
+SuspensionPressureDlgModel::SuspensionPressureDlgModel(CanSuspensionNode *node,
+                                                       QObject *parent) :
+    QAbstractTableModel(parent),
+    m_node(node)
+{
+    int maxRows = 0;
+    do {
+        QModelIndex idx = createIndex(maxRows, 0, nullptr);
+        if (!data(idx, KeyRole).isValid())
+            break;
+        ++maxRows;
+    } while (true);
+
+    m_rowCount = maxRows;
+
+    // connect for updates
+    for (int i = 0; i < m_rowCount; ++i) {
+        CanPid *pid = getPidForIdx(i);
+        connect(pid, SIGNAL(valueChanged(const CanPid*)),
+                this, SLOT(pidUpdated(const CanPid*)));
+    }
+
+    qmlRegisterUncreatableType<SuspensionPressureDlgModel>("mummesoft", 0, 1, "SuspensionPressureDlgModel", QStringLiteral("Cant create SuspensionPressureDlgModel from QML"));
+}
+
+SuspensionPressureDlgModel::~SuspensionPressureDlgModel()
+{
+
+}
+
+QVariant SuspensionPressureDlgModel::headerData(int section, Qt::Orientation orientation, int role) const
+{
+    if ((role != Qt::DisplayRole && role !=Qt::ToolTipRole) || orientation != Qt::Horizontal)
+        return QVariant();
+
+    if (section < 0 || section >= colCount)
+        return QVariant();
+
+    if (section == 0)
+        return QVariant(tr("Name"));
+    else if (section == 1)
+        return QVariant(tr("Value"));
+    return QVariant();
+}
+
+QVariant SuspensionPressureDlgModel::data(const QModelIndex &index, int role) const
+{
+    if (index.column() < 0 || index.column() >= colCount)
+        return QVariant();
+
+    if (index.row() >= m_rowCount && m_rowCount > 0)
+        return QVariant();
+
+    CanPid *pid = getPidForIdx(index.row());
+
+    if (!pid)
+        return QVariant();
+
+    if (role == KeyRole)
+        return pid->key();
+    else if (role == ValueRole)
+        return QVariant(pid->valueStr() + pid->unit());
+    else
+        return QVariant();
+}
+
+int SuspensionPressureDlgModel::columnCount(const QModelIndex &parent) const
+{
+    Q_UNUSED(parent)
+    return colCount;
+}
+
+int SuspensionPressureDlgModel::rowCount(const QModelIndex &parent) const
+{
+    Q_UNUSED(parent)
+    return m_rowCount;
+}
+
+QHash<int, QByteArray> SuspensionPressureDlgModel::roleNames() const
+{
+    QHash<int, QByteArray> roles;
+    roles[KeyRole] = "name";
+    roles[ValueRole] = "value";
+    return roles;
+}
+
+CanPid *SuspensionPressureDlgModel::getPidForIdx(int idx) const
+{
+    switch (idx) {
+    case 0:
+        return m_node->getPid(tr("System_pressure"));
+    case 1:
+        return m_node->getPid(tr("Compressor_duty"));
+    case 2:
+        return m_node->getPid(tr("Airdryer_duty"));
+    case 3:
+        return m_node->getPid(tr("Left_pressure"));
+    case 4:
+        return m_node->getPid(tr("Right_pressure"));
+    default:
+        return nullptr;
+    }
+}
+
+void SuspensionPressureDlgModel::pidUpdated(const CanPid *pid)
+{
+    int i = 0;
+    for (; i < m_rowCount; ++i) {
+        if (getPidForIdx(i) == pid)
+            break;
+    }
+
+    if (i >= m_rowCount)
+        return;
+
+    QModelIndex left = createIndex(i, 0, (void*)pid);
+    QModelIndex right = createIndex(i, 1, (void*)pid);
+    dataChanged(left, right);
+}

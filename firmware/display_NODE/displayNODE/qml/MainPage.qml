@@ -377,11 +377,14 @@ Page {
             anchors.top: parent.top
             anchors.rightMargin: 10
             //anchors.topMargin: 10
+            onClicked: {
+                pressureDlg.visible ? pressureDlg.close() : pressureDlg.open();
+            }
         }
 
         IconButton {
             id: weightBtn
-            enabled: car.state == ""
+            enabled: car.state == "NormalState"
             source: "qrc:/images/weight.svg"
             anchors.right: compressorBtn.left
             anchors.top: parent.top
@@ -395,6 +398,12 @@ Page {
         IconButton {
             id: parkbrakeBtn
             source: "qrc:/images/parkbrake.svg"
+            opacity: {
+                return (parkbrakeNode.getPid(qsTr("LeftFront_state") + tr.str).valueInt > 0 ||
+                        parkbrakeNode.getPid(qsTr("RightFront_state") + tr.str).valueInt > 0 ||
+                        parkbrakeNode.getPid(qsTr("LeftRear_state") + tr.str).valueInt > 0 ||
+                        parkbrakeNode.getPid(qsTr("RightRear_state") + tr.str).valueInt > 0) ? 1.0 : restOpacity
+            }
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.rightMargin: 10
@@ -405,107 +414,15 @@ Page {
         }
     }
 
-    MessageDialog {
-        id: weightDlg
-        title: qsTr("Weight")+ tr.str
-        standardButtons: StandardButton.Ok
-        contentItem: Rectangle {
-            color: "lightskyblue"
-            implicitWidth: 400
-            implicitHeight: 100
-            GridLayout {
-                columns: 2
-                Layout.margins: 10
-                Image {
-                    source: "qrc:/images/weight.svg"
-                    anchors.left: parent.left
-                    anchors.top: parent.top
-                    anchors.topMargin: 10
-                    anchors.leftMargin: 10
-                    Layout.rowSpan: 3
-                }
-
-                Label {
-                    text: qsTr("Weight calculation")+ tr.str
-                    font.bold: true
-                    Layout.margins: 10
-                }
-                Label {
-                    text: "1000kg(TODO implement)"
-                    Layout.margins: 10
-                }
-                Item {
-                    // gridlayout workaround
-                }
-            }
-            Button {
-                anchors.right: parent.right
-                anchors.rightMargin: 10
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: 10
-                Text {
-                    anchors.centerIn: parent
-                    text: qsTr("OK")+ tr.str
-                }
-                onClicked: weightDlg.close()
-            }
-        }
+    PressureStatusDlg {
+        id: pressureDlg
     }
 
-    MessageDialog {
-        id: parkbrakeDlg
-        title: qsTr("Parkbrake")+ tr.str
-        standardButtons: StandardButton.Ok
-        contentItem: Rectangle {
-            color: "lightskyblue"
-            implicitWidth: 400
-            implicitHeight: 150
-            GridLayout {
-                columns: 2
-                Layout.margins: 10
-                Image {
-                    source: "qrc:/images/parkbrake.svg"
-                    anchors.left: parent.left
-                    anchors.top: parent.top
-                    anchors.topMargin: 10
-                    anchors.leftMargin: 10
-                    Layout.rowSpan: 2
-                }
+    WeightStatusDlg {
+        id: weightDlg
+    }
 
-                Label {
-                    text: qsTr("Parkbrake status")+ tr.str
-                    font.bold: true
-                    Layout.margins: 10
-                }
-                Grid {
-                    columns: 2
-                    Layout.margins: 10
-                    spacing: 10
-                    Label {
-                        text: "LF:" + parkbrakeNode.getPid("LeftFront_state").valueStr
-                    }
-                    Label {
-                        text: "RF:" + parkbrakeNode.getPid("RightFront_state").valueStr
-                    }
-                    Label {
-                        text: "LR:" + parkbrakeNode.getPid("LeftRear_state").valueStr
-                    }
-                    Label {
-                        text: "RR:" + parkbrakeNode.getPid("RightRear_state").valueStr
-                    }
-                }
-            }
-            Button {
-                anchors.right: parent.right
-                anchors.rightMargin: 10
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: 10
-                Text {
-                    anchors.centerIn: parent
-                    text: qsTr("OK")+ tr.str
-                }
-                onClicked: parkbrakeDlg.close()
-            }
-        }
+    ParkbrakeStatusDlg {
+        id: parkbrakeDlg
     }
 }

@@ -256,45 +256,4 @@ CanPid *CanPids::pid(QQmlListProperty<CanPid> *list, int idx)
     return reinterpret_cast< CanPids* >(list->data)->getPid(idx);
 }
 
-// ------------------------------------------------------------------------
-/*
-QmlPidCls::QmlPidCls(QObject *parent) :
-    QObject(parent)
-{
-}
-
-QmlPidCls::~QmlPidCls()
-{
-}
-
-const QString QmlPidCls::format() const
-{
-    return m_format;
-}
-
-void QmlPidCls::setFormat(const QString format)
-{
-    m_format = format;
-    emit formatChanged();
-    emit textChanged();
-}
-
-const QString QmlPidCls::pidKeyStr() const
-{
-    return m_pidKeyStr;
-}
-
-void QmlPidCls::setPidKeyStr(const QString pidKey)
-{
-    m_pidKeyStr = pidKey;
-}
-
-const QString QmlPidCls::text() const
-{
-
-    QString vlu = QString(m_format).arg()
-    return
-}
-*/
-
 

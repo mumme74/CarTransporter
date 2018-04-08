@@ -110,36 +110,4 @@ private:
     PidStore m_pids;
 };
 
-// ---------------------------------------------------------------
-/*
-class QmlPidCls : public QObject
-{
-    Q_OBJECT
-    Q_PROPERTY(QString format READ format WRITE setFormat NOTIFY formatChanged)
-    Q_PROPERTY(QString pidKeyStr READ pidKeyStr WRITE setPidKeyStr NOTIFY pidKeyStrChanged)
-    Q_PROPERTY(QString text READ text NOTIFY textChanged)
-public:
-    explicit QmlPidCls(QObject *parent = nullptr);
-    ~QmlPidCls();
-
-    const QString format() const;
-    void setFormat(const QString format);
-
-    const QString pidKeyStr() const;
-    void setPidKeyStr(const QString pidKey);
-
-    const QString text() const;
-
-signals:
-    void textChanged();
-    void formatChanged();
-    void pidKeyStrChanged();
-
-private:
-    QString m_format;
-    QString m_pidKeyStr;
-
-};
-*/
-
 #endif // CANPIDS_H

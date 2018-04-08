@@ -54,9 +54,4 @@ MessageDialog {
             onClicked: root.close()
         }
     }
-    /*
-    onVisibilityChanged: {
-        var pid = suspensionNode.getPid(qsTr("Load_weight")  + tr.str);
-        weightLbl.text = pid.valueStr + pid.unit;
-    }*/
 }

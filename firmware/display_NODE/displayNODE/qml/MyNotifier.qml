@@ -32,27 +32,47 @@ Rectangle {
             }
         }
     }
-    Image {
-        id: closeIcon
-        source: "qrc:/images/delete.svg"
-        width: 10
-        height: 10
-        x: notifierWgt.width - width - 10
-        y: 10
+
+    // our closing cross
+    Rectangle {
+        id: closeBackground
+        width: closeIcon.width + 6
+        height: width
+        radius: width / 2
+        x: notifierWgt.width - width - 7
+        y: 7
         z: 1
+        color: "gray"
+        border.color: "darkgray"
+        border.width: 1
         opacity: 0.5
+        Image {
+            id: closeIcon
+            source: "qrc:/images/delete.svg"
+            width: 10
+            height: 10
+            x: 3
+            y: 3
+            opacity: 0.5
+        }
         MouseArea {
-            anchors.fill: closeIcon
+            anchors.fill: closeBackground
             hoverEnabled: true
             onClicked: hideNotification();
             onContainsMouseChanged: {
-                if (containsMouse)
+                if (containsMouse) {
                     closeIcon.opacity = 1.0;
-                else
+                    closeBackground.opacity = 1.0;
+                } else {
                     closeIcon.opacity = 0.5;
+                    closeBackground.opacity = 0.5;
+                }
             }
         }
+
     }
+
+
     Timer {
         id: notifierHideTmr
         repeat: false

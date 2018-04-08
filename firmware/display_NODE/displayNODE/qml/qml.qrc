@@ -23,5 +23,6 @@
         <file>WeightStatusDlg.qml</file>
         <file>PressureStatusDlg.qml</file>
         <file>PID_Label.qml</file>
+        <file>DiagParamSelected.qml</file>
     </qresource>
 </RCC>

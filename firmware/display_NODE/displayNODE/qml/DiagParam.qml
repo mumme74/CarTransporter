@@ -14,23 +14,26 @@ Item {
 
     PageIndicator {
         id: pageIndicator
-        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.horizontalCenter: root.horizontalCenter
         y: 8
         count: nodeView.count
         currentIndex: nodeView.currentIndex
         interactive: true
     }
 
-    StackLayout {
+    //StackLayout {
+    SwipeView {
         id: nodeView
-        anchors.left: parent.left
+        spacing: Helpers.mainView().width - width
+        anchors.left: root.left
         anchors.leftMargin: 10
-        anchors.bottom: parent.bottom
-        anchors.top: parent.top
-        anchors.topMargin: 10
-        height: parent.height - y
+        anchors.bottom: root.bottom
         anchors.bottomMargin: 0
-        width: 200
+        anchors.top: root.top
+        anchors.topMargin: 10
+        anchors.right: root.right
+        anchors.rightMargin: 10
+        height: root.height - y
         currentIndex: pageIndicator.currentIndex
 
         Item {
@@ -40,27 +43,32 @@ Item {
                 text: qsTr("Suspension PIDs")+ tr.str
                 font.pointSize: 20
                 color: "white"
-                anchors.top: parent.top
+                anchors.top: suspensionPIDsPage.top
                 anchors.topMargin: pageIndicator.y + pageIndicator.height
             }
             TableView {
                 id: suspensionPIDsList
                 anchors.top: suspensionPIDsLbl.bottom
                 anchors.topMargin: 10
-                anchors.bottom: parent.bottom
-                width: nodeView.width
+                anchors.bottom: suspensionPIDsPage.bottom
+                width: 200
                 model: suspensionAvailablePids
                 TableViewColumn {
                     role: "param"
                     title: qsTr("Param") + tr.str
                     width: 200
                 }
-                TableViewColumn {
-                    role: "value"
-                    title: qsTr("Value") + tr.str
-                    width: 100
-                }
             }
+            DiagParamSelected {
+                id: suspensionSelected
+                node: suspensionNode
+                pidsListSelectFrom: suspensionPIDsList
+                anchors.top: suspensionPIDsPage.top
+                anchors.left: suspensionPIDsList.right
+                anchors.right: suspensionPIDsPage.right
+                anchors.bottom: suspensionPIDsPage.bottom
+            }
+
         } // end suspension
         Item {
             id: parkbrakePIDsPage
@@ -69,15 +77,15 @@ Item {
                 text: qsTr("Parkbrake PIDs")
                 font.pointSize: 20
                 color: "white"
-                anchors.top: parent.top
+                anchors.top: parkbrakePIDsPage.top
                 anchors.topMargin: pageIndicator.y + pageIndicator.height
             }
             TableView {
                 id: parkbarkePIDsList
                 anchors.top: parkbarkePIDsLbl.bottom
                 anchors.topMargin: 10
-                anchors.bottom: parent.bottom
-                width: nodeView.width
+                anchors.bottom: parkbrakePIDsPage.bottom
+                width: 200
                 model: parkbrakeAvailablePids
                 TableViewColumn {
                     role: "name"
@@ -85,79 +93,15 @@ Item {
                     width: 200
                 }
             }
-        }
-    }
-
-    IconButton {
-        id: selectBtn
-        anchors.left: nodeView.right
-        anchors.leftMargin: 5
-        anchors.verticalCenter: nodeView.verticalCenter
-        anchors.verticalCenterOffset: -30
-        btnText: ">>"
-        onClicked: {
-            var pid = null;
-            if (nodeView.currentIndex == 0) {
-                pid = suspensionNode.getPid(suspensionPIDsList.currentRow);
-            } else if (nodeView.currentIndex == 1) {
-                pid = parkbrakeNode.getPid(parkbarkePIDsList.currentRow);
-
+            DiagParamSelected {
+                id: parkbrakeSelected
+                node: parkbrakeNode
+                pidsListSelectFrom: parkbarkePIDsList
+                anchors.top: parkbrakePIDsPage.top
+                anchors.left: parkbarkePIDsList.right
+                anchors.right: parkbrakePIDsPage.right
+                anchors.bottom: parkbrakePIDsPage.bottom
             }
-            console.log(pid, pid.key);
-
-            if (pid)
-                canPidsModel.addPid(pid);
-        }
-    }
-
-    IconButton {
-        id: deSelectBtn
-        anchors.left: nodeView.right
-        anchors.leftMargin: 5
-        anchors.verticalCenter: nodeView.verticalCenter
-        anchors.verticalCenterOffset: 30
-        btnText: ">!<"
-        onClicked: {
-            var pid = canPidsModel.getPid(selectedPIDsList.currentRow);
-            canPidsModel.removePid(pid);
-            console.log(pid, pid.key)
-        }
-    }
-
-    Label {
-       id: selectedPIDsLbl
-       text: qsTr("Selected PIDs")
-       font.pointSize: 20
-       color: "white"
-       anchors.top: parent.top
-       anchors.topMargin: pageIndicator.y + pageIndicator.height
-       anchors.right: parent.right
-       anchors.rightMargin: 10
-    }
-    TableView {
-        id: selectedPIDsList
-        anchors.top: selectedPIDsLbl.bottom
-        anchors.topMargin: 10
-        anchors.bottom: parent.bottom
-        anchors.right: parent.right
-        anchors.rightMargin: 10
-        anchors.left: deSelectBtn.right
-        anchors.leftMargin: 10
-        model: canPidsModel
-        TableViewColumn {
-            role: "name"
-            title: qsTr("Name") + tr.str
-            width: 200
-        }
-        TableViewColumn {
-            role: "value"
-            title: qsTr("Value") + tr.str
-            width: 100
-        }
-        TableViewColumn {
-            role: "origin"
-            title: qsTr("Origin") + tr.str
-            width: 200
         }
     }
 

@@ -22,41 +22,11 @@ Item {
         interactive: true
     }
 
-    IconButton {
-        id: readDtcs
-        btnText: qsTr("Read") + tr.str
-        anchors.left: parent.left
-        anchors.top: parent.top
-        anchors.topMargin: 65
-        onClicked: {
-            if (nodeView.currentIndex === 0)
-                if (!suspensionNode.fetchAllDtcs())
-                    Helpers.notifyCanIsOff();
-            else
-                if (!parkbrakeNode.fetchAllDtcs())
-                    Helpers.notifyCanIsOff();
-        }
-    }
-
-    IconButton {
-        id: eraseDtcs
-        btnText: qsTr("Erase") + tr.str
-        anchors.left: parent.left
-        anchors.top: readDtcs.bottom
-        anchors.topMargin: 20
-        onClicked: {
-            if (nodeView.currentIndex === 0)
-                if (!suspensionNode.clearAllDtcs())
-                    Helpers.notifyCanIsOff();
-            else
-                if (!parkbrakeNode.clearAllDtcs())
-                    Helpers.notifyCanIsOff();
-        }
-    }
-
-    StackLayout {
+    //StackLayout {
+    SwipeView {
         id: nodeView
-        anchors.left: eraseDtcs.right
+        spacing: Helpers.mainView().width - width
+        anchors.left: root.left
         anchors.leftMargin: 10
         anchors.right: parent.right
         anchors.bottom: parent.bottom
@@ -68,6 +38,29 @@ Item {
 
         Item {
             id: suspensionDtcPage
+            IconButton {
+                id: readDtcsSuspension
+                btnText: qsTr("Read") + tr.str
+                anchors.left: suspensionDtcPage.left
+                anchors.top: suspensionDtcPage.top
+                anchors.topMargin: 65
+                onClicked: {
+                    if (!suspensionNode.fetchAllDtcs())
+                            Helpers.notifyCanIsOff();
+                }
+            }
+
+            IconButton {
+                id: eraseDtcsSuspension
+                btnText: qsTr("Erase") + tr.str
+                anchors.left: suspensionDtcPage.left
+                anchors.top: readDtcsSuspension.bottom
+                anchors.topMargin: 20
+                onClicked: {
+                    if (!suspensionNode.clearAllDtcs())
+                        Helpers.notifyCanIsOff();
+                }
+            }
             Label {
                 id: suspensionDtcLbl
                 text: qsTr("Suspension DTC")+ tr.str
@@ -109,6 +102,29 @@ Item {
         } // end suspension
         Item {
             id: parkbrakeDtcPage
+            IconButton {
+                id: readDtcsParkbrake
+                btnText: qsTr("Read") + tr.str
+                anchors.left: parkbrakeDtcPage.left
+                anchors.top: parkbrakeDtcPage.top
+                anchors.topMargin: 65
+                onClicked: {
+                    if (!parkbrakeNode.fetchAllDtcs())
+                            Helpers.notifyCanIsOff();
+                }
+            }
+
+            IconButton {
+                id: eraseDtcsParkbrake
+                btnText: qsTr("Erase") + tr.str
+                anchors.left: parkbrakeDtcPage.left
+                anchors.top: parkbrakeDtcPage.bottom
+                anchors.topMargin: 20
+                onClicked: {
+                    if (!parkbrakeNode.clearAllDtcs())
+                        Helpers.notifyCanIsOff();
+                }
+            }
             Label {
                 id: parkbarkeDtcLbl
                 text: qsTr("Parkbrake DTC")+ tr.str

@@ -19,8 +19,10 @@ Item {
         interactive: true
     }
 
-    StackLayout {
+    //StackLayout {
+    SwipeView {
         id: nodeView
+        spacing: Helpers.mainView().width - width
         anchors.left: root.left
         anchors.leftMargin: 10
         anchors.right: root.right
@@ -130,7 +132,7 @@ Item {
             Connections {
                 // handles response from our node
                 target: suspensionNode
-                onActivateOutputConfirmed: {
+                onActivateOutputComfirmed: {
                     for(var i = 0; i < suspensionActivationModel.count; ++i) {
                         var itm = suspensionActivationModel.get(i);
                         if (itm && itm.pid === pid) {
@@ -139,7 +141,10 @@ Item {
                         }
                     }
                 }
-                onClearActivateOutputConfirmed: {
+            }
+            Connections {
+                target: suspensionNode
+                onClearActivateOutputComfirmed: {
                     for(var i = 0; i < suspensionActivationModel.count; ++i) {
                         var itm = suspensionActivationModel.get(i);
                         if (itm && itm.pid === pid) {
@@ -156,12 +161,12 @@ Item {
                 text: qsTr("Parkbrake activation")+ tr.str
                 font.pointSize: 20
                 color: "white"
-                anchors.top: parent.top
+                anchors.top: parkbrakeActivatePage.top
                 anchors.topMargin: pageIndicator.y + pageIndicator.height
             }
             Label {
                 id: parkbrakeHelpLbl
-                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.horizontalCenter: parkbrakeActivatePage.horizontalCenter
                 anchors.top: parkbarkeActivationLbl.bottom
                 anchors.topMargin: 5
                 color: "beige"
@@ -181,8 +186,8 @@ Item {
             Grid {
                 anchors.top: parkbrakeHelpLbl.bottom
                 anchors.topMargin: 10
-                anchors.left: parent.left
-                anchors.right: parent.right
+                anchors.left: parkbrakeActivatePage.left
+                anchors.right: parkbrakeActivatePage.right
                 spacing: 10
                 columns: 2
                 Column {
@@ -258,9 +263,9 @@ Item {
 
             Row {
                 id: parkbrakeServiceGrid
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
+                anchors.left: parkbrakeActivatePage.left
+                anchors.right: parkbrakeActivatePage.right
+                anchors.bottom: parkbrakeActivatePage.bottom
                 anchors.bottomMargin: 50
 
                 Label {

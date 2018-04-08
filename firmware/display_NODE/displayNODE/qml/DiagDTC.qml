@@ -25,7 +25,7 @@ Item {
     //StackLayout {
     SwipeView {
         id: nodeView
-        spacing: Helpers.mainView().width - width
+        spacing: Helpers.mainView().width - width + 5
         anchors.left: root.left
         anchors.leftMargin: 10
         anchors.right: parent.right
@@ -118,7 +118,7 @@ Item {
                 id: eraseDtcsParkbrake
                 btnText: qsTr("Erase") + tr.str
                 anchors.left: parkbrakeDtcPage.left
-                anchors.top: parkbrakeDtcPage.bottom
+                anchors.top: readDtcsParkbrake.bottom
                 anchors.topMargin: 20
                 onClicked: {
                     if (!parkbrakeNode.clearAllDtcs())

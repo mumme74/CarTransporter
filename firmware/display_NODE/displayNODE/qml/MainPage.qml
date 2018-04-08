@@ -384,13 +384,13 @@ Page {
 
         IconButton {
             id: weightBtn
-            enabled: car.state == "NormalState"
             source: "qrc:/images/weight.svg"
             anchors.right: compressorBtn.left
             anchors.top: parent.top
             anchors.rightMargin: 10
             //anchors.topMargin: 10
             onClicked: {
+                weightDlg.carState = car.state;
                 weightDlg.visible ? weightDlg.close() : weightDlg.open()
             }
         }

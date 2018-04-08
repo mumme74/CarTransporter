@@ -8,6 +8,7 @@ import "helpers.js" as Helpers
 MessageDialog {
     id: root
     title: qsTr("Weight")+ tr.str
+    property string carState: "NormalState"
     standardButtons: StandardButton.Ok
     contentItem: Rectangle {
         color: "lightskyblue"
@@ -26,6 +27,7 @@ MessageDialog {
             }
 
             Label {
+                id: headLine
                 text: qsTr("Weight calculation") + tr.str
                 font.bold: true
                 Layout.margins: 10
@@ -52,6 +54,22 @@ MessageDialog {
                 text: qsTr("OK")+ tr.str
             }
             onClicked: root.close()
+        }
+    }
+    Component.onCompleted: {
+        width = 280;
+        height = 100;
+    }
+
+    onVisibleChanged: {
+        if (visible) {
+            if (carState === "NormalState") {
+                headLine.text = qsTr("Weight calculation") + tr.str
+                headLine.color = "white";
+            } else {
+                headLine.text = qsTr("Weight not available!\nMust be at normal height")
+                headLine.color = "red";
+            }
         }
     }
 }

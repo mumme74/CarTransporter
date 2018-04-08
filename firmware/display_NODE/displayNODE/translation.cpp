@@ -3,6 +3,7 @@
 #include <QTranslator>
 #include <QSettings>
 #include <QGuiApplication>
+#include <QDir>
 
 
 Translation::Translation(QObject *parent) :
@@ -24,8 +25,22 @@ QString Translation::getEmptyString()
 void Translation::selectLanguage(QString language)
 {
     if(language == QString("sv")) {
-        translator->load("ts_sv", "ts");
-        qApp->installTranslator(translator);
+        QDir tsDir = QDir(qApp->applicationDirPath());
+
+    #if defined(Q_OS_WIN)
+        if (tsDir.dirName().toLower() == "debug" || tsDir.dirName().toLower() == "release")
+            tsDir.cdUp();
+    #elif defined(Q_OS_MAC)
+        if (tsDir.dirName() == "MacOS") {
+            tsDir.cdUp();
+            tsDir.cdUp();
+            tsDir.cdUp();
+        }
+    #endif
+        tsDir.cd("ts");
+
+        if (translator->load("ts_sv", tsDir.absolutePath()))
+            qApp->installTranslator(translator);
     }
 
     if(language == QString("en")) {

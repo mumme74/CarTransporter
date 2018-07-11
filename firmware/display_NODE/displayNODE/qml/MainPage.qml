@@ -299,15 +299,12 @@ Page {
                 switch (vlu) {
                 case 0:
                     car.state = "ToLowState";
-                    //carMovingState.state = "movingDown";
                     break;
                 case 2:
                     car.state = "ToHighState";
-                    //carMovingState.state = "movingUp";
                     break;
                 case 1: // fallthrough
                 default:
-                    //carMovingState.state = car.state == "low" ? "movingUp" : "movingDown";
                     car.state = "ToNormalState"; // normal
                 }
                 // save until next state propertychange
@@ -411,6 +408,26 @@ Page {
             onClicked: {
                 parkbrakeDlg.visible ? parkbrakeDlg.close() : parkbrakeDlg.open()
             }
+        }
+
+        Timer {
+            id: clockTmr
+            interval: 5000; running: true; repeat: true;
+            onTriggered: clockBtn.timeUpdate()
+        }
+
+        IconButton {
+            id: clockBtn
+            source: "qrc:/images/clock.svg"
+            anchors.top: parent.top
+            anchors.left: parkbrakeBtn.right
+            anchors.leftMargin: 30
+            btnText: "12:20"
+            function timeUpdate() {
+                var date = new Date();
+                btnText = date.getHours() + ":" + date.getMinutes();
+            }
+            Component.onCompleted: timeUpdate();
         }
     }
 

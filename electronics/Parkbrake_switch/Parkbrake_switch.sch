@@ -1,0 +1,521 @@
+EESchema Schematic File Version 2
+LIBS:power
+LIBS:device
+LIBS:transistors
+LIBS:conn
+LIBS:linear
+LIBS:regul
+LIBS:74xx
+LIBS:cmos4000
+LIBS:adc-dac
+LIBS:memory
+LIBS:xilinx
+LIBS:microcontrollers
+LIBS:dsp
+LIBS:microchip
+LIBS:analog_switches
+LIBS:motorola
+LIBS:texas
+LIBS:intel
+LIBS:audio
+LIBS:interface
+LIBS:digital-audio
+LIBS:philips
+LIBS:display
+LIBS:cypress
+LIBS:siliconi
+LIBS:opto
+LIBS:atmel
+LIBS:contrib
+LIBS:valves
+LIBS:switches
+LIBS:sensors
+LIBS:Parkbrake_switch-cache
+EELAYER 25 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 1 1
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L SW_DPDT_x2 SW1
+U 1 1 5B447C32
+P 1700 1950
+F 0 "SW1" H 1700 2120 50  0000 C CNN
+F 1 "SW_DPDT_x2" H 1700 1750 50  0001 C CNN
+F 2 "SPPH410100:SPPH410100" H 1700 1950 50  0001 C CNN
+F 3 "http://www.farnell.com/datasheets/85567.pdf?_ga=2.212563284.1733156564.1531217201-107038237.1531217201" H 1700 1950 50  0001 C CNN
+F 4 "1435768" H 1700 1950 60  0001 C CNN "farnell"
+	1    1700 1950
+	0    -1   -1   0   
+$EndComp
+$Comp
+L SW_DPDT_x2 SW1
+U 2 1 5B447C8A
+P 2100 1950
+F 0 "SW1" H 2100 2120 50  0000 C CNN
+F 1 "SW_DPDT_x2" H 2100 1750 50  0001 C CNN
+F 2 "SPPH410100:SPPH410100" H 2100 1950 50  0001 C CNN
+F 3 "" H 2100 1950 50  0001 C CNN
+	2    2100 1950
+	0    -1   -1   0   
+$EndComp
+Wire Notes Line
+	1650 1950 2050 1950
+$Comp
+L SW_DPDT_x2 SW2
+U 1 1 5B448064
+P 2850 1950
+F 0 "SW2" H 2850 2120 50  0000 C CNN
+F 1 "SW_DPDT_x2" H 2850 1750 50  0001 C CNN
+F 2 "SPPH410100:SPPH410100" H 2850 1950 50  0001 C CNN
+F 3 "http://www.farnell.com/datasheets/85567.pdf?_ga=2.212563284.1733156564.1531217201-107038237.1531217201" H 2850 1950 50  0001 C CNN
+F 4 "1435768" H 2850 1950 60  0001 C CNN "farnell"
+	1    2850 1950
+	0    -1   -1   0   
+$EndComp
+$Comp
+L SW_DPDT_x2 SW2
+U 2 1 5B44806A
+P 3250 1950
+F 0 "SW2" H 3250 2120 50  0000 C CNN
+F 1 "SW_DPDT_x2" H 3250 1750 50  0001 C CNN
+F 2 "SPPH410100:SPPH410100" H 3250 1950 50  0001 C CNN
+F 3 "" H 3250 1950 50  0001 C CNN
+	2    3250 1950
+	0    -1   -1   0   
+$EndComp
+Wire Notes Line
+	2800 1950 3200 1950
+$Comp
+L Conn_02x04_Top_Bottom J1
+U 1 1 5B4480DF
+P 2100 4600
+F 0 "J1" H 2150 4800 50  0000 C CNN
+F 1 "Conn_02x04_Top_Bottom" H 2150 4300 50  0000 C CNN
+F 2 "Pin_Headers:Pin_Header_Straight_2x04_Pitch2.54mm" H 2100 4600 50  0001 C CNN
+F 3 "" H 2100 4600 50  0001 C CNN
+F 4 "2356133" H 2100 4600 60  0001 C CNN "farnell"
+	1    2100 4600
+	1    0    0    -1  
+$EndComp
+Text GLabel 1900 4500 0    60   Input ~ 0
+30
+Text GLabel 2400 4600 2    60   Input ~ 0
+58
+Text GLabel 3150 4500 2    60   Input ~ 0
+31
+Text GLabel 1900 4600 0    60   Input ~ 0
+15
+Text GLabel 1900 4700 0    60   Input ~ 0
+invert
+Text GLabel 2400 4700 2    60   Input ~ 0
+non_invert
+Text GLabel 1900 4800 0    60   Input ~ 0
+activated_signal
+Text GLabel 2400 4800 2    60   Input ~ 0
+parkindicator_lamp
+$Comp
+L LED D4
+U 1 1 5B4482D1
+P 5250 1450
+F 0 "D4" H 5250 1550 50  0000 C CNN
+F 1 "LED_green_yellow" H 5250 1300 50  0000 C CNN
+F 2 "LEDs:LED_0603" H 5250 1450 50  0001 C CNN
+F 3 "" H 5250 1450 50  0001 C CNN
+F 4 "2762558" H 5250 1450 60  0001 C CNN "farnell"
+	1    5250 1450
+	1    0    0    -1  
+$EndComp
+$Comp
+L R R4
+U 1 1 5B4483E4
+P 5550 1450
+F 0 "R4" V 5630 1450 50  0000 C CNN
+F 1 "680" V 5550 1450 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805" V 5480 1450 50  0001 C CNN
+F 3 "" H 5550 1450 50  0001 C CNN
+F 4 "1653028" V 5550 1450 60  0001 C CNN "farnell"
+	1    5550 1450
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	2400 4500 3150 4500
+Wire Wire Line
+	3150 4500 3150 4550
+$Comp
+L GND #PWR01
+U 1 1 5B4485C0
+P 3150 4550
+F 0 "#PWR01" H 3150 4300 50  0001 C CNN
+F 1 "GND" H 3150 4400 50  0001 C CNN
+F 2 "" H 3150 4550 50  0001 C CNN
+F 3 "" H 3150 4550 50  0001 C CNN
+	1    3150 4550
+	1    0    0    -1  
+$EndComp
+$Comp
+L GND #PWR02
+U 1 1 5B44872B
+P 4850 2000
+F 0 "#PWR02" H 4850 1750 50  0001 C CNN
+F 1 "GND" H 4850 1850 50  0000 C CNN
+F 2 "" H 4850 2000 50  0001 C CNN
+F 3 "" H 4850 2000 50  0001 C CNN
+	1    4850 2000
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	5100 1450 4850 1450
+Wire Wire Line
+	4850 1450 4850 1600
+Text GLabel 5700 1450 2    60   Input ~ 0
+58
+Wire Wire Line
+	3350 1400 3350 1750
+Wire Wire Line
+	1600 1400 3350 1400
+Wire Wire Line
+	1600 1400 1600 1750
+Wire Wire Line
+	2000 1750 2000 1400
+Connection ~ 2000 1400
+Wire Wire Line
+	2950 1750 2950 1400
+Connection ~ 2950 1400
+Wire Wire Line
+	1800 1750 1800 1600
+Wire Wire Line
+	1800 1600 3150 1600
+Wire Wire Line
+	2200 1600 2200 1750
+Wire Wire Line
+	2750 1600 2750 1750
+Connection ~ 2200 1600
+Wire Wire Line
+	3150 1600 3150 1750
+Connection ~ 2750 1600
+Wire Wire Line
+	2500 1600 2500 1650
+Connection ~ 2500 1600
+$Comp
+L GND #PWR03
+U 1 1 5B448935
+P 2500 1650
+F 0 "#PWR03" H 2500 1400 50  0001 C CNN
+F 1 "GND" H 2500 1500 50  0001 C CNN
+F 2 "" H 2500 1650 50  0001 C CNN
+F 3 "" H 2500 1650 50  0001 C CNN
+	1    2500 1650
+	1    0    0    -1  
+$EndComp
+Text GLabel 1600 1400 0    60   Input ~ 0
+30
+Wire Wire Line
+	2100 2150 1700 2150
+Wire Wire Line
+	2850 2150 3250 2150
+Wire Wire Line
+	2100 2150 2100 2450
+Wire Wire Line
+	2850 2150 2850 2450
+$Comp
+L R R1
+U 1 1 5B448A20
+P 2250 2450
+F 0 "R1" V 2330 2450 50  0000 C CNN
+F 1 "1k" V 2250 2450 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805" V 2180 2450 50  0001 C CNN
+F 3 "" H 2250 2450 50  0001 C CNN
+F 4 "2447587" V 2250 2450 60  0001 C CNN "farnell"
+	1    2250 2450
+	0    1    1    0   
+$EndComp
+$Comp
+L R R2
+U 1 1 5B448A6C
+P 2700 2450
+F 0 "R2" V 2780 2450 50  0000 C CNN
+F 1 "1k" V 2700 2450 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805" V 2630 2450 50  0001 C CNN
+F 3 "" H 2700 2450 50  0001 C CNN
+F 4 "2447587" V 2700 2450 60  0001 C CNN "farnell"
+	1    2700 2450
+	0    1    1    0   
+$EndComp
+$Comp
+L GND #PWR04
+U 1 1 5B448AF5
+P 2500 2500
+F 0 "#PWR04" H 2500 2250 50  0001 C CNN
+F 1 "GND" H 2500 2350 50  0000 C CNN
+F 2 "" H 2500 2500 50  0001 C CNN
+F 3 "" H 2500 2500 50  0001 C CNN
+	1    2500 2500
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2400 2450 2550 2450
+Wire Wire Line
+	2500 2500 2500 2450
+Connection ~ 2500 2450
+Text GLabel 2850 2450 2    60   Input ~ 0
+non_invert
+Text GLabel 2100 2450 0    60   Input ~ 0
+invert
+Text Notes 5050 1250 0    60   ~ 0
+backlight
+$Comp
+L D D1
+U 1 1 5B448F4A
+P 5200 5250
+F 0 "D1" H 5200 5350 50  0000 C CNN
+F 1 "1n4448ws" H 5200 5150 50  0000 C CNN
+F 2 "Diodes_SMD:SOD-323" H 5200 5250 50  0001 C CNN
+F 3 "" H 5200 5250 50  0001 C CNN
+F 4 "2453724" H 5200 5250 60  0001 C CNN "farnell"
+	1    5200 5250
+	0    -1   -1   0   
+$EndComp
+$Comp
+L D D3
+U 1 1 5B449024
+P 5550 5250
+F 0 "D3" H 5550 5350 50  0000 C CNN
+F 1 "1n4448ws" H 5550 5150 50  0000 C CNN
+F 2 "Diodes_SMD:SOD-323" H 5550 5250 50  0001 C CNN
+F 3 "" H 5550 5250 50  0001 C CNN
+F 4 "2453724" H 5550 5250 60  0001 C CNN "farnell"
+	1    5550 5250
+	0    -1   -1   0   
+$EndComp
+$Comp
+L LED D2
+U 1 1 5B44907E
+P 5200 5700
+F 0 "D2" H 5200 5800 50  0000 C CNN
+F 1 "LED_red" H 5200 5550 50  0000 C CNN
+F 2 "LEDs:LED_0603" H 5200 5700 50  0001 C CNN
+F 3 "" H 5200 5700 50  0001 C CNN
+F 4 "2687488" H 5200 5700 60  0001 C CNN "farnell"
+	1    5200 5700
+	0    -1   -1   0   
+$EndComp
+Wire Wire Line
+	5550 5400 5200 5400
+Wire Wire Line
+	5200 5400 5200 5550
+Text GLabel 5200 5100 1    60   Input ~ 0
+non_invert
+Text GLabel 5550 5100 1    60   Input ~ 0
+15
+Text GLabel 5200 5850 3    60   Input ~ 0
+activated_signal
+$Comp
+L R R8
+U 1 1 5B44943C
+P 8300 1750
+F 0 "R8" V 8380 1750 50  0000 C CNN
+F 1 "1k" V 8300 1750 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805" V 8230 1750 50  0001 C CNN
+F 3 "" H 8300 1750 50  0001 C CNN
+F 4 "2447587" V 8300 1750 60  0001 C CNN "farnell"
+	1    8300 1750
+	1    0    0    -1  
+$EndComp
+$Comp
+L R R9
+U 1 1 5B4494DF
+P 8600 2900
+F 0 "R9" V 8680 2900 50  0000 C CNN
+F 1 "3.3" V 8600 2900 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805" V 8530 2900 50  0001 C CNN
+F 3 "" H 8600 2900 50  0001 C CNN
+F 4 "2447656" V 8600 2900 60  0001 C CNN "farnell"
+	1    8600 2900
+	1    0    0    -1  
+$EndComp
+$Comp
+L GND #PWR05
+U 1 1 5B4495AD
+P 8500 3150
+F 0 "#PWR05" H 8500 2900 50  0001 C CNN
+F 1 "GND" H 8500 3000 50  0000 C CNN
+F 2 "" H 8500 3150 50  0001 C CNN
+F 3 "" H 8500 3150 50  0001 C CNN
+	1    8500 3150
+	1    0    0    -1  
+$EndComp
+Connection ~ 8500 3050
+Wire Wire Line
+	8500 3150 8500 3050
+Wire Wire Line
+	8300 3050 8600 3050
+Wire Wire Line
+	8300 3050 8300 2950
+$Comp
+L Q_NPN_CBE Q3
+U 1 1 5B4495FD
+P 8400 2750
+F 0 "Q3" H 8600 2800 50  0000 L CNN
+F 1 "BC847" H 8600 2700 50  0000 L CNN
+F 2 "TO_SOT_Packages_SMD:SOT-23" H 8600 2850 50  0001 C CNN
+F 3 "" H 8400 2750 50  0001 C CNN
+F 4 "1574344" H 8400 2750 60  0001 C CNN "farnell"
+	1    8400 2750
+	-1   0    0    -1  
+$EndComp
+$Comp
+L Q_NMOS_SDGD Q4
+U 1 1 5B44A09E
+P 8500 2450
+F 0 "Q4" H 8700 2500 50  0000 L CNN
+F 1 "IRFL4310PBF" H 8700 2400 50  0000 L CNN
+F 2 "TO_SOT_Packages_SMD:SOT-223" H 8700 2550 50  0001 C CNN
+F 3 "http://www.farnell.com/datasheets/671655.pdf?_ga=2.10058741.1733156564.1531217201-107038237.1531217201" H 8500 2450 50  0001 C CNN
+F 4 "2101414" H 8500 2450 60  0001 C CNN "farnell"
+	1    8500 2450
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	8600 2650 8600 2750
+Wire Wire Line
+	8300 2300 8300 2550
+$Comp
+L Q_PNP_CBE Q2
+U 1 1 5B44A46A
+P 8200 2100
+F 0 "Q2" H 8400 2150 50  0000 L CNN
+F 1 "BC857" H 8400 2050 50  0000 L CNN
+F 2 "TO_SOT_Packages_SMD:SOT-23" H 8400 2200 50  0001 C CNN
+F 3 "" H 8200 2100 50  0001 C CNN
+F 4 "1773640" H 8200 2100 60  0001 C CNN "farnell"
+	1    8200 2100
+	1    0    0    1   
+$EndComp
+$Comp
+L R R6
+U 1 1 5B44A626
+P 7850 2100
+F 0 "R6" V 7930 2100 50  0000 C CNN
+F 1 "1k" V 7850 2100 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805" V 7780 2100 50  0001 C CNN
+F 3 "" H 7850 2100 50  0001 C CNN
+F 4 "2447587" V 7850 2100 60  0001 C CNN "farnell"
+	1    7850 2100
+	0    1    1    0   
+$EndComp
+Connection ~ 8300 2450
+Wire Wire Line
+	8600 2250 8850 2250
+Text GLabel 8300 1600 1    60   Input ~ 0
+15
+Text GLabel 7700 2100 0    60   Input ~ 0
+activated_signal
+Text GLabel 8850 2250 2    60   Input ~ 0
+parkindicator_lamp
+Connection ~ 8700 2250
+Text Notes 7500 1350 0    60   ~ 0
+Driver for Car original parkbrake indicator lamp\nMax 2W (short protected)
+Text Notes 5000 4450 0    60   ~ 0
+Indicator within switch
+Wire Notes Line
+	2750 1950 2100 1950
+Text Notes 1100 2000 0    60   ~ 0
+Release\nThis way
+Text Notes 3450 2050 0    60   ~ 0
+Activate\nThis Way
+$Comp
+L Q_NPN_CBE Q1
+U 1 1 5B44CD27
+P 4950 1800
+F 0 "Q1" H 5150 1850 50  0000 L CNN
+F 1 "BC847" H 5150 1750 50  0000 L CNN
+F 2 "TO_SOT_Packages_SMD:SOT-23" H 5150 1900 50  0001 C CNN
+F 3 "" H 4950 1800 50  0001 C CNN
+F 4 "1574344" H 4950 1800 60  0001 C CNN "farnell"
+	1    4950 1800
+	-1   0    0    -1  
+$EndComp
+$Comp
+L R R5
+U 1 1 5B44CF11
+P 5550 1800
+F 0 "R5" V 5630 1800 50  0000 C CNN
+F 1 "10k" V 5550 1800 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805" V 5480 1800 50  0001 C CNN
+F 3 "" H 5550 1800 50  0001 C CNN
+F 4 "2446870" V 5550 1800 60  0001 C CNN "farnell"
+	1    5550 1800
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	5700 1450 5700 1800
+$Comp
+L R R3
+U 1 1 5B44D0A4
+P 5250 1950
+F 0 "R3" V 5330 1950 50  0000 C CNN
+F 1 "100" V 5250 1950 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805" V 5180 1950 50  0001 C CNN
+F 3 "" H 5250 1950 50  0001 C CNN
+F 4 "2694094" V 5250 1950 60  0001 C CNN "farnell"
+	1    5250 1950
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	5150 1800 5400 1800
+Connection ~ 5250 1800
+Text GLabel 5250 2100 3    60   Input ~ 0
+activated_signal
+$Comp
+L R R7
+U 1 1 5B44D727
+P 8000 1750
+F 0 "R7" V 8080 1750 50  0000 C CNN
+F 1 "10k" V 8000 1750 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805" V 7930 1750 50  0001 C CNN
+F 3 "" H 8000 1750 50  0001 C CNN
+F 4 "2446870" V 8000 1750 60  0001 C CNN "farnell"
+	1    8000 1750
+	-1   0    0    1   
+$EndComp
+Wire Wire Line
+	8300 1600 8000 1600
+Wire Wire Line
+	8000 1900 8000 2100
+$Comp
+L GND #PWR06
+U 1 1 5B44E14E
+P 1850 6300
+F 0 "#PWR06" H 1850 6050 50  0001 C CNN
+F 1 "GND" H 1850 6150 50  0000 C CNN
+F 2 "" H 1850 6300 50  0001 C CNN
+F 3 "" H 1850 6300 50  0001 C CNN
+	1    1850 6300
+	1    0    0    -1  
+$EndComp
+Text GLabel 1800 6300 0    60   Input ~ 0
+31
+Wire Wire Line
+	1850 6300 1800 6300
+$Comp
+L PWR_FLAG #FLG07
+U 1 1 5B44DF6D
+P 1850 6300
+F 0 "#FLG07" H 1850 6375 50  0001 C CNN
+F 1 "PWR_FLAG" H 1850 6450 50  0000 C CNN
+F 2 "" H 1850 6300 50  0001 C CNN
+F 3 "" H 1850 6300 50  0001 C CNN
+	1    1850 6300
+	1    0    0    -1  
+$EndComp
+$EndSCHEMATC

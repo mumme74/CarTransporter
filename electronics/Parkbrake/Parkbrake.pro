@@ -1,4 +1,4 @@
-update=sön  8 jan 2017 18:36:31
+update=Tisdag 10 Juli 2018 10:30:50
 version=1
 last_client=kicad
 [pcbnew]
@@ -25,16 +25,6 @@ version=1
 NetIExt=net
 [general]
 version=1
-[schematic_editor]
-version=1
-PageLayoutDescrFile=
-PlotDirectoryName=
-SubpartIdSeparator=0
-SubpartFirstId=65
-NetFmtName=
-SpiceForceRefPrefix=0
-SpiceUseNetNumbers=0
-LabSize=60
 [eeschema]
 version=1
 LibDir=../AirSuspension
@@ -74,3 +64,13 @@ LibName32=/home/fredrikjohansson/elektronik/CarTransporter/electronics/AirSuspen
 LibName33=/home/fredrikjohansson/elektronik/CarTransporter/electronics/AirSuspension/teensy
 LibName34=/home/fredrikjohansson/elektronik/CarTransporter/electronics/AirSuspension/power_switches
 LibName35=stm32
+[schematic_editor]
+version=1
+PageLayoutDescrFile=
+PlotDirectoryName=
+SubpartIdSeparator=0
+SubpartFirstId=65
+NetFmtName=
+SpiceForceRefPrefix=0
+SpiceUseNetNumbers=0
+LabSize=60

@@ -34,7 +34,6 @@ struct CAN_DTC_send : public CAN_message_t
 class ControllerBase
 {
 protected:
-  FlexCAN       m_can;
   uint8_t       m_senderId;
   virtual void  _recievedCommand(CAN_message_t *msg, can_senderIds_e senderId, can_msgIdsCommand_e msgId) = 0;
   virtual void  _recievedException(CAN_message_t *msg, can_senderIds_e senderId, can_msgIdsException_e msgId) = 0;

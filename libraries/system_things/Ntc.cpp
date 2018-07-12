@@ -25,17 +25,17 @@ Ntc::~Ntc ()
 
 float Ntc::valueToTemp(uint16_t vlu)
 {
-  // for debug
-  //vlu = 1024;
   // algorithm from https://learn.adafruit.com/thermistor/using-a-thermistor
-  float fVlu = vlu > 1 ? vlu : 2;
-  fVlu = (m_maxValue - 1) / (vlu - 1);
+  float fVlu;
+  //fVlu = (m_maxValue - 1) / (vlu - 1);
+  fVlu = (4095 / vlu) -1;
 
   // convert the value to resistance
-  fVlu = 1023 / fVlu - 1;
   fVlu = m_seriesOhm / fVlu; //SERIESRESISTOR / fVlu;
+
 #ifdef DEBUG_UART_ON
 #ifdef DEBUG_NTC_ON
+  Serial.print("ADvlu:");
   Serial.println(vlu);
   Serial.print("Thermistor resistance ");
   Serial.println(fVlu);
@@ -43,9 +43,9 @@ float Ntc::valueToTemp(uint16_t vlu)
 #endif
 
   float steinhart;
-  steinhart = fVlu / m_ntcOhm;//THERMISTORNOMINAL;     // (R/Ro)
-  steinhart = log(steinhart);                  // ln(R/Ro)
-  steinhart /= m_beta; //BCOEFFICIENT;                   // 1/B * ln(R/Ro)
+  steinhart = fVlu / m_ntcOhm;	//THERMISTORNOMINAL;     // (R/Ro)
+  steinhart = log(steinhart);   // ln(R/Ro)
+  steinhart /= m_beta; 			//BCOEFFICIENT;          // 1/B * ln(R/Ro)
   steinhart += 1.0 / (m_atTemp + 273.15); //(TEMPERATURENOMINAL + 273.15); // + (1/To)
   steinhart = 1.0 / steinhart;                 // Invert
   steinhart -= 273.15;                         // convert to C

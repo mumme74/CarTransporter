@@ -95,7 +95,6 @@ void isr_scan_inputs()
   }
   if (in != nullptr)
     in->interval();
-  Serial.print("inp");Serial.println((long)in->pid());
 }
 
 

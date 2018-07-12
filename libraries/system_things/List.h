@@ -27,7 +27,7 @@ public:
     if (m_first == nullptr) {
       // insert first element
       m_first = m_last = item;
-    } else if (m_first == m_last) {
+    } else {
       // insert second or more elements
       m_last->next = item;
       m_last = item;

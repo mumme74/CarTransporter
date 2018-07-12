@@ -440,6 +440,13 @@ void HeightController::updateInputs()
   if (nextCheck < millis()){
       nextCheck = millis() + sampleTime;
 
+#ifdef DEBUG_PRESSURES_ON
+      Serial.print("lr:");Serial.print(m_leftHeightDrv->pid()->rawValue());
+      Serial.print(" l:");Serial.print(static_cast<PID::sensor_Pressure*>(m_leftPressureDrv->pid())->pressureKPa());
+      Serial.print(" r:");Serial.print(static_cast<PID::sensor_Pressure*>(m_rightPressureDrv->pid())->pressureKPa());
+      Serial.print(" system:");Serial.println(static_cast<PID::sensor_Pressure*>(m_systemPressureDrv->pid())->pressureKPa());
+#endif
+
     // do averaging values before we set it
     static uint32_t
       leftAvg = 0,

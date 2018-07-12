@@ -192,7 +192,6 @@ using namespace CAN;
 ControllerBase::ControllerBase (can_senderIds_e nodeId) :
    m_senderId(nodeId & 0xFF)
 {
-    m_can.begin(baudRate);
 }
 
 ControllerBase::~ControllerBase ()
@@ -207,6 +206,11 @@ void ControllerBase::_recievedUpdate(CAN_message_t *msg,
   const Frame_t *frame = frame_from_msgId(msgId);
   if (frame == nullptr)
     return;
+
+  // its intended for this node
+#ifdef DEBUG_UART_ON
+	  Serial.print("CAN upd rcv");
+#endif
 
   // read each pid from the msg bytes
   int byteCnt = 0;
@@ -257,6 +261,9 @@ void ControllerBase::_recievedDiagnose(CAN_message_t *msg,
 
   if (recieverNodeId == this->m_senderId) {
     // its intended for this node
+#ifdef DEBUG_UART_ON
+	  Serial.print("CAN diag rcv");
+#endif
 
     uint16_t id = 0;
 
@@ -444,7 +451,7 @@ CAN_message_t ControllerBase::_buildDTC_Msg(DTC *dtc, uint8_t idx) const
 
 void ControllerBase::_init_CAN_message_t(CAN_message_t *msg, uint16_t timeout /*= 0*/) const
 {
-  msg->ext = msg->len = msg->id = 0;
+  msg->ext = msg->len = msg->id = msg->rtr = 0;
   msg->timeout = timeout;
   for(int i = 0; i < 8; ++i)
     msg->buf[i] = 0;
@@ -453,14 +460,14 @@ void ControllerBase::_init_CAN_message_t(CAN_message_t *msg, uint16_t timeout /*
 
 void ControllerBase::init()
 {
-  m_can.begin();
+  Can0.begin(baudRate);
 }
 
 void ControllerBase::loop()
 {
   CAN_message_t msg;
   msg.timeout = 0; // no wait when receiving
-  while(m_can.read(msg) != 0) {
+  while(Can0.read(msg) != 0) {
 #ifdef DEBUG_UART_ON
     Serial.println("can msg");
 #endif
@@ -550,7 +557,7 @@ bool ControllerBase::send(CAN_message_t &msg)
 {
   msg.id &= CAN_MSG_TYPE_MASK | CAN_MSG_ID_MASK; // clear possible erroneous nodeID bits
   msg.id |= m_senderId;  // this node sent this msg
-  return m_can.write(msg);
+  return Can0.write(msg);
 }
 
 bool ControllerBase::sendNewDTC(DTC *dtc, can_msgIdsException_e msgId)

@@ -180,14 +180,15 @@ void sensor_Current::setCurrent(uint8_t current)
 uint16_t sensor_Pressure::pressureKPa() const
 {
   // assumes sensor is https://www1.elfa.se/data1/wwwroot/assets/datasheets/PSE530_eng_datasheet.pdf
-  // 1-5 volts range 0->1000kpa
+  // 1-5 volts range 0->1000kpa (0-10bar)
   static int stepsIn1Volt = m_ADmax / 5; // 819;
-  int p = m_vlu.uint16 - stepsIn1Volt;
-  if (p < 0) return 0;
+  int p = m_vlu.uint16 - stepsIn1Volt; // remove 1V (range 1-5V)
+  if (p < 0) return 0; // below range
 
   //1000 / 4 = 250
   //1000 / (4096 - 819) = 1000 / 3277 = 0.30515715
-  static float factor = 1000 / (m_ADmax - stepsIn1Volt); //0.30515715;
+  static float factor = 1000.0 / (m_ADmax - stepsIn1Volt); //0.30515715;
+  //Serial.printf("res: %f p:%i factor:%f admax:%u", p*factor, p, factor, m_ADmax);
   return static_cast<uint16_t>(p * factor);
 }
 

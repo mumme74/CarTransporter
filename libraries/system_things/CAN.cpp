@@ -166,25 +166,26 @@ const Frame_t *frame_from_msgId(can_msgIdsUpdate_e msgId) {
  * Get the msgId for a given PID.id
  */
 can_msgIdsUpdate_e msgId_from_ID(PIDs::IDs id) {
-   for (int i = 0; i < MAX_FRAME_COUNT; ++i){
-     if (FramesTable[i].msgId == C_NoUpdateFrame)
-       return C_NoUpdateFrame;
+ for (int i = 0; i < MAX_FRAME_COUNT; ++i){
+   if (FramesTable[i].msgId == C_NoUpdateFrame)
+     return C_NoUpdateFrame;
 
-     const Frame_t *frame = FramesTable[i].frame;
-     for (int j = 0;i < frame->len; ++j) {
-         PIDs::IDs tmpId = frame->ids[j];
-         if (tmpId == PIDs::IDs::Nothing)
-           break;
+   const Frame_t *frame = FramesTable[i].frame;
+   for (int j = 0;i < frame->len; ++j) {
+     PIDs::IDs tmpId = frame->ids[j];
+      if (tmpId == PIDs::IDs::Nothing)
+        break;
 
-         if (tmpId == id)
-           return frame->msgId;
-     }
+      if (tmpId == id)
+        return frame->msgId;
    }
-
-   return C_NoUpdateFrame;
  }
 
+ return C_NoUpdateFrame;
+}
+
 } // namespace CAN
+
 
 using namespace CAN;
 
@@ -200,7 +201,7 @@ ControllerBase::~ControllerBase ()
 
 // as in request for PID value
 void ControllerBase::_recievedUpdate(CAN_message_t *msg,
-                                        can_senderIds_e /*senderId*/, can_msgIdsUpdate_e msgId)
+                                     can_senderIds_e /*senderId*/, can_msgIdsUpdate_e msgId)
 {
   // find the correct frame
   const Frame_t *frame = frame_from_msgId(msgId);
@@ -257,7 +258,6 @@ void ControllerBase::_recievedDiagnose(CAN_message_t *msg,
   if (recieverNodeId == this->m_senderId) {
     // its intended for this node
 
-
     uint16_t id = 0;
 
     switch(action) {
@@ -300,7 +300,8 @@ void ControllerBase::_recievedDiagnose(CAN_message_t *msg,
               return;
           }
         }
-      } break; case C_suspensionDiagClearActuatorTest: { // Set actuatortest
+      } break;
+      case C_suspensionDiagClearActuatorTest: { // Set actuatortest
         id = msg->buf[0];
         for (IOutput *outDrv = OutputsController.first();
              outDrv != nullptr;
@@ -460,7 +461,9 @@ void ControllerBase::loop()
   CAN_message_t msg;
   msg.timeout = 0; // no wait when receiving
   while(m_can.read(msg) != 0) {
+#ifdef DEBUG_UART_ON
     Serial.println("can msg");
+#endif
     can_senderIds_e senderId = static_cast<can_senderIds_e>(msg.id & CAN_MSG_SENDER_ID_MASK);
 
     switch(msg.id & CAN_MSG_TYPE_MASK) {
@@ -486,7 +489,9 @@ void ControllerBase::loop()
         break;
       default:
         // can never get here as msgTypeMask filter all bits but 2
+#ifdef DEBUG_UART_ON
         Serial.print("Can id err:");Serial.println(msg.id);
+#endif
         return;
     }
   }
@@ -555,7 +560,6 @@ bool ControllerBase::sendNewDTC(DTC *dtc, can_msgIdsException_e msgId)
   msg.id = msgId;
   return send(msg);
 }
-
 
 bool ControllerBase::sendDiagnoseCommand(can_msgIdsDiag_e msgId,
                                          PIDs::IDs id /*= PIDs::IDs::Nothing*/,

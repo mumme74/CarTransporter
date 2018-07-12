@@ -51,7 +51,7 @@ AnalogIn::~AnalogIn()
 
 void AnalogIn::init()
 {
-  InputsController.addItem(static_cast<IInput*>(this));
+  InputsController.addItem(this);
 }
 
 void AnalogIn::interval()
@@ -95,6 +95,7 @@ void isr_scan_inputs()
   }
   if (in != nullptr)
     in->interval();
+  Serial.print("inp");Serial.println((long)in->pid());
 }
 
 

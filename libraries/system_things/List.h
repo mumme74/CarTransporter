@@ -89,8 +89,6 @@ public:
     return m_last;
   }
 
-
-
   /**
    * returns the size of the list
    * NOTE ! might be costly is O(N) function

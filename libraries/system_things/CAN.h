@@ -48,7 +48,7 @@ protected:
 
 public:
   static const uint32_t baudRate = 250000;
-  ControllerBase (can_senderIds_e nodeId);
+  explicit ControllerBase (can_senderIds_e nodeId);
   virtual ~ControllerBase ();
   virtual void init();
   bool send(CAN_message_t &msg);

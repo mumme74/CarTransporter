@@ -98,30 +98,30 @@ void CAN::IOController::_recievedCommand(CAN_message_t *msg,
       }
       send(*msg);
     } break;
-    /*
-    case C_suspensionCmdSaveConfig: {
-      heightStateMachine.saveSettings();
-    } break;
-    */
+//
+//    case C_suspensionCmdSaveConfig: {
+//      heightStateMachine.saveSettings();
+//    } break;
+//
     default: // ignore
       break;
   }
 }
 
 void CAN::IOController::_recievedException(CAN_message_t *msg,
-                                       can_senderIds_e /*senderId*/, can_msgIdsException_e /*msgId*/)
+                                           can_senderIds_e /*senderId*/, can_msgIdsException_e /*msgId*/)
 {
   // Do nothing, we don't care about others error in this node
 }
 
 
-/* in base class
-void CAN::IOController::_recievedDiagnose(CAN_message_t *msg,
-                                          senderIds senderId, msgIdsDiag msgId)
-{
+// in base class
+//void CAN::IOController::_recievedDiagnose(CAN_message_t *msg,
+//                                          senderIds senderId, msgIdsDiag msgId)
+//{
+//
+//}
 
-}
-*/
 
 bool CAN::IOController::sendNewDTC(DTC *dtc)
 {

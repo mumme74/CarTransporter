@@ -96,7 +96,7 @@ void ITS5215L::init()
 {
   pinMode(m_outPin, OUTPUT);
   pinMode(m_diagPin, INPUT_PULLUP);
-  OutputsController.addItem(static_cast<IOutput*>(this));
+  OutputsController.addItem(this);
 }
 
 
@@ -170,6 +170,7 @@ void BTS6133D::init()
   // configure as analog input
   pinMode(m_csPin, INPUT);
   //m_compressorADC->analogRead(m_csPin);
+  OutputsController.addItem(this);
 }
 
 void BTS6133D::setValue(uint8_t duty)

@@ -13,14 +13,14 @@
 
 namespace CAN {
 
-class IOController :public ControllerBase
+class IOController : public ControllerBase
 {
 protected:
   void _recievedCommand(CAN_message_t *msg, can_senderIds_e senderId, can_msgIdsCommand_e msgId);
   void _recievedException(CAN_message_t *msg, can_senderIds_e senderId, can_msgIdsException_e msgId);
   //void _recievedDiagnose(CAN_message_t *msg, senderIds senderId, msgIdsDiag msgId);
 public:
-  IOController ();
+  explicit IOController ();
   virtual ~IOController ();
 
   bool sendNewDTC(DTC *dtc);

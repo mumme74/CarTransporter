@@ -80,7 +80,7 @@ CAN::IOController canIO;
 void setup()
 {
   Serial.begin(115200);
-  //Serial.begin(9600);
+
   measure.initForCompressor();
 
   // build PID table
@@ -127,31 +127,48 @@ void setup()
   heightStateMachine.init();
 
   canIO.init();
-  
 
+#ifdef DEBUG_UART_ON
+    Serial.println("boot:");
+#endif
 }
 
+#ifdef DEBUG_BLINK_ON
 void testloop() {
   pinMode(13, OUTPUT);
  
   digitalWrite(13, HIGH);   // set the LED on
-  delay(100);              // wait for a second
+  delay(200);              // wait for a second
   digitalWrite(13, LOW);    // set the LED off
-  delay(100);              // wait for a second
+  delay(200);              // wait for a second
 }
+#endif
 
 // The loop function is called in an endless loop
 void loop()
 {
   static uint32_t lastErrCheck = millis();
+
+#ifdef DEBUG_UART_ON
+  static uint32_t loopCounts = 0;
+#endif
+
+#ifdef DEBUG_BLINK_ON
+  testloop();
+#endif
   
   if (lastErrCheck + 999 < millis()){
-  
-    Serial.print("loop:");Serial.println( millis() - lastErrCheck,DEC);
-  
-    // check each second
+	// check each second
+
+#ifdef DEBUG_UART_ON
+    Serial.print("loops:");Serial.print(loopCounts, DEC);
+    Serial.print(" in ");Serial.print( millis() - lastErrCheck,DEC);
+    Serial.println("ms");
+    loopCounts = 0;
+#endif
+
     lastErrCheck = millis();
-    
+
     DTC *dtc = nullptr;
 
     // error check output drivers
@@ -168,7 +185,6 @@ void loop()
            outDrv->resetError();
        }
     }
-
     // error check input drivers
     for (IInput *inDrv = InputsController.first();
          inDrv != nullptr;
@@ -194,12 +210,14 @@ void loop()
       airFeedStateMachine.resetError();
     }
   }
+
   // call eventloop on statemachines
   airFeedStateMachine.loop();
   heightStateMachine.loop();
 
   canIO.loop();
 
-  //
-
+#ifdef DEBUG_UART_ON
+  ++loopCounts;
+#endif
 }

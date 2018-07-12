@@ -7,6 +7,7 @@
 
 #include "Ntc.h"
 #include <math.h>
+#include <Arduino.h>
 
 Ntc::Ntc(uint16_t seriesOhm, uint16_t beta, uint16_t ntcOhm, uint16_t atTemp, uint16_t maxValue):
   m_seriesOhm(seriesOhm),
@@ -24,14 +25,22 @@ Ntc::~Ntc ()
 
 float Ntc::valueToTemp(uint16_t vlu)
 {
+  // for debug
+  //vlu = 1024;
   // algorithm from https://learn.adafruit.com/thermistor/using-a-thermistor
-  float fVlu = (m_maxValue - 1) / (vlu - 1);
+  float fVlu = vlu > 1 ? vlu : 2;
+  fVlu = (m_maxValue - 1) / (vlu - 1);
 
   // convert the value to resistance
   fVlu = 1023 / fVlu - 1;
   fVlu = m_seriesOhm / fVlu; //SERIESRESISTOR / fVlu;
-  //Serial.print("Thermistor resistance ");
-  //Serial.println(fVlu);
+#ifdef DEBUG_UART_ON
+#ifdef DEBUG_NTC_ON
+  Serial.println(vlu);
+  Serial.print("Thermistor resistance ");
+  Serial.println(fVlu);
+#endif
+#endif
 
   float steinhart;
   steinhart = fVlu / m_ntcOhm;//THERMISTORNOMINAL;     // (R/Ro)
@@ -40,10 +49,13 @@ float Ntc::valueToTemp(uint16_t vlu)
   steinhart += 1.0 / (m_atTemp + 273.15); //(TEMPERATURENOMINAL + 273.15); // + (1/To)
   steinhart = 1.0 / steinhart;                 // Invert
   steinhart -= 273.15;                         // convert to C
-
-  //Serial.print("Temperature ");
-  //Serial.print(steinhart);
-  //Serial.println(" *C");
+#ifdef DEBUG_UART_ON
+#ifdef DEBUG_NTC_ON
+  Serial.print("Temperature ");
+  Serial.print(steinhart);
+  Serial.println(" *C");
+#endif
+#endif
   return steinhart;
 }
 

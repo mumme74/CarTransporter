@@ -32,8 +32,9 @@ public:
     Q_INVOKABLE bool clearActivateOutput(quint8 pid) const;
 
     Q_INVOKABLE bool fetchSetting(quint8 idx, QJSValue jsCallback);
-    Q_INVOKABLE bool setSettingUint16(quint8 idx, quint16 vlu, QJSValue jsCallback);
-    Q_INVOKABLE bool setSettingUint32(quint8 idx, quint32 vlu, QJSValue jsCallback);
+    Q_INVOKABLE bool setSettingUInt8(quint8 idx, quint8 vlu, QJSValue jsCallback);
+    Q_INVOKABLE bool setSettingUInt16(quint8 idx, quint16 vlu, QJSValue jsCallback);
+    Q_INVOKABLE bool setSettingUInt32(quint8 idx, quint32 vlu, QJSValue jsCallback);
     Q_INVOKABLE bool setSettingFloat(quint8 idx, float vlu, QJSValue jsCallback);
 
     Q_INVOKABLE bool setHeightState(const QString &state, QJSValue jsCallback);

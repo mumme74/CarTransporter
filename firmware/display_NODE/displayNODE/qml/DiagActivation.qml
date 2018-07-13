@@ -335,21 +335,21 @@ Item {
             pid: 6
         }
         ListElement {
-            param: "Compressor"
+            param: "Airdryer"
             value: 0
             unit: "%"
             state: "off"
             pid: 7
         }
         ListElement {
-            param: "Airdryer"
+            param: "Spare1"
             value: 0
             unit: "%"
             state: "off"
             pid: 8
         }
         ListElement {
-            param: "Spare1"
+            param: "Compressor"
             value: 0
             unit: "%"
             state: "off"

@@ -243,6 +243,10 @@ bool CanInterface::sendFrame(QCanBusFrame &frame)
     frame.setExtendedFrameFormat(false);
     frame.setFlexibleDataRateFormat(false);
 
+    // for debug
+    QString valueInHex= QString("0x%1").arg(frame.frameId(), 0, 16);
+    qDebug() << "id:'" << valueInHex <<"'"<< endl;
+
     bool success = m_canDevice->writeFrame(frame);
     if (!success && displayErr) {
         setErrorString(m_canDevice->errorString());

@@ -137,7 +137,8 @@ bool CanParkbrakeNode::activateOutput(int wheel, bool tighten) const
     shiftDecr -= wheel;
     quint8 msk = 1 << (7 - shiftDecr);
 
-    QByteArray pl(msk, 1);
+    QByteArray pl;
+    pl.append(msk);
     QCanBusFrame f(CAN_MSG_TYPE_DIAG | C_parkbrakeDiagActuatorTest | C_displayNode, pl);
     return m_canIface->sendFrame(f);
 }
@@ -347,7 +348,8 @@ void CanParkbrakeNode::diagCanFrame(const QCanBusFrame &frame)
                 m_dtcs.clear();
                 // fetch all others
                 for (quint8 i = 0; i < m_dtcCount; ++i) {
-                    QByteArray pl(i, 1);
+                    QByteArray pl;
+                    pl.append(i);
                     QCanBusFrame f(CAN_MSG_TYPE_DIAG | C_parkbrakeDiagDTC | C_displayNode, pl);
                     m_canIface->sendFrame(f);
                 }

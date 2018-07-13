@@ -140,6 +140,7 @@ protected:
 
     bool fetchFreezeFrame(int dtcNr, QJSValue jsCallback, can_msgIdsDiag_e canDiagId);
     void freezeFrameArrival(int dtcNr);
+    bool setSettingU8(quint8 idx, quint8 vlu, QJSValue jsCallback, can_msgIdsCommand_e canCmdId);
     bool setSettingU16(quint8 idx, quint16 vlu, QJSValue jsCallback, can_msgIdsCommand_e canCmdId);
     bool setSettingU32(quint8 idx, quint32 vlu, QJSValue jsCallback, can_msgIdsCommand_e canCmdId);
     bool setSettingF(quint8 idx, float vlu, QJSValue jsCallback, can_msgIdsCommand_e canCmdId);

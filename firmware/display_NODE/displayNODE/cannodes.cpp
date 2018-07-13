@@ -623,7 +623,7 @@ bool CanAbstractNode::fetchAllDtcs(can_msgIdsDiag_e canDiagId)
     // when that frame arrives it will automatically retrieve these DTCs
     m_dtcCount = 0;
     // must be remote request frame
-    QCanBusFrame f(QCanBusFrame::RemoteRequestFrame);
+    QCanBusFrame f;//(QCanBusFrame::RemoteRequestFrame);// FlexCAN hardware limitation, can't recieve rtr
     f.setFrameId(CAN_MSG_TYPE_DIAG | canDiagId | C_displayNode);
     return m_canIface->sendFrame(f);
 }
@@ -631,7 +631,8 @@ bool CanAbstractNode::fetchAllDtcs(can_msgIdsDiag_e canDiagId)
 bool CanAbstractNode::clearAllDtcs(can_msgIdsDiag_e canDiagId)
 {
     // gets cleared when reponse frame arrives
-    QByteArray pl(m_dtcCount, 1);
+    QByteArray pl;
+    pl.append(m_dtcCount);
     QCanBusFrame f(CAN_MSG_TYPE_DIAG | canDiagId | C_displayNode, pl);
     return m_canIface->sendFrame(f);
 }
@@ -667,7 +668,8 @@ bool CanAbstractNode::fetchFreezeFrame(int dtcNr, QJSValue jsCallback, can_msgId
     m_freezeFrames.insert(dtcNr, ff);
 
     // get from can
-    QByteArray pl(dtcNr, 1);
+    QByteArray pl;
+    pl.append(dtcNr);
     QCanBusFrame f(CAN_MSG_TYPE_DIAG | canDiagId | C_displayNode, pl);
     return m_canIface->sendFrame(f);
 }
@@ -698,6 +700,20 @@ void CanAbstractNode::freezeFrameArrival(int dtcNr)
             jsCallback.call(QJSValueList { val });
         }
     }
+}
+
+bool CanAbstractNode::setSettingU8(quint8 idx, quint8 vlu, QJSValue jsCallback, can_msgIdsCommand_e canCmdId)
+{
+
+    if (!jsCallback.isCallable())
+        return false;
+
+    m_settingsSetCallback.insert(idx, jsCallback);
+    QByteArray pl("\0\0", 2);
+    pl[0] = idx;
+    pl[1] = vlu & 0xFF;
+    QCanBusFrame f(CAN_MSG_TYPE_COMMAND | canCmdId | C_displayNode, pl);
+    return m_canIface->sendFrame(f);
 }
 
 bool CanAbstractNode::setSettingU16(quint8 idx, quint16 vlu, QJSValue jsCallback, can_msgIdsCommand_e canCmdId)
@@ -780,7 +796,8 @@ bool CanAbstractNode::fetchSetting(quint8 idx, QJSValue jsCallback, can_msgIdsCo
 
     m_settingsFetchCallback.insert(idx, jsCallback);
 
-    QByteArray pl(idx & 0xFF, 1);
+    QByteArray pl;
+    pl.append(idx & 0xFF);
     QCanBusFrame f(CAN_MSG_TYPE_COMMAND | canCmdId | C_displayNode, pl);
     return m_canIface->sendFrame(f);
 }

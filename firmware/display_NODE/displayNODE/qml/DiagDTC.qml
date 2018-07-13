@@ -331,10 +331,15 @@ Item {
 
     Connections {
         target: suspensionNode
-        onDtcArrived: dtcSuspensionModel.update(dtc);
+        onDtcArrived: {
+            dtcSuspensionModel.update(dtc);
+            console.log("dtcs suspension count",dtcSuspensionModel.count)
+        }
     }
     Connections {
         target: suspensionNode
-        onDtcsCleared: dtcSuspensionModel.clear();
+        onDtcsCleared: {
+            dtcSuspensionModel.clear();
+        }
     }
 }

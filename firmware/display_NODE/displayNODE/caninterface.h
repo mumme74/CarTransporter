@@ -25,6 +25,7 @@ public:
 
 signals:
     void connectedChanged(bool connected);
+    void errorOccurred(QString errorType, QString errorDescription);
     void errorStringChanged(QString errorString);
     void recievedFrames(QList<QCanBusFrame> &frames);
     void framesWritten(qint64 count);

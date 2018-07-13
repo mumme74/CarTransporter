@@ -9,7 +9,9 @@ SOURCES += main.cpp \
     translation.cpp \
     settings.cpp \
     canparkbrakenode.cpp \
-    cansuspensionnode.cpp
+    cansuspensionnode.cpp \
+    caninfo.cpp \
+    keyboardevents.cpp
 
 RESOURCES += qml/qml.qrc \
              images/images.qrc \
@@ -49,7 +51,9 @@ HEADERS += \
     canparkbrakenode.h \
     cansuspensionnode.h \
     ../../suspension_ECU/suspension_config.h  \
-    ../../../libraries/system_things/PID.h
+    ../../../libraries/system_things/PID.h \
+    caninfo.h \
+    keyboardevents.h
 
 INCLUDEPATH += ../../parkbrake_ECU/ \
                ../../system_headers/ \

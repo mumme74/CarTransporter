@@ -273,6 +273,7 @@ void CanInterface::receiveError(QCanBusDevice::CanBusError error)
 
     setErrorString(QString("%1: %2").arg(errName)
                    .arg(m_canDevice->errorString()));
+    emit errorOccurred(errName, m_canDevice->errorString());
     qWarning() << qPrintable(m_errorString) << endl;
 }
 

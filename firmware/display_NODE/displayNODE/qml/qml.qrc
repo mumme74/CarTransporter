@@ -24,5 +24,6 @@
         <file>PressureStatusDlg.qml</file>
         <file>PID_Label.qml</file>
         <file>DiagParamSelected.qml</file>
+        <file>DiagCanErrorsPage.qml</file>
     </qresource>
 </RCC>

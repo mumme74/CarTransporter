@@ -181,6 +181,10 @@ Item {
                     }
                 }
             }
+        } // end parkbrake
+        DiagCanErrorsPage {
+            id: canErrorPage
+
         }
     }
 

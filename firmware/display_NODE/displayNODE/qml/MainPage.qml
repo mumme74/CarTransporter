@@ -314,7 +314,7 @@ Page {
             }
             onMoved: {
                 setState(value);
-                var res = suspensionNode.setHeightState(state, function(res){
+                var res = suspensionNode.setHeightState(car.state, function(res){
                     if (res === 0xAA)
                         networkTimeout.stop();
                 });

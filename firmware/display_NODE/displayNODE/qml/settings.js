@@ -38,5 +38,7 @@ function setSetting(node, dataType, settingsIndex, value) {
     }
 
     if (fn)
-        fn(settingsIndex, value, callbackSet);
+        return fn(settingsIndex, value, callbackSet);
+
+    return false;
 }

@@ -42,7 +42,7 @@ Item {
 
     Label {
        id: selectedPIDsLbl
-       text: qsTr("Selected PIDs")
+       text: qsTr("Selected PIDs") + tr.str
        font.pointSize: 20
        color: "white"
        anchors.top: root.top

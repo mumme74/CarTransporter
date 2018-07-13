@@ -614,7 +614,6 @@ bool CanAbstractNode::fetchDtc(int storedIdx, QJSValue jsCallback, can_msgIdsDia
     QByteArray payload;
     payload.insert(0, (storedIdx & 0xFF));
     QCanBusFrame f(CAN_MSG_TYPE_DIAG | canDiagId | C_displayNode, payload);
-    f.setExtendedFrameFormat(false);
     return m_canIface->sendFrame(f);
 }
 
@@ -634,7 +633,6 @@ bool CanAbstractNode::clearAllDtcs(can_msgIdsDiag_e canDiagId)
     // gets cleared when reponse frame arrives
     QByteArray pl(m_dtcCount, 1);
     QCanBusFrame f(CAN_MSG_TYPE_DIAG | canDiagId | C_displayNode, pl);
-    f.setExtendedFrameFormat(false);
     return m_canIface->sendFrame(f);
 }
 
@@ -671,7 +669,6 @@ bool CanAbstractNode::fetchFreezeFrame(int dtcNr, QJSValue jsCallback, can_msgId
     // get from can
     QByteArray pl(dtcNr, 1);
     QCanBusFrame f(CAN_MSG_TYPE_DIAG | canDiagId | C_displayNode, pl);
-    f.setExtendedFrameFormat(false);
     return m_canIface->sendFrame(f);
 }
 
@@ -715,7 +712,6 @@ bool CanAbstractNode::setSettingU16(quint8 idx, quint16 vlu, QJSValue jsCallback
     pl[1] = vlu & 0xFF;
     pl[2] = (vlu & 0xFF00) >> 8;
     QCanBusFrame f(CAN_MSG_TYPE_COMMAND | canCmdId | C_displayNode, pl);
-    f.setExtendedFrameFormat(false);
     return m_canIface->sendFrame(f);
 }
 
@@ -732,7 +728,6 @@ bool CanAbstractNode::setSettingU32(quint8 idx, quint32 vlu, QJSValue jsCallback
     pl[3] = (vlu & 0x00FF0000) >> 16;
     pl[4] = (vlu & 0xFF000000) >> 24;
     QCanBusFrame f(CAN_MSG_TYPE_COMMAND | canCmdId | C_displayNode, pl);
-    f.setExtendedFrameFormat(false);
     return m_canIface->sendFrame(f);
 }
 
@@ -750,7 +745,6 @@ bool CanAbstractNode::setSettingF(quint8 idx, float vlu, QJSValue jsCallback, ca
     pl[3] = (u_vlu & 0x00FF0000) >> 16;
     pl[4] = (u_vlu & 0xFF000000) >> 24;
     QCanBusFrame f(CAN_MSG_TYPE_COMMAND | canCmdId | C_displayNode, pl);
-    f.setExtendedFrameFormat(false);
     return m_canIface->sendFrame(f);
 }
 
@@ -788,7 +782,6 @@ bool CanAbstractNode::fetchSetting(quint8 idx, QJSValue jsCallback, can_msgIdsCo
 
     QByteArray pl(idx & 0xFF, 1);
     QCanBusFrame f(CAN_MSG_TYPE_COMMAND | canCmdId | C_displayNode, pl);
-    f.setExtendedFrameFormat(false);
     return m_canIface->sendFrame(f);
 }
 

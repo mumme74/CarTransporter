@@ -187,7 +187,7 @@ bool CanInterface::setConnected(bool connect)
             return false;
         }
 
-        // an erro might occur in configuration that isnt cauht in another way
+        // a error might occur in configuration that isn't caught in another way
         emit connectedChanged(true);
 
     } else if (m_canDevice != Q_NULLPTR) {
@@ -225,7 +225,7 @@ QVariantList CanInterface::availablePlugins() const
     return returnList;
 }
 
-bool CanInterface::sendFrame(const QCanBusFrame &frame)
+bool CanInterface::sendFrame(QCanBusFrame &frame)
 {
     static bool displayErr = true;
     if (m_canDevice == Q_NULLPTR ||
@@ -239,6 +239,9 @@ bool CanInterface::sendFrame(const QCanBusFrame &frame)
         }
         return false;
     }
+    // only use simplest possible network in this application
+    frame.setExtendedFrameFormat(false);
+    frame.setFlexibleDataRateFormat(false);
 
     bool success = m_canDevice->writeFrame(frame);
     if (!success && displayErr) {

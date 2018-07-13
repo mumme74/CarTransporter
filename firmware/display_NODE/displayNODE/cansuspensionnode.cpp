@@ -94,7 +94,6 @@ bool CanSuspensionNode::activateOutput(quint8 pid, quint8 vlu) const
 
     QByteArray pl(pid, vlu);
     QCanBusFrame f(CAN_MSG_TYPE_DIAG | C_suspensionDiagActuatorTest | C_displayNode, pl);
-    f.setExtendedFrameFormat(false);
     return m_canIface->sendFrame(f);
 }
 
@@ -106,7 +105,6 @@ bool CanSuspensionNode::clearActivateOutput(quint8 pid) const
     QByteArray pl;
     pl.append(pid);
     QCanBusFrame f(CAN_MSG_TYPE_DIAG | C_suspensionDiagClearActuatorTest | C_displayNode, pl);
-    f.setExtendedFrameFormat(false);
     return m_canIface->sendFrame(f);
 }
 
@@ -164,7 +162,6 @@ bool CanSuspensionNode::setHeightState(const QString &state, QJSValue jsCallback
     // send to Canbus
     QCanBusFrame f(QCanBusFrame::RemoteRequestFrame);
     f.setFrameId(CAN_MSG_TYPE_DIAG | canCmdId | C_displayNode);
-    f.setExtendedFrameFormat(false);
     return m_canIface->sendFrame(f);
 }
 
@@ -333,7 +330,6 @@ void CanSuspensionNode::diagCanFrame(const QCanBusFrame &frame)
                 for (quint8 i = 0; i < m_dtcCount; ++i) {
                     QByteArray pl(i, 1);
                     QCanBusFrame f(CAN_MSG_TYPE_DIAG | C_suspensionDiagGetDTC | C_displayNode, pl);
-                    f.setExtendedFrameFormat(false);
                     m_canIface->sendFrame(f);
                 }
             }
@@ -433,7 +429,6 @@ void CanSuspensionNode::diagCanFrame(const QCanBusFrame &frame)
 
         QCanBusFrame f(QCanBusFrame::RemoteRequestFrame);
         f.setFrameId(CAN_MSG_TYPE_DIAG | canUpdId | C_displayNode);
-        f.setExtendedFrameFormat(false);
         m_canIface->sendFrame(f);
 
     } break;

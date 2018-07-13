@@ -21,7 +21,7 @@ public:
     Q_INVOKABLE void clearErrorString();
     Q_INVOKABLE QVariantList availablePlugins() const;
 
-    bool sendFrame(const QCanBusFrame &frame);
+    bool sendFrame(QCanBusFrame &frame);
 
 signals:
     void connectedChanged(bool connected);

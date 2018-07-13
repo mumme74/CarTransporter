@@ -139,7 +139,6 @@ bool CanParkbrakeNode::activateOutput(int wheel, bool tighten) const
 
     QByteArray pl(msk, 1);
     QCanBusFrame f(CAN_MSG_TYPE_DIAG | C_parkbrakeDiagActuatorTest | C_displayNode, pl);
-    f.setExtendedFrameFormat(false);
     return m_canIface->sendFrame(f);
 }
 
@@ -150,7 +149,6 @@ bool CanParkbrakeNode::setServiceState(bool service)
         f.setFrameId(CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdServiceSet | C_displayNode);
     else
         f.setFrameId(CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdServiceUnset | C_displayNode);
-    f.setExtendedFrameFormat(false);
     return m_canIface->sendFrame(f);
 }
 
@@ -351,7 +349,6 @@ void CanParkbrakeNode::diagCanFrame(const QCanBusFrame &frame)
                 for (quint8 i = 0; i < m_dtcCount; ++i) {
                     QByteArray pl(i, 1);
                     QCanBusFrame f(CAN_MSG_TYPE_DIAG | C_parkbrakeDiagDTC | C_displayNode, pl);
-                    f.setExtendedFrameFormat(false);
                     m_canIface->sendFrame(f);
                 }
             }

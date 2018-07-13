@@ -8,6 +8,8 @@
 #include "cannodes.h"
 #include "canparkbrakenode.h"
 #include "cansuspensionnode.h"
+#include "caninfo.h"
+#include "keyboardevents.h"
 
 
 //QQmlApplicationEngine *qmlEngine = nullptr;
@@ -16,6 +18,10 @@ int main(int argc, char *argv[])
 {
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QGuiApplication app(argc, argv);
+
+    // listens for Ctrl+C to quit app
+    KeyboardEvents keyboardEvts;
+    app.installEventFilter(&keyboardEvts);
 
     // for QSettings
     QCoreApplication::setOrganizationName("mummesoft");
@@ -35,6 +41,7 @@ int main(int argc, char *argv[])
     CanSuspensionNode suspensionNode(&canIface);
     CanPids canPidsModel;
     SuspensionPressureDlgModel pressureDlgModel(&suspensionNode);
+    CanErrorsModel canErrorsModel(&canIface);
 
     Settings settings;
 
@@ -45,6 +52,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("canPidsModel", &canPidsModel);
     engine.rootContext()->setContextProperty("pressureDlgModel", &pressureDlgModel);
     engine.rootContext()->setContextProperty("settings", &settings);
+    engine.rootContext()->setContextProperty("canErrorsModel", &canErrorsModel);
 
 
     qmlRegisterInterface<CanPid>("CanDtc");

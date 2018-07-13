@@ -8,10 +8,10 @@ class KeyboardEvents : public QObject
     Q_OBJECT
 public:
     explicit KeyboardEvents(QObject *parent = nullptr);
+    virtual ~KeyboardEvents();
 
-signals:
-
-public slots:
+protected:
+    bool eventFilter(QObject *obj, QEvent *event);
 };
 
 #endif // KEYBOARDEVENTS_H

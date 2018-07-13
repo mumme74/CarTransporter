@@ -3,7 +3,7 @@
 #include "PID.h"
 #include <QDebug>
 
-#define TEST_DIAG 1
+//#define TEST_DIAG 1
 
 
 CanSuspensionNode::CanSuspensionNode(CanInterface *canInterface, QObject *parent) :

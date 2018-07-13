@@ -5,7 +5,7 @@
 #include <QQmlEngine>
 #include <QDebug>
 
-#define TEST_DIAG 1
+//#define TEST_DIAG 1
 
 CanParkbrakeNode::CanParkbrakeNode(CanInterface *canInterface, QObject *parent) :
     CanAbstractNode(C_parkbrakeNode, canInterface, parent), m_inServiceState(false)

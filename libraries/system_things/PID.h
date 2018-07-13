@@ -325,8 +325,8 @@ extern _Handler<PID::Base> collection;
 #define USE_compressor_PID \
     PID::actuator_PWM compressor_PID(PIDs::IDs::compressorPWM_8bit, PID_PWM_AVAILABLE, \
                                      PID::Types::output_Duty);
-#define USE_suspensionSpare1 \
-    PID::actuator_PWM suspensionSpare1_PID(PIDs::IDs::spare1PWM_8bit, PID_PWM_AVAILABLE, \
+#define USE_suspensionSpare1_PID \
+    PID::actuator_PWM suspensionSpare1_PID(PIDs::IDs::suspensionSpare1PWM_8bit, PID_PWM_AVAILABLE, \
                                            PID::Types::output_Duty);
 
 // pressure inputs

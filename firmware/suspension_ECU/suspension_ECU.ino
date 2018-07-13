@@ -22,6 +22,7 @@ USE_leftSuck_PID;
 USE_rightSuck_PID;
 USE_airdryer_PID;
 USE_compressor_PID;
+USE_suspensionSpare1_PID;
 USE_compressorCurrent_PID;
 USE_leftHeight_PID;
 USE_rightHeight_PID;
@@ -40,7 +41,8 @@ ITS5215L leftFillDrv(leftFill_outPin, leftFill_diagPin, &leftFill_PID),
        rightDumpDrv(rightDump_outPin, rightDump_diagPin, &rightDump_PID),
        leftSuckDrv(leftSuck_outPin, leftSuck_diagPin, &leftSuck_PID),
        rightSuckDrv(rightDump_outPin, rightDump_diagPin, &rightSuck_PID),
-       airdryerDrv(airdryer_outPin, airdryer_diagPin, &airdryer_PID);
+       airdryerDrv(airdryer_outPin, airdryer_diagPin, &airdryer_PID),
+	   spare1Drv(spare1_outPin, spare1_diagPin, &suspensionSpare1_PID);
 
 BTS6133D compressorDrv(compressor_outPin, compressor_diagPin, compressor_csPin,
                        &compressor_PID, &compressorCurrent_PID,
@@ -92,6 +94,7 @@ void setup()
   PIDs::collection.addItem(&rightSuck_PID);
   PIDs::collection.addItem(&airdryer_PID);
   PIDs::collection.addItem(&compressor_PID);
+  PIDs::collection.addItem(&suspensionSpare1_PID);
   PIDs::collection.addItem(&compressorCurrent_PID);
   PIDs::collection.addItem(&leftHeight_PID);
   PIDs::collection.addItem(&rightHeight_PID);
@@ -111,6 +114,7 @@ void setup()
   rightSuckDrv.init();
   airdryerDrv.init();
   compressorDrv.init();
+  spare1Drv.init();
   init_outputs();
 
   // init input drivers
@@ -174,7 +178,7 @@ void loop()
     // error check output drivers
     for (IOutput *outDrv = OutputsController.first();
          outDrv != nullptr;
-         outDrv = OutputsController.next())
+         outDrv = outDrv->next)
     {
        errorTypes err = outDrv->error();
        if (err != errorTypes::NoError) {
@@ -186,9 +190,10 @@ void loop()
        }
     }
     // error check input drivers
+    int i = 0;
     for (IInput *inDrv = InputsController.first();
          inDrv != nullptr;
-         inDrv = InputsController.next())
+         inDrv = inDrv->next)
     {
       errorTypes err = inDrv->error();
       if (err != errorTypes::NoError) {
@@ -213,7 +218,7 @@ void loop()
 
   // call eventloop on statemachines
   airFeedStateMachine.loop();
-  heightStateMachine.loop();
+  //heightStateMachine.loop();
 
   canIO.loop();
 

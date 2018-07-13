@@ -167,6 +167,9 @@ BTS6133D::~BTS6133D()
 
 void BTS6133D::init()
 {
+  pinMode(m_outPin, OUTPUT);
+  pinMode(m_diagPin, INPUT);
+
   // configure as analog input
   pinMode(m_csPin, INPUT);
   //m_compressorADC->analogRead(m_csPin);
@@ -259,9 +262,9 @@ void isr_each200us() // PWM 50Hz
   // iterate through all pins and update pwms
   for (IOutput *drv = OutputsController.first();
       drv != nullptr;
-      drv = OutputsController.next())
+      drv = drv->next)
   {
-    drv->interval();
+	  drv->interval();
   }
 }
 

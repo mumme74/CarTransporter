@@ -21,6 +21,9 @@ CAN::IOController::~IOController ()
 void CAN::IOController::_recievedCommand(CAN_message_t *msg,
                                          can_senderIds_e /*senderId*/, can_msgIdsCommand_e msgId)
 {
+#ifdef DEBUG_UART_ON
+    Serial.println("can recvCmd");
+#endif
   Configs cfgId = Configs::NoConfig;
   store::byte4 valueB4;
   if (msg->len >0)
@@ -36,7 +39,7 @@ void CAN::IOController::_recievedCommand(CAN_message_t *msg,
 
   switch (msgId) {
     case C_suspensionCmdSetHigh: {
-      exc = heightStateMachine.setState(PID::States::HighState);
+      exc = heightStateMachine.setState(PID::States::ToHighState);
       if (exc != C_userErrorNone) {
           _sendUserError(exc);
       } else {
@@ -47,7 +50,7 @@ void CAN::IOController::_recievedCommand(CAN_message_t *msg,
       }
     } break;
     case C_suspensionCmdSetNormal: {
-      exc = heightStateMachine.setState(PID::States::NormalState);
+      exc = heightStateMachine.setState(PID::States::ToNormalState);
       if (exc != C_userErrorNone) {
     	  _sendUserError(exc);
       } else {
@@ -58,7 +61,7 @@ void CAN::IOController::_recievedCommand(CAN_message_t *msg,
       }
     } break;
     case C_suspensionCmdSetLow: {
-      exc = heightStateMachine.setState(PID::States::LowState);
+      exc = heightStateMachine.setState(PID::States::ToLowState);
       if (exc != C_userErrorNone) {
           _sendUserError(exc);
       } else {
@@ -112,10 +115,14 @@ void CAN::IOController::_recievedException(CAN_message_t *msg,
                                            can_senderIds_e /*senderId*/, can_msgIdsException_e /*msgId*/)
 {
   // Do nothing, we don't care about others error in this node
+
+#ifdef DEBUG_UART_ON
+    Serial.println("can recvExc");
+#endif
 }
 
 
-// in base class
+// is implemented in base class
 //void CAN::IOController::_recievedDiagnose(CAN_message_t *msg,
 //                                          senderIds senderId, msgIdsDiag msgId)
 //{

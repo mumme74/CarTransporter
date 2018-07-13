@@ -89,12 +89,12 @@ void AnalogIn::interval()
 void isr_scan_inputs()
 {
   // scan each inputs in a sequence
-  IInput *in = InputsController.next();
-  if (in == nullptr) {
-      in = InputsController.first();
-  }
-  if (in != nullptr)
-    in->interval();
+  static IInput *in = InputsController.first();
+  in = in->next;
+
+  if (in == nullptr)
+	  in = InputsController.first();
+  in->interval();
 }
 
 
@@ -103,7 +103,6 @@ void init_inputs()
 {
   // each 20 ms -> 6 inputs ->120 ms cycle or scan 8 times a sec
   inputTmr.begin(isr_scan_inputs, 20000);
-  InputsController.first();
 }
 
 

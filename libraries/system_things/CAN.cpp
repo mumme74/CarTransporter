@@ -209,7 +209,7 @@ void ControllerBase::_recievedUpdate(CAN_message_t *msg,
 
   // its intended for this node
 #ifdef DEBUG_UART_ON
-	  Serial.print("CAN upd rcv");
+	  Serial.println("CAN upd rcv");
 #endif
 
   // read each pid from the msg bytes
@@ -262,13 +262,16 @@ void ControllerBase::_recievedDiagnose(CAN_message_t *msg,
   if (recieverNodeId == this->m_senderId) {
     // its intended for this node
 #ifdef DEBUG_UART_ON
-	  Serial.print("CAN diag rcv");
+	  Serial.println("CAN diag rcv");
 #endif
 
     uint16_t id = 0;
 
     switch(action) {
       case C_suspensionDiagDTCLength: { // DTC Length
+#ifdef DEBUG_UART_ON
+        Serial.printf("can DTCLength\n");
+#endif
         _init_CAN_message_t(msg, 40); // 40ms timeout to make sure it reaches our destination
         msg->buf[msg->len++] = static_cast<uint8_t>(DTCs.store.length());
         ++action;
@@ -276,26 +279,37 @@ void ControllerBase::_recievedDiagnose(CAN_message_t *msg,
         this->send(*msg);
       }  break;
 
-      case C_suspensionDiagGetDTC: { // get DTC with PID as argument
+      case C_suspensionDiagGetDTC: { // get DTC with index in store as argument
         // little endian
         id = msg->buf[1] << 8 | msg->buf[0];
-        for (DTC *dtc = DTCs.store.first(); dtc == nullptr; dtc = DTCs.store.next()) {
-          if (dtc->pidID() == id || id == 0){ // send every DTC if id is 0
+#ifdef DEBUG_UART_ON
+        Serial.printf("can getDTC:%d\r\n", id);
+#endif
+        int i = 0;
+        for (DTC *dtc = DTCs.store.first();
+        	 dtc != nullptr;
+        	 dtc = dtc->next)
+        {
+          if ((++i) == id || id == 0){ // send every DTC if id is 0
               uint8_t idx = dtc->storedIndex();
-              CAN_message_t msgErr = this->_buildDTC_Msg(dtc, idx);
-              msgErr.timeout = 20; // wait 20ms if needed to make sure it reaches the line
+              CAN_message_t msgDtc = this->_buildDTC_Msg(dtc, idx);
+              msgDtc.timeout = 20; // wait 20ms if needed to make sure it reaches the line
               ++action;
-              msgErr.id = CAN_MSG_TYPE_DIAG | C_suspensionDiagGetDTC | m_senderId;
-              send(msgErr);
+              msgDtc.id = CAN_MSG_TYPE_DIAG | C_suspensionDiagGetDTC | m_senderId;
+              send(msgDtc);
+              Serial.printf("dtc sent:%d\r\n", id);
               return;
           }
         }
       } break;
       case C_suspensionDiagActuatorTest: { // Set actuatortest
         id = msg->buf[0];
+#ifdef DEBUG_UART_ON
+    Serial.printf("can setActuator:%d\r\n", id);
+#endif
         for (IOutput *outDrv = OutputsController.first();
              outDrv != nullptr;
-             outDrv = OutputsController.next())
+             outDrv = outDrv->next)
         {
           if (outDrv->pid()->id() == id) {
               // set actuation test on this pid
@@ -307,12 +321,16 @@ void ControllerBase::_recievedDiagnose(CAN_message_t *msg,
               return;
           }
         }
+        Serial.printf("exit outdriver\n");
       } break;
       case C_suspensionDiagClearActuatorTest: { // Set actuatortest
         id = msg->buf[0];
+#ifdef DEBUG_UART_ON
+    Serial.printf("can clearActuator:%d  %x\n", id, msg->id);
+#endif
         for (IOutput *outDrv = OutputsController.first();
              outDrv != nullptr;
-             outDrv = OutputsController.next())
+             outDrv = outDrv->next)
         {
           if (outDrv->pid()->id() == id) {
               // set actuation test on this pid
@@ -326,6 +344,9 @@ void ControllerBase::_recievedDiagnose(CAN_message_t *msg,
         }
       } break;
       case C_suspensionDiagClearDTC: {
+#ifdef DEBUG_UART_ON
+    Serial.printf("can clearDTC\n");
+#endif
           uint8_t dtcCnt = msg->buf[0],
                   retCnt = 0;
 
@@ -338,6 +359,9 @@ void ControllerBase::_recievedDiagnose(CAN_message_t *msg,
           send(*msg);
       } break;
       default: ; //unsupported, subclass implement
+#ifdef DEBUG_UART_ON
+    Serial.printf("can diagUnsupported action:%x\n", action);
+#endif
     }
   }
 }
@@ -348,7 +372,7 @@ void ControllerBase::_parseID(uint16_t id, uint16_t &targetNode, uint16_t &actio
   uint16_t mID = (id & CAN_MSG_ID_MASK) >> 3; // to remove senderID bits
   targetNode = (mID & 0xF0) >> 4;
 
-  action = mID & 0x0F;
+  action = (id & CAN_MSG_ID_MASK);
 }
 
 CAN_message_t ControllerBase::_buildDTC_Msg(DTC *dtc, uint8_t idx) const
@@ -469,35 +493,35 @@ void ControllerBase::loop()
   msg.timeout = 0; // no wait when receiving
   while(Can0.read(msg) != 0) {
 #ifdef DEBUG_UART_ON
-    Serial.println("can msg");
+    Serial.printf("can msg id:%x\r\n", msg.id);
 #endif
     can_senderIds_e senderId = static_cast<can_senderIds_e>(msg.id & CAN_MSG_SENDER_ID_MASK);
 
     switch(msg.id & CAN_MSG_TYPE_MASK) {
-      case CAN_MSG_TYPE_COMMAND: //msgTypeControlMask:
+      case CAN_MSG_TYPE_COMMAND: { //msgTypeControlMask:
         can_msgIdsCommand_e msgIdCmd;
         msgIdCmd = static_cast<can_msgIdsCommand_e>(msg.id & CAN_MSG_ID_MASK);
         this->_recievedCommand(&msg, senderId, msgIdCmd);
-        break;
-      case CAN_MSG_TYPE_EXCEPTION: //msgTypeErrorMask:
+      }  break;
+      case CAN_MSG_TYPE_EXCEPTION: { //msgTypeErrorMask:
         can_msgIdsException_e msgIdErr;
         msgIdErr = static_cast<can_msgIdsException_e>(msg.id & CAN_MSG_ID_MASK);
         this->_recievedException(&msg, senderId, msgIdErr);
-        break;
-      case CAN_MSG_TYPE_UPDATE: //msgTypeUpdateMask:
+      }  break;
+      case CAN_MSG_TYPE_UPDATE: {//msgTypeUpdateMask:
         can_msgIdsUpdate_e msgIdUpd;
         msgIdUpd = static_cast<can_msgIdsUpdate_e>(msg.id & CAN_MSG_ID_MASK);
         this->_recievedUpdate(&msg, senderId, msgIdUpd);
-        break;
-      case CAN_MSG_TYPE_DIAG:// msgTypeDiagMask:
+      }  break;
+      case CAN_MSG_TYPE_DIAG: {// msgTypeDiagMask:
         can_msgIdsDiag_e msgIdDiag;
         msgIdDiag = static_cast<can_msgIdsDiag_e>(msg.id & CAN_MSG_ID_MASK);
         this->_recievedDiagnose(&msg, senderId, msgIdDiag);
-        break;
+      }  break;
       default:
         // can never get here as msgTypeMask filter all bits but 2
 #ifdef DEBUG_UART_ON
-        Serial.print("Can id err:");Serial.println(msg.id);
+        Serial.printf("Can id err:%x\r\n", msg.id);
 #endif
         return;
     }

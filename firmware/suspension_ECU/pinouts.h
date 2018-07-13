@@ -26,7 +26,9 @@ static const uint8_t
     rightSuck_outPin = 25,
     rightSuck_diagPin = 27,
     airdryer_outPin = 6,
-    airdryer_diagPin = 2;
+    airdryer_diagPin = 1,
+	spare1_outPin = 23,
+	spare1_diagPin = 14;
 
 // compressor out BTS6133D
 static const uint8_t
@@ -43,7 +45,7 @@ static const uint8_t
     leftHeightAD_pin            = A6, //20,
     rightPressureAD_pin         = A2,//16,
     rightHeightAD_pin           = A5,//19,
-    systemPressureAD_pin    = A4,//18,
+    systemPressureAD_pin    	= A4,//18,
     spare1AD_pin                = A7,//21,
     compressorTempAD_pin        = A12,
     spareTemp1AD_pin            = A1; // 15

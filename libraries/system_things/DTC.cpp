@@ -87,7 +87,7 @@ DTC_controller::DTC_controller()
 DTC_controller::~DTC_controller()
 {
   // delete each items as they are created on heap
-  for (DTC *dtc = store.first(); dtc != nullptr; dtc = store.next()) {
+  for (DTC *dtc = store.first(); dtc != nullptr; dtc = dtc->next) {
     delete dtc;
   }
 }
@@ -136,7 +136,10 @@ DTC *DTC_controller::setDTC(uint16_t id, errorTypes errType)
   // find out if it was previously stored
   DTC *dtc = nullptr;
   int dtcPos = -1;
-  for (DTC *cached = store.first(); cached != nullptr; cached = store.next()) {
+  for (DTC *cached = store.first();
+	   cached != nullptr;
+	   cached = cached->next)
+  {
     ++dtcPos;
     if (cached->pidID() == id && cached->errType() == errType) {
         dtc = cached;

@@ -116,8 +116,9 @@ public:
 signals:
     void newPid(CanPid *pid);
     void dtcCountChanged(int newCount);
-    void dtcArrived(int storedIndex);
-    void dtcsCleared(bool success);
+    void dtcUpdated(int storedIndex);
+    void dtcAdded(int storedIndex);
+    void dtcsCleared(bool cleared, int clearedCount);
 
 
 
@@ -136,7 +137,7 @@ protected:
     bool fetchDtc(int storedIdx, QJSValue jsCallback, can_msgIdsDiag_e canDiagId);
     bool fetchAllDtcs(can_msgIdsDiag_e canDiagId);
     bool clearAllDtcs(can_msgIdsDiag_e canDiagId);
-    void dtcOnArrival(int dtcIdx);
+    void dtcArriveDoQmlCallback(int dtcIdx);
 
     bool fetchFreezeFrame(int dtcNr, QJSValue jsCallback, can_msgIdsDiag_e canDiagId);
     void freezeFrameArrival(int dtcNr);

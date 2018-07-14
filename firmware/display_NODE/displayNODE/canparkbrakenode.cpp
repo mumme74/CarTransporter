@@ -306,11 +306,11 @@ void CanParkbrakeNode::exceptionCanFrame(const QCanBusFrame &frame)
         if (dtc == nullptr) {
             dtc = new CanDtc(this, payload[0], code, payload[3], 0);
             m_dtcs.insert(dtc->storedNr(), dtc);
-            emit dtcArrived(dtc->storedNr());
+            emit dtcAdded(dtc->storedNr());
         } else {
             dtc->setOccurences(payload[3]);
+            emit dtcUpdated(dtc->storedNr());
         }
-        emit newDtcSet(dtc);
 
     }   break;
     case C_parkbrakeExcUserError: {
@@ -370,7 +370,7 @@ void CanParkbrakeNode::diagCanFrame(const QCanBusFrame &frame)
             bool cleared = (quint8)(payload[0]) != 0;
             if (!cleared)
                 cleared = m_dtcCount == 0; // when clearing a empty dtcs list
-            emit dtcsCleared(cleared);
+            emit dtcsCleared(cleared, (quint8)(payload[0]));
             emit dtcCountChanged(m_dtcCount);
 
         }
@@ -387,12 +387,13 @@ void CanParkbrakeNode::diagCanFrame(const QCanBusFrame &frame)
         if (m_dtcs.contains(storedNr)) {
             CanDtc *dtc = m_dtcs[storedNr];
             dtc->setOccurences(payload[3]);
+            emit dtcUpdated(storedNr);
         } else {
             CanDtc *dtc = new CanDtc(this, storedNr, code, payload[3], time);
             m_dtcs.insert(storedNr, dtc);
+            emit dtcAdded(storedNr);
         }
-        dtcOnArrival(storedNr);
-        emit dtcArrived(storedNr);
+        dtcArriveDoQmlCallback(storedNr);
 
     }   break;
     case C_parkbrakeDiagDTCFreezeFrame: {

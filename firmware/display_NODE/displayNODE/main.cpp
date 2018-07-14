@@ -39,8 +39,11 @@ int main(int argc, char *argv[])
 
     CanParkbrakeNode parkbrakeNode(&canIface);
     CanSuspensionNode suspensionNode(&canIface);
+
+    // abstractviewmodels
     CanPids canPidsModel;
     SuspensionPressureDlgModel pressureDlgModel(&suspensionNode);
+    SuspensionDTCModel suspensionDTCModel(&suspensionNode);
     CanErrorsModel canErrorsModel(&canIface);
 
     Settings settings;
@@ -51,6 +54,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("suspensionNode", &suspensionNode);
     engine.rootContext()->setContextProperty("canPidsModel", &canPidsModel);
     engine.rootContext()->setContextProperty("pressureDlgModel", &pressureDlgModel);
+    engine.rootContext()->setContextProperty("suspensionDTCModel", &suspensionDTCModel);
     engine.rootContext()->setContextProperty("settings", &settings);
     engine.rootContext()->setContextProperty("canErrorsModel", &canErrorsModel);
 

@@ -606,7 +606,7 @@ bool CanAbstractNode::fetchDtc(int storedIdx, QJSValue jsCallback, can_msgIdsDia
 
     // already fetched
     if (m_dtcs.contains(storedIdx)) {
-        dtcOnArrival(storedIdx);
+        dtcArriveDoQmlCallback(storedIdx);
         return true;
     }
 
@@ -675,7 +675,7 @@ bool CanAbstractNode::fetchFreezeFrame(int dtcNr, QJSValue jsCallback, can_msgId
 }
 
 // callback in QML
-void CanAbstractNode::dtcOnArrival(int dtcIdx)
+void CanAbstractNode::dtcArriveDoQmlCallback(int dtcIdx)
 {
     CanDtc *dtc = m_dtcs[dtcIdx];
     if (m_dtcFetchCallback.contains(dtcIdx)) {

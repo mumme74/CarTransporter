@@ -77,7 +77,7 @@ Item {
                 anchors.right: parent.right
                 anchors.rightMargin: 10
                 width: 650
-                model: dtcSuspensionModel
+                model: suspensionDTCModel //dtcSuspensionModel
                 TableViewColumn {
                     role: "code"
                     title: qsTr("Code")+ tr.str
@@ -300,46 +300,46 @@ Item {
     // ----------- end freezeFrame model ----------
 
 
-    // these can be erased when bridge to C++ is finished
-    ListModel {
-        id: dtcSuspensionModel
-        function rebuild() {
-            clear();
-            for (var i = 0; i < suspensionNode.dtcCount; ++i) {
-                var dtc = suspensionNode.getDtc(i);
-                append({code: dtc.dtcCodeStr, desc: dtc.dtcDescription,
-                        occurrences: dtc.occurences, pending: dtc.isPending});
-            }
-        }
-        function update(newDtc) {
-            for (var i = 0; i < count; ++i) {
-                var dtc = suspensionNode.getDtc(i);
-                if (dtc.codeStr !== newDtc.codeStr) {
-                    dtc.occurences = newDtc.occurences;
-                    dtc.pending = newDtc.pending
-                    return;
-                }
-            }
+//    // these can be erased when bridge to C++ is finished
+//    ListModel {
+//        id: dtcSuspensionModel
+//        function rebuild() {
+//            clear();
+//            for (var i = 0; i < suspensionNode.dtcCount; ++i) {
+//                var dtc = suspensionNode.getDtc(i);
+//                append({code: dtc.dtcCodeStr, desc: dtc.dtcDescription,
+//                        occurrences: dtc.occurences, pending: dtc.isPending});
+//            }
+//        }
+//        function update(newDtc) {
+//            for (var i = 0; i < count; ++i) {
+//                var dtc = suspensionNode.getDtc(i);
+//                if (dtc.codeStr !== newDtc.codeStr) {
+//                    dtc.occurences = newDtc.occurences;
+//                    dtc.pending = newDtc.pending
+//                    return;
+//                }
+//            }
 
-            // new dtc
-            append({code: newDtc.dtcCodeStr, desc: newDtc.dtcDescription,
-                    occurrences: newDtc.occurences, pending: newDtc.isPending});
-        }
+//            // new dtc
+//            append({code: newDtc.dtcCodeStr, desc: newDtc.dtcDescription,
+//                    occurrences: newDtc.occurences, pending: newDtc.isPending});
+//        }
 
-        Component.onCompleted: rebuild()
-    }
+//        Component.onCompleted: rebuild()
+//    }
 
-    Connections {
-        target: suspensionNode
-        onDtcArrived: {
-            dtcSuspensionModel.update(dtc);
-            console.log("dtcs suspension count",dtcSuspensionModel.count)
-        }
-    }
-    Connections {
-        target: suspensionNode
-        onDtcsCleared: {
-            dtcSuspensionModel.clear();
-        }
-    }
+//    Connections {
+//        target: suspensionNode
+//        onDtcArrived: {
+//            dtcSuspensionModel.update(dtc);
+//            console.log("dtcs suspension count",dtcSuspensionModel.count)
+//        }
+//    }
+//    Connections {
+//        target: suspensionNode
+//        onDtcsCleared: {
+//            dtcSuspensionModel.clear();
+//        }
+//    }
 }

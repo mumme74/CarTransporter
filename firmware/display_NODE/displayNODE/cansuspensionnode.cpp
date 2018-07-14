@@ -296,12 +296,12 @@ void CanSuspensionNode::exceptionCanFrame(const QCanBusFrame &frame)
             dtc = new CanDtc(this, payload[0], code, occurences, 0);
             dtc->setPending(pending);
             m_dtcs.insert(dtc->storedNr(), dtc);
-            emit dtcArrived(dtc->storedNr());
+            emit dtcAdded(dtc->storedNr());
         } else {
             dtc->setPending(pending);
             dtc->setOccurences(occurences);
+            emit dtcUpdated(dtc->storedNr());
         }
-        emit newDtcSet(dtc);
     }    break;
     case C_suspensionExcUserError: {
         // [0:15]
@@ -360,7 +360,7 @@ void CanSuspensionNode::diagCanFrame(const QCanBusFrame &frame)
             bool cleared = (quint8)(payload[0]) != 0;
             if (!cleared)
                 cleared = m_dtcCount == 0; // when clearing a empty dtcs list
-            emit dtcsCleared(cleared);
+            emit dtcsCleared(cleared, (quint8)(payload[0]));
             emit dtcCountChanged(m_dtcCount);
 
         }
@@ -378,12 +378,13 @@ void CanSuspensionNode::diagCanFrame(const QCanBusFrame &frame)
             CanDtc *dtc = m_dtcs[storedNr];
             dtc->setOccurences(occurences & 0x7F);
             dtc->setPending(occurences & 0x80); // bit7 is pending marker
+            emit dtcUpdated(storedNr);
         } else {
             CanDtc *dtc = new CanDtc(this, storedNr, code, occurences & 0x7F, 0);
             m_dtcs.insert(storedNr, dtc);
+            emit dtcAdded(storedNr);
         }
-        dtcOnArrival(storedNr);
-        emit dtcArrived(storedNr);
+        dtcArriveDoQmlCallback(storedNr);
 
     }   break;
 
@@ -654,4 +655,113 @@ void SuspensionPressureDlgModel::pidUpdated(const CanPid *pid)
     QModelIndex left = createIndex(i, 0, (void*)pid);
     QModelIndex right = createIndex(i, 1, (void*)pid);
     dataChanged(left, right);
+}
+
+// -----------------------------------------------------------
+
+SuspensionDTCModel::SuspensionDTCModel(CanSuspensionNode *node) :
+    QAbstractTableModel(node),
+    m_node(node)
+{
+    connect(m_node, SIGNAL(dtcUpdated(int)), this, SLOT(updated(int)));
+    connect(m_node, SIGNAL(dtcAdded(int)), this, SLOT(added(int)));
+    connect(m_node, SIGNAL(dtcsCleared(int)), this, SLOT(cleared(int)));
+
+    qmlRegisterUncreatableType<SuspensionDTCModel>("mummesoft", 0, 1, "SuspensionDTCModel", QStringLiteral("Cant create SuspensionDTCModel from QML"));
+}
+
+SuspensionDTCModel::~SuspensionDTCModel()
+{
+}
+
+QVariant SuspensionDTCModel::headerData(int section, Qt::Orientation orientation, int role) const
+{
+    Q_UNUSED(role);
+    Q_UNUSED(orientation);
+    return QVariant();
+
+    if (section < 0 || section >= m_colCount)
+        return QVariant();
+
+    switch (section) {
+    case 0:
+        return QVariant(tr("Code"));
+    case 1:
+        return QVariant(tr("Description"));
+    case 2:
+        return QVariant(tr("Occurences"));
+    case 3:
+        return QVariant(tr("Pending"));
+    default:
+        return QVariant();
+    }
+}
+
+QVariant SuspensionDTCModel::data(const QModelIndex &index, int role) const
+{
+    if (index.column() < 0 || index.column() >= m_colCount)
+        return QVariant();
+
+    if (index.row() >= m_node->dtcCount() && m_node->dtcCount()  > 0)
+        return QVariant();
+
+    CanDtc *dtc = m_node->getDtc(index.row());
+
+    if (!dtc)
+        return QVariant();
+
+    if (role == CodeRole)
+        return dtc->dtcCodeStr();
+    else if (role == DescRole)
+        return QVariant(dtc->dtcDescription());
+    else if (role == OccurencesRole)
+        return QVariant(dtc->occurences());
+    else if (role == PendingRole)
+        return QVariant(dtc->isPending());
+    else
+        return QVariant();
+}
+
+int SuspensionDTCModel::columnCount(const QModelIndex &parent) const
+{
+    Q_UNUSED(parent)
+    return m_colCount;
+}
+
+int SuspensionDTCModel::rowCount(const QModelIndex &parent) const
+{
+    Q_UNUSED(parent)
+    return m_node->dtcCount();
+}
+
+void SuspensionDTCModel::cleared(bool cleared, int count)
+{
+    if (cleared) {
+        beginRemoveRows(QModelIndex(), 0, count -1);
+        endRemoveRows();
+    } else {
+        // force refresh
+        emit dataChanged(QModelIndex(), QModelIndex());
+    }
+}
+
+void SuspensionDTCModel::updated(int idx)
+{
+    emit dataChanged(index(idx, 0), index(idx, m_colCount - 1));
+}
+
+void SuspensionDTCModel::added(int idx)
+{
+    beginInsertRows(QModelIndex(), idx, idx);
+    endInsertRows();
+}
+
+QHash<int, QByteArray> SuspensionDTCModel::roleNames() const
+{
+    QHash<int, QByteArray> roles;
+    roles[CodeRole] = "code";
+    roles[DescRole] = "desc";
+    roles[OccurencesRole]  = "occurrences";
+    roles[PendingRole] = "pending";
+    return roles;
 }

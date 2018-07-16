@@ -59,4 +59,39 @@ private:
     void setWheelRevs(QString key, quint8 rev, PidStore &pidStore);
 };
 
+// ---------------------------------------------------------------
+
+// model for parkbrakeNode DTC table
+class ParkbrakeDTCModel : public QAbstractTableModel
+{
+    Q_OBJECT
+public:
+    explicit ParkbrakeDTCModel(CanParkbrakeNode *node);
+    ~ParkbrakeDTCModel();
+
+    QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
+    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
+    int columnCount(const QModelIndex &parent = QModelIndex()) const;
+    int rowCount(const QModelIndex &parent = QModelIndex()) const;
+
+    // for QML to be able to use this model
+    enum Roles {
+        CodeRole = Qt::UserRole + 1,
+        DescRole,
+        OccurencesRole
+    };
+
+private slots:
+    void cleared(bool cleared, int count);
+    void updated(int idx);
+    void added(int idx);
+
+protected:
+    QHash<int, QByteArray> roleNames() const;
+
+private:
+    CanParkbrakeNode *m_node;
+    const int m_colCount = 3;
+};
+
 #endif // CANPARKBRAKENODE_H

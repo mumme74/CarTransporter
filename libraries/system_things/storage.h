@@ -44,7 +44,7 @@ namespace Suspension {
 static const uint16_t
   // height state machine 10 - 100
   HEIGHT_WANTED_STATE_ADR  = 0x000A,
-  HEIGHT_WANTED_STATE_SIZE = 4,
+  HEIGHT_WANTED_STATE_SIZE = 2,
   HEIGHT_KP_ADR            = 0x000E,
   HEIGHT_KP_SIZE           = 4,
   HEIGHT_KI_ADR            = 0x0012,
@@ -71,6 +71,7 @@ static const uint16_t
   HEIGHT_DEAD_BAND_SIZE    = 2,
   HEIGHT_SENSORS_REVERSED_ADR  = 0x002C, // bit0 = left, bit1 = right
   HEIGHT_SENSORS_REVERSED_SIZE = 1
+
   ;
 }; // namespace Suspension
 

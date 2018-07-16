@@ -69,6 +69,7 @@ Item {
                             from: 20
                             to: 120
                             node: parkbrakeNode
+                            warnDeadNodeInitialNode: true;
                         }
                     }
                     Column {

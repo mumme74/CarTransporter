@@ -68,6 +68,8 @@ Item {
                             settingsIndex: SuspensionConfig.LeftLowSetpoint_uint16
                             dataType: Settings.DataTypes.type_u16
                             node: suspensionNode
+                            warnDeadNodeInitialNode: true // only warn on 1 control,
+                                                          // otherwise we get a cascade of warnings
                             from: 0
                             to: 4095
                             stepSize: 10

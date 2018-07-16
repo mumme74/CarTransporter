@@ -34,7 +34,7 @@ static const uint8_t
 static const uint8_t
     compressor_outPin = 5,
     compressor_diagPin = 0,
-    compressor_csPin = 22;
+    compressor_csPin = A8; //22;
 
 static const uint8_t
     CAN_TX_pin = 3,

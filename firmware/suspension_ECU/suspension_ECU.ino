@@ -30,6 +30,8 @@ USE_leftPressure_PID;
 USE_rightPressure_PID;
 USE_systemPressure_PID;
 USE_compressorTemp_PID;
+USE_suspensionSpareTemp1_PID
+USE_suspensionSpareAnalog1_PID
 USE_airFeedState_PID;
 USE_heightState_PID;
 USE_loadWeight_PID;
@@ -46,7 +48,7 @@ ITS5215L leftFillDrv(leftFill_outPin, leftFill_diagPin, &leftFill_PID),
 
 BTS6133D compressorDrv(compressor_outPin, compressor_diagPin, compressor_csPin,
                        &compressor_PID, &compressorCurrent_PID,
-                       measure.compressorADC());
+                       measure.sensorADC0());
 
 // inputs
 AnalogIn leftHeightDrv(leftHeightAD_pin, 100, 4096 - 100, 25, &leftHeight_PID),
@@ -83,7 +85,7 @@ void setup()
 {
   Serial.begin(115200);
 
-  measure.initForCompressor();
+  measure.initADC();
 
   // build PID table
   PIDs::collection.addItem(&leftFill_PID);
@@ -102,8 +104,11 @@ void setup()
   PIDs::collection.addItem(&rightPressure_PID);
   PIDs::collection.addItem(&systemPressure_PID);
   PIDs::collection.addItem(&compressorTemp_PID);
+  PIDs::collection.addItem(&suspensionSpareAnalog1_PID);
+  PIDs::collection.addItem(&suspensionSpareTemp1_PID);
   PIDs::collection.addItem(&airFeedState_PID);
   PIDs::collection.addItem(&heightState_PID);
+  PIDs::collection.addItem(&loadWeight_PID);
 
   // init output drivers
   leftFillDrv.init();
@@ -218,7 +223,7 @@ void loop()
 
   // call eventloop on statemachines
   airFeedStateMachine.loop();
-  //heightStateMachine.loop();
+  heightStateMachine.loop();
 
   canIO.loop();
 

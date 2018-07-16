@@ -76,6 +76,7 @@ typedef enum  {
     C_suspensionCmdSetHigh           = 0x1C << 3, //      [0:7] = 0xAA for ok, sends a UserError if not
     C_suspensionCmdSetRearWheelsUp   = 0x1E << 3, // request: [0:7] 1 = up, 0 = down
                                                   // responds with a userException frame if on error
+	                                              // or if ok with [0:7] = 0xAA
 
     C_suspensionCmdSetConfig         = 0x20 << 3,  // configure, byte0=command, byte 1-2 or 1-4 = value
                                                    // request:
@@ -285,7 +286,7 @@ typedef enum {
                                              // leftHeight | rightHeight | compressorTemp | spareAnalog1
                                              //  12bit          12bit           12bit        12bit
 
-    C_suspensionUpdPID_4        = 0x23 << 3, // request might be RTR, no ppayload on request
+    C_suspensionUpdPID_4        = 0x23 << 3, // request might be RTR, no payload on request
                                              // response:
                                              //     [0:15]          [0:15]        [0:15]
                                              //  airFeedState    heightState     loadedWeight

@@ -174,10 +174,12 @@ bool CanParkbrakeNode::setSettingUInt16(quint8 idx, quint16 vlu, QJSValue jsCall
 bool CanParkbrakeNode::inServiceMode()
 {
     bool ret;
-    CanPid *lf = getPid("LeftFront_state"),
-           *rf = getPid("RightFront_state"),
-           *lr = getPid("LeftRear_state"),
-           *rr = getPid("RightRear_state");
+    CanPid *lf = getPid(tr("LeftFront_state")),
+           *rf = getPid(tr("RightFront_state")),
+           *lr = getPid(tr("LeftRear_state")),
+           *rr = getPid(tr("RightRear_state"));
+    if (!lf || !rf || !lr || !rr)
+        return false;
     if (lf->valueInt() == InServiceState && rf->valueInt() == InServiceState &&
         lr->valueInt() == InServiceState && rr->valueInt() == InServiceState)
     {
@@ -516,5 +518,115 @@ void CanParkbrakeNode::setWheelRevs(QString key, quint8 rev, PidStore &pidStore)
 {
     QString value = QString::number(rev);
     setPidsValue(key, value, "r/s", pidStore, C_parkbrakeNode);
+}
+
+// -------------------------------------------------------------
+
+ParkbrakeDTCModel::ParkbrakeDTCModel(CanParkbrakeNode *node) :
+    QAbstractTableModel(node),
+    m_node(node)
+{
+    connect(m_node, SIGNAL(dtcUpdated(int)), this, SLOT(updated(int)));
+    connect(m_node, SIGNAL(dtcAdded(int)), this, SLOT(added(int)));
+    connect(m_node, SIGNAL(dtcsCleared(bool, int)), this, SLOT(cleared(bool, int)));
+
+    qmlRegisterUncreatableType<ParkbrakeDTCModel>("mummesoft", 0, 1, "ParkbrakeDTCModel", QStringLiteral("Cant create ParkbrakeDTCModel from QML"));
+}
+
+ParkbrakeDTCModel::~ParkbrakeDTCModel()
+{
+}
+
+QVariant ParkbrakeDTCModel::headerData(int section, Qt::Orientation orientation, int role) const
+{
+    Q_UNUSED(role);
+    Q_UNUSED(orientation);
+    return QVariant();
+
+    if (section < 0 || section >= m_colCount)
+        return QVariant();
+
+    switch (section) {
+    case 0:
+        return QVariant(tr("Code"));
+    case 1:
+        return QVariant(tr("Description"));
+    case 2:
+        return QVariant(tr("Occurences"));
+    case 3:
+        return QVariant(tr("Pending"));
+    default:
+        return QVariant();
+    }
+}
+
+QVariant ParkbrakeDTCModel::data(const QModelIndex &index, int role) const
+{
+    if (index.column() < 0 || index.column() >= m_colCount)
+        return QVariant();
+
+    if (index.row() >= m_node->dtcCount() && m_node->dtcCount()  > 0)
+        return QVariant();
+
+    CanDtc *dtc = m_node->getDtc(index.row());
+
+    if (!dtc)
+        return QVariant();
+
+    if (role == CodeRole)
+        return dtc->dtcCodeStr();
+    else if (role == DescRole)
+        return QVariant(dtc->dtcDescription());
+    else if (role == OccurencesRole)
+        return QVariant(dtc->occurences());
+    else
+        return QVariant();
+}
+
+int ParkbrakeDTCModel::columnCount(const QModelIndex &parent) const
+{
+    Q_UNUSED(parent)
+    return m_colCount;
+}
+
+int ParkbrakeDTCModel::rowCount(const QModelIndex &parent) const
+{
+    Q_UNUSED(parent)
+    return m_node->dtcCount();
+}
+
+void ParkbrakeDTCModel::cleared(bool cleared, int count)
+{
+    Q_UNUSED(cleared)
+    Q_UNUSED(count)
+    beginResetModel();
+    endResetModel();
+//    if (cleared) {
+//        beginRemoveRows(QModelIndex(), 0, count > 0 ? count -1 : 0);
+//        endRemoveRows();
+//    } else {
+        // force refresh
+//        emit dataChanged(QModelIndex(), QModelIndex());
+//    }
+}
+
+void ParkbrakeDTCModel::updated(int idx)
+{
+    emit dataChanged(index(idx, 0), index(idx, m_colCount - 1));
+}
+
+void ParkbrakeDTCModel::added(int idx)
+{
+    beginInsertRows(QModelIndex(), idx, idx);
+    endInsertRows();
+}
+
+QHash<int, QByteArray> ParkbrakeDTCModel::roleNames() const
+{
+    QHash<int, QByteArray> roles;
+    roles[CodeRole] = "code";
+    roles[DescRole] = "desc";
+    roles[OccurencesRole]  = "occurrences";
+    return roles;
 }
 

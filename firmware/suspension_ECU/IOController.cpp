@@ -28,11 +28,16 @@ void CAN::IOController::_recievedCommand(CAN_message_t *msg,
   store::byte4 valueB4;
   if (msg->len >0)
       cfgId = static_cast<Configs>(msg->buf[0]);
-  if (msg->len > 4) {
+  if (msg->len > 2) {
       valueB4.buf[0] = msg->buf[1];
       valueB4.buf[1] = msg->buf[2];
-      valueB4.buf[2] = msg->buf[3];
-      valueB4.buf[3] = msg->buf[4];
+      if (msg->len > 4) {
+          valueB4.buf[2] = msg->buf[3];
+          valueB4.buf[3] = msg->buf[4];
+      } else {
+          valueB4.buf[2] = 0;
+          valueB4.buf[3] = 0;
+      }
   }
 
   can_userError_e exc = C_userErrorNone;
@@ -74,10 +79,17 @@ void CAN::IOController::_recievedCommand(CAN_message_t *msg,
     case C_suspensionCmdSetRearWheelsUp: {
       bool up = msg->buf[0] > 0;
       exc = heightStateMachine.setRearWheels(up);
-      if (exc != C_userErrorNone)
+      if (exc != C_userErrorNone) {
           _sendUserError(exc);
+      } else {
+    	  _init_CAN_message_t(msg, 10);
+          msg->id = CAN_MSG_TYPE_COMMAND | C_suspensionCmdSetRearWheelsUp | m_senderId;
+          msg->buf[msg->len++] = 0xAA;
+          send(*msg);
+      }
     } break;
     case C_suspensionCmdSetConfig: {
+      //Serial.printf("set cfgid:%d vlu:%x\r\n",cfgId,  valueB4.uint32);
       int res = heightStateMachine.setConfig(cfgId, valueB4);
       _init_CAN_message_t(msg, 10);
       msg->id = CAN_MSG_TYPE_COMMAND | C_suspensionCmdSetConfig | m_senderId;
@@ -87,11 +99,11 @@ void CAN::IOController::_recievedCommand(CAN_message_t *msg,
     } break;
     case C_suspensionCmdGetConfig: {
       valueB4 = heightStateMachine.getConfig(cfgId);
-
       _init_CAN_message_t(msg, 10);
       msg->id = CAN_MSG_TYPE_COMMAND | C_suspensionCmdGetConfig | m_senderId;
       msg->buf[msg->len++] = cfgId;
       // need to make sure it send little endian
+      //Serial.printf("get cfgid:%d vlu:%x\r\n",cfgId,  valueB4.uint32);
       uint32_t vlu = valueB4.uint32;
       msg->buf[msg->len++] = (vlu & 0x000000FF) >> 0;
       msg->buf[msg->len++] = (vlu & 0x0000FF00) >> 8;
@@ -132,7 +144,7 @@ void CAN::IOController::_recievedException(CAN_message_t *msg,
 
 bool CAN::IOController::sendNewDTC(DTC *dtc)
 {
-  can_msgIdsException_e msgId = C_suspensionExcDTC;
+  can_msgIdsException_e msgId = CAN_MSG_TYPE_EXCEPTION | C_suspensionExcDTC;
   return CAN::ControllerBase::sendNewDTC(dtc, msgId);
 }
 

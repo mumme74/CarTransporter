@@ -23,8 +23,9 @@ SpinBox {
         id: delay
         interval: 800
         onTriggered: {
+            var vlu = Number(value / 100).toFixed(decimals);
             if (!Settings.setSetting(node, Settings.DataTypes.type_float,
-                                settingsIndex, realValue))
+                                settingsIndex, vlu))
             {
                 Helpers.notifyCanIsOff();
             }
@@ -37,7 +38,7 @@ SpinBox {
 
     Component.onCompleted: {
         function callbackGet(vlu) {
-            value = vlu;
+            realValue = vlu;
         }
 
         node.fetchSetting(settingsIndex, callbackGet);

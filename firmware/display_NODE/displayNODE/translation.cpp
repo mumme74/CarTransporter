@@ -4,6 +4,7 @@
 #include <QSettings>
 #include <QGuiApplication>
 #include <QDir>
+#include <QDebug>
 
 
 Translation::Translation(QObject *parent) :
@@ -39,8 +40,10 @@ void Translation::selectLanguage(QString language)
     #endif
         tsDir.cd("ts");
 
-        if (translator->load("ts_sv", tsDir.absolutePath()))
+        if (translator->load(QString("ts_sv"), tsDir.absolutePath()))
             qApp->installTranslator(translator);
+
+        qDebug() << translator->translate("CanPid", "suspensionNode") << endl;
     }
 
     if(language == QString("en")) {

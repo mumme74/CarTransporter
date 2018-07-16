@@ -753,18 +753,27 @@ bool CanAbstractNode::setSettingF(quint8 idx, float vlu, QJSValue jsCallback, ca
         return false;
 
     m_settingsSetCallback.insert(idx, jsCallback);
-    quint32 u_vlu = (quint32)vlu;
+    quint32 u_vlu = *(quint32*)&vlu;
     QByteArray pl("\0\0\0\0\0", 5);
     pl[0] = idx;
     pl[1] = (u_vlu & 0x000000FF);
     pl[2] = (u_vlu & 0x0000FF00) >> 8;
     pl[3] = (u_vlu & 0x00FF0000) >> 16;
     pl[4] = (u_vlu & 0xFF000000) >> 24;
+
     QCanBusFrame f(CAN_MSG_TYPE_COMMAND | canCmdId | C_displayNode, pl);
     return m_canIface->sendFrame(f);
 }
 
 void CanAbstractNode::settingsSetArrival(int idx, quint16 vlu)
+{
+    if (m_settingsSetCallback.contains(idx)) {
+        QJSValue jsCallback = m_settingsSetCallback.take(idx);
+        jsCallback.call(QJSValueList { vlu });
+    }
+}
+
+void CanAbstractNode::settingsSetArrival32(int idx, quint32 vlu)
 {
     if (m_settingsSetCallback.contains(idx)) {
         QJSValue jsCallback = m_settingsSetCallback.take(idx);
@@ -803,6 +812,14 @@ bool CanAbstractNode::fetchSetting(quint8 idx, QJSValue jsCallback, can_msgIdsCo
 }
 
 void CanAbstractNode::settingsFetchArrival(int idx, quint16 vlu)
+{
+    if (m_settingsFetchCallback.contains(idx)) {
+        QJSValue jsCallback = m_settingsFetchCallback.take(idx);
+        jsCallback.call(QJSValueList { vlu });
+    }
+}
+
+void CanAbstractNode::settingsFetchArrival32(int idx, quint32 vlu)
 {
     if (m_settingsFetchCallback.contains(idx)) {
         QJSValue jsCallback = m_settingsFetchCallback.take(idx);

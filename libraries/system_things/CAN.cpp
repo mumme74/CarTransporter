@@ -527,6 +527,13 @@ void ControllerBase::loop()
     }
   }
 
+#ifndef DEBUG_QUIET_PID_UPDATES
+  // slow down PID updates can be very noisy when a sensor fluctuates
+  static uint32_t t = millis();
+  if (t + 100 < millis() || millis() < t)
+	  return;
+  t = millis();
+
   // send all pids which has updates
   // sends in consecutive order, one at each loop time
   // eases out on our poor network
@@ -539,14 +546,17 @@ void ControllerBase::loop()
 
 	  // read the pids and send them
 	  this->_init_CAN_message_t(&msg);
-	  msg.id = static_cast<uint16_t>(frame->msgId);
+	  msg.id = static_cast<uint16_t>(frame->msgId) | CAN_MSG_TYPE_UPDATE;
 
 	  // stuff the bytes into this frame
-	  for(int i = 0; i < 8; ++i) {
+	  for(int i = 0; i < frame->len; ++i) {
 		PIDs::IDs tID = frame->ids[i];
 		pid = PIDs::collection.find(tID);
-		if(pid == nullptr)
+		if(pid == nullptr){
+          //Serial.printf("pid stuff bust out id:%d\r\n", tID);
 		  break;
+		}
+        //Serial.printf("pid stuff i:%d pid:%d frame_id:%x frame->len:%d\r\n", i, pid->id(), frame->msgId, frame->len);
 
 		// mark as read
 		pid->setUpdated(false);
@@ -554,17 +564,34 @@ void ControllerBase::loop()
 		// output the PID value to the CAN frame
 		switch(pid->size()){
 		  case PID::byteSizes::oneByte:
-			msg.buf[msg.len++] = static_cast<uint8_t>(pid->rawValue());
+            // Serial.println("1byte");
+            if (pid->preferedType() == PID::Types::input_Current) {
+              msg.buf[msg.len++] = static_cast<PID::sensor_Current*>(pid)->current();
+            } else {
+              msg.buf[msg.len++] = static_cast<uint8_t>(pid->rawValue());
+            }
 			break;
 		  case PID::byteSizes::twoByte:
 			// little endian, highest byte first
+            // Serial.println("2byte");
 			uint16_t vlu16;
-			vlu16 = pid->rawValue();
+			if (pid->preferedType() == PID::Types::input_Pressure) {
+				vlu16 = static_cast<PID::sensor_Pressure*>(pid)->pressureKPa();
+			} else if (pid->preferedType() == PID::Types::input_Temperature) {
+				// need to handle signed int's here (negative temp)
+				int16_t vlu = (int16_t)static_cast<PID::sensor_NTC*>(pid)->celcius();
+				msg.buf[msg.len++] = (vlu & 0x00FF) >> 0;
+				msg.buf[msg.len++] = (vlu & 0xFF00) >> 8;
+				break;
+			} else {
+				vlu16 = pid->rawValue();
+			}
 			msg.buf[msg.len++] = (vlu16 & 0x00FF) >> 0;
 			msg.buf[msg.len++] = (vlu16 & 0xFF00) >> 8;
 			break;
 		  case PID::byteSizes::fourByte:
 			// little endian, highest byte first
+            // Serial.println("4byte");
 			uint32_t vlu32;
 			vlu32 = pid->rawData32();
 			msg.buf[msg.len++] = (vlu32 & 0x000000FF) >> 0;
@@ -574,11 +601,20 @@ void ControllerBase::loop()
 			break;
 		}
 	  }
+	  //Serial.printf("updated m.len:%d id:%x [0]:%x\r\n", msg.len, msg.id, msg.buf[0]);
+	  // send the updated frame
+	  send(msg);
 	}
+#endif
 }
 
 bool ControllerBase::send(CAN_message_t &msg)
 {
+/*
+  Serial.printf("send m.len:%d id:%x [0]:%x [1]:%x [2]:%x [3]:%x [4]:%x [5]:%x [6]:%x [7]:%x\r\n",
+		  	  	  msg.len, msg.id, msg.buf[0], msg.buf[1], msg.buf[2], msg.buf[3],
+				                   msg.buf[4], msg.buf[5], msg.buf[6], msg.buf[7]);
+*/
   msg.id &= CAN_MSG_TYPE_MASK | CAN_MSG_ID_MASK; // clear possible erroneous nodeID bits
   msg.id |= m_senderId;  // this node sent this msg
   return Can0.write(msg);

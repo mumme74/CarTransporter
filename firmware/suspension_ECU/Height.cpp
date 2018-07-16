@@ -23,6 +23,27 @@ static const uint16_t
   defaultDeadWeight  = 200,   // 200 kg dead weight
   defaultDeadBand    = 5;     // how many % of total throw that is within limits and we wont regulate outputs
 
+// helperfunctions to pack and unpack floats from CAN network
+uint32_t floatPack(float f_vlu) {
+    uint32_t u_vlu = *(uint32_t*)&f_vlu;
+    uint32_t outVlu = 0;
+    outVlu |= u_vlu & 0x000000FF;
+    outVlu |= u_vlu & 0x0000FF00;
+    outVlu |= u_vlu & 0x00FF0000;
+    outVlu |= u_vlu & 0xFF000000;
+    return outVlu;
+}
+
+float floatUnpack(uint32_t vlu) {
+	uint32_t u_vlu = 0;
+	u_vlu |= vlu & 0x000000FF;
+	u_vlu |= vlu & 0x0000FF00;
+	u_vlu |= vlu & 0x00FF0000;
+	u_vlu |= vlu & 0xFF000000;
+
+    float fVlu = *(float*)&u_vlu;
+    return fVlu;
+}
 
 HeightController::HeightController(
     IOutput *leftFillDrv,  IOutput *leftDumpDrv,  IOutput *leftSuckDrv,
@@ -44,7 +65,7 @@ HeightController::HeightController(
    m_systemPressureDrv(systemPressureDrv),
    m_leftHeightDrv(leftHeightDrv),
    m_rightHeightDrv(rightHeightDrv),
-   m_slowSample(false),
+   m_slowSample(true),
    m_sucked(false),
    m_leftLowSetpoint(defaultLowPoint),
    m_leftNormalSetpoint(defaultNormalPoint),
@@ -87,49 +108,59 @@ void HeightController::loop()
 
   // pidLoop updates outputVar automatically
   if (m_rightPidLoop.compute()) {
+	  Serial.printf("rsetpoint:%f rInVr:%f deadband:%d\r\n", m_rightSetpointVar , m_rightInputVar , m_deadBand );
     // allow for some dead band
-    if (m_rightOutputVar > m_rightInputVar + m_deadBand ||
-        m_rightOutputVar < m_rightInputVar - m_deadBand)
+    if (m_rightSetpointVar > m_rightInputVar + m_deadBand ||
+        m_rightSetpointVar < m_rightInputVar - m_deadBand)
     {
-      leftOnPoint = false;
+      rightOnPoint = false;
       if (m_rightOutputVar < 0.0)
         m_rightFillDrv->setValue(static_cast<uint8_t>(m_rightOutputVar * -1)); // reverse value as it is negative
       else
         m_rightDumpDrv->setValue(static_cast<uint8_t>(m_rightOutputVar));
     } else {
-        leftOnPoint = true;
+        rightOnPoint = true;
+        m_rightFillDrv->setValue(0);
+        m_rightDumpDrv->setValue(0);
     }
   }
 
   if (m_leftPidLoop.compute()) {
     // left side
-    if (m_leftOutputVar > m_leftInputVar + m_deadBand ||
-         m_leftOutputVar < m_leftInputVar - m_deadBand)
+    if (m_leftSetpointVar > m_leftInputVar + m_deadBand ||
+         m_leftSetpointVar < m_leftInputVar - m_deadBand)
     {
-      rightOnPoint = false;
+      leftOnPoint = false;
       if (m_leftOutputVar < 0.0)
         m_leftFillDrv->setValue(static_cast<uint8_t>(m_leftOutputVar * -1)); // reverse value as it is negative
       else
         m_leftDumpDrv->setValue(static_cast<uint8_t>(m_leftOutputVar));
     } else {
-        rightOnPoint = true;
+        leftOnPoint = true;
+        m_leftFillDrv->setValue(0);
+        m_leftDumpDrv->setValue(0);
     }
   }
 
   // we reached our setpoints
   if (leftOnPoint && rightOnPoint) {
+	  store::byte2 b2;
+	  b2.uint16 = m_statePid->rawValue();
       switch (m_statePid->state()) {
         case PID::States::ToLowState:
           m_statePid->setState(PID::States::LowState);
           m_statePid->setUpdated(true);
+          store::write2_to_eeprom(store::Suspension::HEIGHT_WANTED_STATE_ADR, b2);
           break;
         case PID::States::ToNormalState:
           m_statePid->setState(PID::States::NormalState);
           m_statePid->setUpdated(true);
+          store::write2_to_eeprom(store::Suspension::HEIGHT_WANTED_STATE_ADR, b2);
           break;
-        case PID::ToHighState:
+        case PID::States::ToHighState:
           m_statePid->setState(PID::States::HighState);
           m_statePid->setUpdated(true);
+          store::write2_to_eeprom(store::Suspension::HEIGHT_WANTED_STATE_ADR, b2);
           break;
         default: break;
       }
@@ -138,6 +169,7 @@ void HeightController::loop()
 
 can_userError_e HeightController::setState(PID::States state)
 {
+  //Serial.printf("setState s:%x\r\n", state);
   if (state != m_statePid->state()) {
       switch(state){
         case PID::States::ToLowState:
@@ -184,32 +216,31 @@ can_userError_e HeightController::setRearWheels(bool lift)
 
 int HeightController::setConfig(Configs cfg, store::byte4 value)
 {
+  store::byte2 b2;
+  b2.uint16 = static_cast<uint16_t>(value.uint32);
   switch (cfg) {
     case Configs::KP_factor_float: {
-      m_p = value.decimal;
+      m_p = floatUnpack(value.uint32);
       store::write4_to_eeprom(store::Suspension::HEIGHT_KP_ADR, value);
     } break;
     case Configs::KI_factor_float: {
-      m_i = value.decimal;
+      m_i = floatUnpack(value.uint32);
       store::write4_to_eeprom(store::Suspension::HEIGHT_KI_ADR, value);
     } break;
     case Configs::KD_factor_float: {
-      m_d = value.decimal;
+      m_d = floatUnpack(value.uint32);
       store::write4_to_eeprom(store::Suspension::HEIGHT_KD_ADR, value);
     } break;
     case Configs::LeftLowSetpoint_uint16: {
       m_leftLowSetpoint = static_cast<uint16_t>(value.uint32);
-      store::byte2 b2;
       store::write2_to_eeprom(store::Suspension::HEIGHT_LEFT_LOW_ADR, b2);
     } break;
     case Configs::LeftNormalSetpoint_uint16: {
       m_leftNormalSetpoint = static_cast<uint16_t>(value.uint32);
-      store::byte2 b2;
       store::write2_to_eeprom(store::Suspension::HEIGHT_LEFT_NORMAL_ADR, b2);
     } break;
     case Configs::LeftHighSetpoint_uint16: {
       m_leftHighSetpoint = static_cast<uint16_t>(value.uint32);
-      store::byte2 b2;
       store::write2_to_eeprom(store::Suspension::HEIGHT_LEFT_HIGH_ADR, b2);
     } break;
     case Configs::RightLowSetpoint_uint16: {
@@ -219,27 +250,21 @@ int HeightController::setConfig(Configs cfg, store::byte4 value)
     } break;
     case Configs::RightNormalSetpoint_uint16: {
       m_rightNormalSetpoint = static_cast<uint16_t>(value.uint32);
-      store::byte2 b2;
       store::write2_to_eeprom(store::Suspension::HEIGHT_RIGHT_NORMAL_ADR, b2);
     } break;
     case Configs::RightHighSetpoint_uint16: {
       m_rightHighSetpoint = static_cast<uint16_t>(value.uint32);
-      store::byte2 b2;
       store::write2_to_eeprom(store::Suspension::HEIGHT_RIGHT_HIGH_ADR, b2);
     } break;
     case Configs::DeadWeight_uint16: {
       m_deadWeight = static_cast<uint16_t>(value.uint32);
-      store::byte2 b2;
       store::write2_to_eeprom(store::Suspension::HEIGHT_DEAD_WEIGHT_ADR, b2);
     } break;
     case Configs::DeadBand_uint16: {
       m_deadBand = static_cast<uint16_t>(value.uint32);
-      store::byte2 b2;
       store::write2_to_eeprom(store::Suspension::HEIGHT_DEAD_BAND_ADR, b2);
     } break;
     case Configs::CylDia_mm: {
-      store::byte2 b2;
-      b2.uint16 = static_cast<uint16_t>(value.uint32);
       store::write2_to_eeprom(store::Suspension::HEIGHT_CYL_DIA_MM_ADR, b2);
       calcCylArea(); // update weight calc params
 
@@ -247,7 +272,7 @@ int HeightController::setConfig(Configs cfg, store::byte4 value)
     case Configs::LeftHeightSensorReversed: {
     	uint8_t curVlu = EEPROM.read(store::Suspension::HEIGHT_SENSORS_REVERSED_ADR);
     	uint8_t	newVlu = curVlu & 0xFE; // save all but bit0
-    	newVlu &= value.buf[0] & 0x01;  // set the left sensor bit
+    	newVlu |= value.buf[0] & 0x01;  // set the left sensor bit
     	EEPROM.write(store::Suspension::HEIGHT_SENSORS_REVERSED_ADR, newVlu);
     	m_leftHeightDrv->setReversed(value.buf[0] & 0x01);
 
@@ -255,7 +280,7 @@ int HeightController::setConfig(Configs cfg, store::byte4 value)
     case Configs::RightHeightSensorReversed: {
     	uint8_t curVlu = EEPROM.read(store::Suspension::HEIGHT_SENSORS_REVERSED_ADR);
     	uint8_t	newVlu = curVlu & 0xFD; // save all but bit1
-    	newVlu &= value.buf[0] & 0x02;  // set the right sensor bit
+    	newVlu |= (value.buf[0] & 0x01) << 1;  // set the right sensor bit
     	EEPROM.write(store::Suspension::HEIGHT_SENSORS_REVERSED_ADR, newVlu);
     	m_rightHeightDrv->setReversed(value.buf[0] & 0x02);
 
@@ -266,55 +291,20 @@ int HeightController::setConfig(Configs cfg, store::byte4 value)
   return 1;
 }
 
-/*
-void HeightController::saveSettings()
-{
-  store::byte2 b2;
-  b2.uint16 = m_leftLowSetpoint;
-  store::write2_to_eeprom(store::Suspension::HEIGHT_LEFT_LOW_ADR, b2);
-  b2.uint16 = m_leftNormalSetpoint;
-  store::write2_to_eeprom(store::Suspension::HEIGHT_LEFT_NORMAL_ADR, b2);
-  b2.uint16 = m_leftHighSetpoint;
-  store::write2_to_eeprom(store::Suspension::HEIGHT_LEFT_HIGH_ADR, b2);
-  b2.uint16 = m_rightLowSetpoint;
-  store::write2_to_eeprom(store::Suspension::HEIGHT_RIGHT_LOW_ADR, b2);
-  b2.uint16 = m_rightNormalSetpoint;
-  store::write2_to_eeprom(store::Suspension::HEIGHT_RIGHT_NORMAL_ADR, b2);
-  b2.uint16 = m_rightHighSetpoint;
-  store::write2_to_eeprom(store::Suspension::HEIGHT_RIGHT_HIGH_ADR, b2);
-  b2.uint16 = m_deadWeight;
-  store::write2_to_eeprom(store::Suspension::HEIGHT_DEAD_WEIGHT_ADR, b2);
-  b2.uint16 = m_deadBand;
-  store::write2_to_eeprom(store::Suspension::HEIGHT_DEAD_BAND_ADR, b2);
-
-  // NOTE store::Suspension::HEIGHT_CYL_DIA_MM_ADR is not saved here,
-  // we need to special case this one as it has no live value stored on RAM
-  // only used in calculation for Cyl area
-
-  store::byte4 b4;
-  b4.decimal = m_p;
-  store::write4_to_eeprom(store::Suspension::HEIGHT_KP_ADR, b4);
-  b4.decimal = m_i;
-  store::write4_to_eeprom(store::Suspension::HEIGHT_KI_ADR, b4);
-  b4.decimal = m_d;
-  store::write4_to_eeprom(store::Suspension::HEIGHT_KD_ADR, b4);
-}
-*/
-
 store::byte4 HeightController::getConfig(Configs cfg)
 {
   store::byte4 value;
   switch (cfg) {
     case Configs::KP_factor_float:
-      value.decimal = m_p;
+      value.uint32 = floatPack(m_p);
       resetPidLoop();
       break;
     case Configs::KI_factor_float:
-      value.decimal = m_i;
+      value.uint32 = floatPack(m_i);
       resetPidLoop();
       break;
     case Configs::KD_factor_float:
-      value.decimal = m_d;
+      value.uint32 = floatPack(m_d);
       resetPidLoop();
       break;
     case Configs::LeftLowSetpoint_uint16:
@@ -380,9 +370,12 @@ void HeightController::readSettings()
   m_rightNormalSetpoint = store::read2_from_eeprom(store::Suspension::HEIGHT_RIGHT_NORMAL_ADR).uint16;
   m_rightHighSetpoint   = store::read2_from_eeprom(store::Suspension::HEIGHT_RIGHT_HIGH_ADR).uint16;
 
+  // Serial.printf("read settings llp:%x lmp:%x lhp:%x\r\n", m_leftLowSetpoint,m_leftNormalSetpoint,m_leftHighSetpoint);
+
   if (m_leftLowSetpoint == m_leftNormalSetpoint && m_leftLowSetpoint == m_leftHighSetpoint &&
       m_rightLowSetpoint == m_rightNormalSetpoint && m_rightLowSetpoint == m_rightHighSetpoint)
   {
+	  //Serial.printf("default settings llp:%x lmp:%x lhp:%x\r\n", m_leftLowSetpoint,m_leftNormalSetpoint,m_leftHighSetpoint);
       // first use no defaults
       m_leftLowSetpoint = defaultLowPoint;
       m_leftNormalSetpoint = defaultNormalPoint;
@@ -417,6 +410,30 @@ void HeightController::readSettings()
 	  m_leftHeightDrv->setReversed(true);
   if (revByte & 0x02)
 	  m_rightHeightDrv->setReversed(true);
+
+  m_statePid->setState((PID::States)store::read2_from_eeprom(store::Suspension::HEIGHT_WANTED_STATE_ADR).uint16);
+  m_statePid->setUpdated(true); // force send to displayNode
+
+  // setpoints need to be correct
+  switch((PID::States)m_statePid->rawValue()){
+    case PID::States::ToLowState:
+    case PID::States::LowState:
+      m_leftSetpointVar = m_leftLowSetpoint;
+      m_rightSetpointVar = m_rightLowSetpoint;
+      break;
+    case PID::States::ToNormalState:
+    case PID::States::NormalState:
+      m_leftSetpointVar = m_leftNormalSetpoint;
+      m_rightSetpointVar = m_rightNormalSetpoint;
+      break;
+    case PID::States::ToHighState:
+    case PID::States::HighState:
+      m_leftSetpointVar = m_leftHighSetpoint;
+      m_rightSetpointVar = m_rightHighSetpoint;
+      break;
+    default:
+    	;
+  }
 
   calcCylArea();
 }
@@ -453,7 +470,7 @@ void HeightController::updateInputs()
       rightAvg = 0,
       leftPressureAvg = 0,
       rightPressureAvg = 0;
-    static uint8_t sampleCnt = 0;
+    static uint32_t sampleCnt = 0;
 
     leftPressureAvg += m_leftPressureDrv->pid()->rawValue();
     rightPressureAvg += m_rightPressureDrv->pid()->rawValue();
@@ -462,19 +479,23 @@ void HeightController::updateInputs()
     if (m_leftHeightDrv->error() == errorTypes::NoError &&
         m_rightHeightDrv->error() == errorTypes::NoError)
     {
+    	//Serial.println("no error");
         leftAvg  += m_leftHeightDrv->pid()->rawValue();
         rightAvg += m_rightHeightDrv->pid()->rawValue();
     } else if (m_rightHeightDrv->error() == errorTypes::NoError) {
+    	Serial.println("left sensor broken");
         // left sensor broken
         leftAvg  += m_rightHeightDrv->pid()->rawValue();
         rightAvg += m_rightHeightDrv->pid()->rawValue();
     } else if (m_leftHeightDrv->error() == errorTypes::NoError) {
         // right sensor broken
+    	Serial.println("right sensor broken");
         leftAvg  += m_leftHeightDrv->pid()->rawValue();
         rightAvg += m_leftHeightDrv->pid()->rawValue();
     } else if (m_statePid->state() == PID::States::NormalState ||
                m_statePid->state() == PID::States::NormalState)
     {
+    	Serial.println("both sensors broken");
         // both sensors broken default to read from cylinders
         // hopefully the normal position will be somewhat sensible
         // even if we read from the wrong sensor
@@ -489,6 +510,7 @@ void HeightController::updateInputs()
     if ((!m_slowSample && sampleCnt > 0) || // always sample when in fast mode
         sampleCnt >= maxSlowSampleCnt)
     {
+    	//Serial.printf("upd inputs slowSample:%d sampleCnt:%d leftAvgbefore:%d\r\n", m_slowSample, sampleCnt);
       leftAvg /= sampleCnt;
       m_leftInputVar = leftAvg; // PidLoop read from m_leftInputVar automatically
 
@@ -528,7 +550,7 @@ void HeightController::updateInputs()
           m_weightPid->setUpdated(true);
       }
 
-      sampleCnt = 0;
+      sampleCnt = leftAvg = rightAvg = leftPressureAvg = rightPressureAvg = 0;
     }
   }
 }

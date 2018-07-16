@@ -167,7 +167,9 @@ float sensor_Base::volt() const
 
 uint8_t sensor_Current::current() const
 {
-  return map(0, 255, 0, 33, m_vlu.uint8); // 0-3.3V -> 0-255 steps, 1A = 0.1V
+  uint8_t vlu = m_vlu.uint16 / 124; // 0-3.3V -> 0-4095 steps, 1A = 0.1V
+  // Serial.printf("cur m_vlu8:%d m_vlu16:%d vlu:%d\r\n", m_vlu.uint8, m_vlu.uint16, vlu);
+  return vlu; // map(0, 4095, 0, 33, m_vlu.uint8); // 0-3.3V -> 0-4095 steps, 1A = 0.1V
 }
 
 void sensor_Current::setCurrent(uint8_t current)
@@ -188,7 +190,7 @@ uint16_t sensor_Pressure::pressureKPa() const
   //1000 / 4 = 250
   //1000 / (4096 - 819) = 1000 / 3277 = 0.30515715
   static float factor = 1000.0 / (m_ADmax - stepsIn1Volt); //0.30515715;
-  //Serial.printf("res: %f p:%i factor:%f admax:%u", p*factor, p, factor, m_ADmax);
+  //Serial.printf("res: %f res_u:%d p:%i factor:%f admax:%u\r\n", p*factor, static_cast<uint16_t>(p * factor), p, factor, m_ADmax);
   return static_cast<uint16_t>(p * factor);
 }
 

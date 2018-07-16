@@ -57,7 +57,7 @@ void AnalogIn::init()
 void AnalogIn::interval()
 {
   uint16_t oldVlu = m_pid->rawValue();
-  uint16_t vlu = measure.sensorADC1()->analogRead(m_inPin);
+  uint16_t vlu = measure.sensorADC0()->analogRead(m_inPin);
   if (m_reversed) {
       vlu = 4095 - vlu;
   }

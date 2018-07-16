@@ -280,7 +280,6 @@ public:
 	  // find first updated
 	  while (m_updatePid && !m_updatePid->updated())
 		  m_updatePid = m_updatePid->next;
-
 	  return m_updatePid;
 
   }
@@ -351,6 +350,11 @@ extern _Handler<PID::Base> collection;
 #define USE_rightHeight_PID \
     PID::sensor_Base rightHeight_PID(PIDs::IDs::rightHeight_12bit, PID_HEIGHTAVAILABLE, \
                                      PID::Types::input_Steps, 4095, PID::byteSizes::twoByte);
+// analog sensors
+#define USE_suspensionSpareAnalog1_PID \
+    PID::sensor_Base suspensionSpareAnalog1_PID(PIDs::IDs::suspensionSpareAnalog1_12bit, PID_HEIGHTAVAILABLE, \
+                                     PID::Types::input_Steps, 4095, PID::byteSizes::twoByte);
+
 
 // temperature sensors
 #define PID_TEMPAVAILABLE static_cast<PID::Types>(PID::Types::input_Temperature | \
@@ -376,7 +380,7 @@ extern _Handler<PID::Base> collection;
 #define USE_airFeedState_PID \
     PID::State airFeedState_PID(PIDs::IDs::airFeedState_16bit);
 #define USE_heightState_PID \
-    PID::State heightState_PID(PIDs::IDs::airFeedState_16bit);
+    PID::State heightState_PID(PIDs::IDs::heightState_16bit);
 
 
 // calculated values

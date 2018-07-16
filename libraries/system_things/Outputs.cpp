@@ -124,8 +124,8 @@ inline void ITS5215L::interval()
         if (digitalReadFast(m_diagPin) == LOW){
           m_errType = errorTypes::SwitchOvertemp;
           m_state = PID::States::Error;
-          digitalWriteFast(m_outPin, LOW);
-        } else if (duty < 100) {
+        }
+        if (duty < 100 || m_state == PID::States::Error) {
           // change to low state
           digitalWriteFast(m_outPin, LOW);
           m_pinHigh = false;
@@ -201,14 +201,17 @@ void BTS6133D::clearActuatorTest()
 
 /*
                        IN   OUT   DIAG   CS
- Normal operation       0    0      0   0V
-                        1    1      0   30A->3V, 5A->0,5V
+ Normal operation       0    0      1   0V
+                        1    1      1   30A->3V, 5A->0,5V
 
- Overtemp, Overload,    0    0      0   0V
- Short to gnd           1    0      1   3,3V
+ Overload			    0    0      1	0V
+                        1    1		0	3,3V
 
- Open load              0    Z      0   0V
-                        1    1      0   0V (No current flow)
+ Overtemp, Overload,    0    0      1   0V
+ Short to gnd           1    0      0   3,3V
+
+ Open load              0    Z      1   0V
+                        1    1      1   0V (No current flow)
  */
 inline void BTS6133D::interval()
 {
@@ -218,20 +221,28 @@ inline void BTS6133D::interval()
       // change state
       if (m_pinHigh) {
         // read current just before we set PWM to low
-        uint8_t current = map(0, 255, 0, 33,
-                        m_compressorADC->analogRead(m_csPin));
-        m_pidCs->setCurrent(current);
+        // divide by 16 to make 4096 fit in 256
+
+    	int16_t currentSteps = m_compressorADC->analogRead(m_csPin);
+        m_pidCs->setRawValue(currentSteps);
         m_pidCs->setUpdated(true);
 
+        uint8_t currentSteps8 = currentSteps8 / 16;
+    	//Serial.printf("v16:%d v8:%d\r\n",currentSteps,currentSteps8);
+
+
         // check for over temp
-        if (digitalReadFast(m_diagPin) == HIGH){
+        if (digitalReadFast(m_diagPin) == LOW){
           m_errType = errorTypes::Overload;
           m_state = PID::States::Error;
           digitalWriteFast(m_outPin, LOW);
-        } else if (current == 0) {
+        } else if ((currentSteps < (openLoadThreshold * duty) / 100) &&
+                   (m_state != PID::States::ActuatorTest))
+        {
           m_state = PID::States::Error;
           m_errType = errorTypes::OpenLoad;
-        } else if (duty < 100) {
+        }
+        if (duty < 100 || m_state == PID::States::Error) {
           // change to low state
           digitalWriteFast(m_outPin, LOW);
           m_pinHigh = false;
@@ -239,7 +250,7 @@ inline void BTS6133D::interval()
         }
       } else { // m_pinHigh == false
         // check for open load
-        if (digitalReadFast(m_diagPin) == HIGH) {
+        if (digitalReadFast(m_diagPin) == LOW) {
           m_errType = errorTypes::HardwareFault;
           m_state = PID::States::Error;
         } else if (duty > 0) {

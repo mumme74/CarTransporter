@@ -7,6 +7,8 @@
 #include <QObject>
 #include <QQmlEngine>
 
+// ----------------------------------------------------------------
+
 class CanDtc : public QObject
 {
     Q_OBJECT
@@ -148,7 +150,9 @@ protected:
     bool fetchSetting(quint8 idx, QJSValue jsCallback, can_msgIdsCommand_e canCmdId);
 
     void settingsFetchArrival(int idx, quint16 vlu);
+    void settingsFetchArrival32(int idx, quint32 vlu);
     void settingsSetArrival(int idx, quint16 vlu);
+    void settingsSetArrival32(int idx, quint32 vlu);
     void settingsFetchArrivalFloat(int idx, float vlu);
     void settingsSetArrivalFloat(int idx, float vlu);
 

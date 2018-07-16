@@ -90,11 +90,18 @@ Item {
                 onValueChanged: {
                     if (suspensionActivateList.currentRow > -1) {
                         var itm = suspensionActivationModel.get(suspensionActivateList.currentRow)
-                        if (itm && itm.value !== undefined)
-                            itm.value = value
-                        /*suspensionActivationModel.setProperty(
-                                suspensionActivateList.currentRow,
-                                "value", value)*/
+                        if (itm && itm.value !== undefined) {
+                            itm.value = value;
+                            sendSliderVlu.start();
+                        }
+                    }
+                }
+
+                Timer {
+                    id: sendSliderVlu
+                    interval: 200
+                    onTriggered: {
+                        setOn.clickHandler();
                     }
                 }
             }
@@ -106,7 +113,8 @@ Item {
                 anchors.top: suspensionActivatePage.top
                 anchors.topMargin: 65
                 anchors.leftMargin: 20
-                onClicked: {
+                onClicked: clickHandler();
+                function clickHandler() {
                     var itm = suspensionActivationModel.get(suspensionActivateList.currentRow)
                     if (itm && itm.value !== undefined)
                         if (!suspensionNode.activateOutput(itm.pid, itm.value))
@@ -193,69 +201,69 @@ Item {
                 Column {
                     Label {
                         color: "white"
-                        text: parkbrakeNode.getPid("LeftFront_state").valueStr
+                        text: parkbrakeNode.getPid(qsTr("LeftFront_state") + tr.str).valueStr
                         anchors.horizontalCenter: parent.horizontalCenter
                     }
 
                     Row {
                         IconButton {
                             btnText: qsTr("LF release") + tr.str
-                            onClicked: parkbrakeActivate(0, false);
+                            onClicked: parkbrakeActivatePage.parkbrakeActivate(0, false);
                         }
                         IconButton {
                             btnText: qsTr("LF tighten") + tr.str
-                            onClicked: parkbrakeActivate(0, true);
+                            onClicked: parkbrakeActivatePage.parkbrakeActivate(0, true);
                         }
                     }
                 }
                 Column {
                     Label {
                         color: "white"
-                        text: parkbrakeNode.getPid("RightFront_state").valueStr
+                        text: parkbrakeNode.getPid(qsTr("RightFront_state") + tr.str).valueStr
                         anchors.horizontalCenter: parent.horizontalCenter
                     }
                     Row {
                         IconButton {
                             btnText: qsTr("RF release") + tr.str
-                            onClicked: parkbrakeActivate(1, false);
+                            onClicked: parkbrakeActivatePage.parkbrakeActivate(1, false);
                         }
                         IconButton {
                             btnText: qsTr("RF tighten") + tr.str
-                            onClicked: parkbrakeActivate(1, true);
+                            onClicked: parkbrakeActivatePage.parkbrakeActivate(1, true);
                         }
                     }
                 }
                 Column {
                     Label {
                         color: "white"
-                        text: parkbrakeNode.getPid("LeftRear_state").valueStr
+                        text: parkbrakeNode.getPid(qsTr("LeftRear_state") + tr.str).valueStr
                         anchors.horizontalCenter: parent.horizontalCenter
                     }
                     Row {
                         IconButton {
                             btnText: qsTr("LR release") + tr.str
-                            onClicked: parkbrakeActivate(2, false);
+                            onClicked: parkbrakeActivatePage.parkbrakeActivate(2, false);
                         }
                         IconButton {
                             btnText: qsTr("LR tighten") + tr.str
-                            onClicked: parkbrakeActivate(2, true);
+                            onClicked: parkbrakeActivatePage.parkbrakeActivate(2, true);
                         }
                     }
                 }
                 Column {
                     Label {
                         color: "white"
-                        text: parkbrakeNode.getPid("RightRear_state").valueStr
+                        text: parkbrakeNode.getPid(qsTr("RightRear_state") +tr.str).valueStr
                         anchors.horizontalCenter: parent.horizontalCenter
                     }
                     Row {
                         IconButton {
                             btnText: qsTr("RR release") + tr.str
-                            onClicked: parkbrakeActivate(3, false);
+                            onClicked: parkbrakeActivatePage.parkbrakeActivate(3, false);
                         }
                         IconButton {
                             btnText: qsTr("RR tighten") + tr.str
-                            onClicked: parkbrakeActivate(3, true);
+                            onClicked: parkbrakeActivatePage.parkbrakeActivate(3, true);
                         }
                     }
                 }
@@ -277,13 +285,13 @@ Item {
                     id: parkbrakeSetServiceBtn
                     btnText: qsTr("Set service mode") + tr.str
                     enabled: !parkbrakeNode.serviceMode
-                    onClicked: parkbrakeSetServiceState(true);
+                    onClicked: parkbrakeActivatePage.parkbrakeSetServiceState(true);
                 }
                 IconButton {
                     id: parkbrakeUnsetServiceBtn
                     btnText: qsTr("Unset service mode") + tr.str
                     enabled: parkbrakeNode.serviceMode
-                    onClicked: parkbrakeSetServiceState(false);
+                    onClicked: parkbrakeActivatePage.parkbrakeSetServiceState(false);
                 }
             }
         }

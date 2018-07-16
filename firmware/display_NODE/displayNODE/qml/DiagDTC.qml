@@ -141,7 +141,7 @@ Item {
                 anchors.right: parent.right
                 anchors.rightMargin: 10
                 width: 650
-                model: dtcParkbrakeModel
+                model: parkbrakeDTCModel //dtcParkbrakeModel
                 TableViewColumn {
                     role: "code"
                     title: qsTr("Code")+ tr.str
@@ -150,16 +150,11 @@ Item {
                 TableViewColumn {
                     role: "desc"
                     title: qsTr("Description")+ tr.str
-                    width: 400
+                    width: 510
                 }
                 TableViewColumn {
                     role: "occurrences"
                     title: qsTr("Occurrences")+ tr.str
-                    width: 70
-                }
-                TableViewColumn {
-                    role: "time"
-                    title: qsTr("Time from startup")+ tr.str
                     width: 70
                 }
             }
@@ -246,41 +241,41 @@ Item {
     }
 
     // ------- parkbrake model ------------
-    ListModel {
-        id: dtcParkbrakeModel
-        function rebuild() {
-            clear();
-            for (var i = 0; i < parkbrakeNode.dtcCount; ++i) {
-                var dtc = parkbrakeNode.getDtc(i);
-                append({code: dtc.dtcCodeStr, desc: dtc.dtcDescription, occurrences: dtc.occurences,
-                        time: dtc.timeSinceStartup});
-            }
-        }
-        function update(newDtc) {
-            for (var i = 0; i < count; ++i) {
-                var dtc = parkbrakeNode.getDtc(i);
-                if (dtc.codeStr !== newDtc.codeStr) {
-                    dtc.occurences = newDtc.occurences;
-                    dtc.pending = newDtc.pending
-                    return;
-                }
-            }
+//    ListModel {
+//        id: dtcParkbrakeModel
+//        function rebuild() {
+//            clear();
+//            for (var i = 0; i < parkbrakeNode.dtcCount; ++i) {
+//                var dtc = parkbrakeNode.getDtc(i);
+//                append({code: dtc.dtcCodeStr, desc: dtc.dtcDescription, occurrences: dtc.occurences,
+//                        time: dtc.timeSinceStartup});
+//            }
+//        }
+//        function update(newDtc) {
+//            for (var i = 0; i < count; ++i) {
+//                var dtc = parkbrakeNode.getDtc(i);
+//                if (dtc.codeStr !== newDtc.codeStr) {
+//                    dtc.occurences = newDtc.occurences;
+//                    dtc.pending = newDtc.pending
+//                    return;
+//                }
+//            }
 
-            // new dtc
-            append({code: newDtc.dtcCodeStr, desc: newDtc.dtcDescription,
-                    occurrences: newDtc.occurences, pending: newDtc.isPending});
-        }
-        Component.onCompleted: rebuild()
-    }
+//            // new dtc
+//            append({code: newDtc.dtcCodeStr, desc: newDtc.dtcDescription,
+//                    occurrences: newDtc.occurences, pending: newDtc.isPending});
+//        }
+//        Component.onCompleted: rebuild()
+//    }
 
-    Connections {
-        target: parkbrakeNode
-        onDtcArrived: dtcParkbrakeModel.update(dtc);
-    }
-    Connections {
-        target: parkbrakeNode
-        onDtcsCleared: dtcParkbrakeModel.clear();
-    }
+//    Connections {
+//        target: parkbrakeNode
+//        onDtcArrived: dtcParkbrakeModel.update(dtc);
+//    }
+//    Connections {
+//        target: parkbrakeNode
+//        onDtcsCleared: dtcParkbrakeModel.clear();
+//    }
     // ---------- end parkbrake model -------------
 
     // -----------freezeFrame model ---------------

@@ -8,6 +8,7 @@ SpinBox {
     property int settingsIndex: 255
     property int dataType: Settings.DataTypes.type_u16
     property variant node
+    property bool warnDeadNodeInitialNode: false
 
     Timer {
         id: delay
@@ -18,6 +19,17 @@ SpinBox {
         }
     }
 
+    Timer {
+        id: deadNodeWarn
+        interval: 500
+        onTriggered: {
+            Helpers.getNotifier().setContent("qrc:/images/error.svg",
+                                             qsTr("Network error"),
+                                             qsTr("No response from SuspensionNode"));
+            Helpers.getNotifier().showNotification();
+        }
+    }
+
     onValueModified: {
         delay.restart()
     }
@@ -25,7 +37,11 @@ SpinBox {
     Component.onCompleted: {
         function callbackGet(vlu) {
             value = vlu;
+            deadNodeWarn.stop();
         }
+
+        if (warnDeadNodeInitialNode)
+            deadNodeWarn.start();
 
         node.fetchSetting(settingsIndex, callbackGet);
     }

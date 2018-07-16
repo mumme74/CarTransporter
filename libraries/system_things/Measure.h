@@ -14,14 +14,14 @@
  */
 class Measurement :public ADC
 {
-  ADC_Module *m_compressorADC;
+  ADC_Module *m_sensorADC0;
   ADC_Module *m_sensorADC1;
 public:
   Measurement ();
   virtual ~Measurement ();
 
-  void initForCompressor();
-  inline ADC_Module *compressorADC() { return m_compressorADC; }
+  void initADC();
+  inline ADC_Module *sensorADC0() { return m_sensorADC0; }
   inline ADC_Module *sensorADC1() { return m_sensorADC1; }
 
 };

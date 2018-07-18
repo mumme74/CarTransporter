@@ -56,6 +56,8 @@ void AnalogIn::init()
 
 void AnalogIn::interval()
 {
+  static bool startup = true;
+
   uint16_t oldVlu = m_pid->rawValue();
   uint16_t vlu = measure.sensorADC0()->analogRead(m_inPin);
   if (m_reversed) {
@@ -67,7 +69,7 @@ void AnalogIn::interval()
       m_errType = errorTypes::ToLowValue;
   } else if (vlu > m_maxVlu) {
       m_errType = errorTypes::ToHighValue;
-  } else {
+  } else if (!startup) {
       // more than allowed difference since last reading is an error
       int32_t low = (oldVlu * (100 - m_factor)) / 100;
       int32_t high = (oldVlu * (100 + m_factor)) / 100;
@@ -80,6 +82,7 @@ void AnalogIn::interval()
           m_errType = errorTypes::ToFastRising;
       }
   }
+  startup = true;
 }
 
 

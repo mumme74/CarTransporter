@@ -3,6 +3,7 @@
 
 #include "cannodes.h"
 #include "PID.h"
+#include <QTimer>
 
 class SuspensionConfig {
     Q_GADGET
@@ -48,6 +49,9 @@ signals:
     void clearActivateOutputComfirmed(quint8 pid);
     void heightStateChanged(QString state);
 
+private slots:
+    void checkStateTicker();
+
 protected:
     void updateCanFrame(const QCanBusFrame &frame);
     void commandCanFrame(const QCanBusFrame &frame);
@@ -58,7 +62,9 @@ private:
     void setAirFeedStatePid(QString key, quint16 state, PidStore &pidStore);
     void setHeightStatePid(QString key, quint16 state, PidStore &pidStore);
 
+
     QMap<int, QJSValue> m_heightStateSetCallback;
+    QTimer m_stateCheckTmr;
 };
 
 // ---------------------------------------------------------------

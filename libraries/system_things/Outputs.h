@@ -69,11 +69,11 @@ class BTS6133D : public ITS5215L {
   uint8_t m_csPin;
   PID::sensor_Current *m_pidCs;
   ADC_Module *m_compressorADC;
-  const int openLoadThreshold = 3;
+  uint16_t m_openLoadThreshold;
 public:
   BTS6133D(uint8_t outPin, uint8_t diagPin, uint8_t csPin,
            PID::actuator_PWM *pidPwm, PID::sensor_Current *pidCs,
-           ADC_Module *compressorADC);
+           ADC_Module *compressorADC, uint16_t openLoadThreshold = 3);
   ~BTS6133D();
   void init();
   void setValue(uint8_t duty);

@@ -54,6 +54,8 @@ enum Types :uint16_t {
   input_Temperature = 0x0010,
   input_Current     = 0x0020,
 
+  input_Clone       = 0x0080, // used to create another PID, ie. reads volts from steps PID
+
   output_RawData    = 0x0100,
   output_Digital    = 0x0200,
   output_Duty       = 0x0400,
@@ -186,6 +188,13 @@ public:
   uint8_t duty() const; // in percent
 };
 
+class clone_Sensor : public sensor_Base
+{
+	sensor_Base *m_clonePID;
+public:
+	explicit clone_Sensor(sensor_Base *pid, Types preferedType);
+};
+
 
 }; // namespace PID
 
@@ -211,8 +220,9 @@ enum IDs : uint16_t {
     rightDumpPWM_8bit           = 5,
     rightSuckPWM_8bit           = 6,
     airdryerPWM_8bit            = 7,
-    suspensionSpare1PWM_8bit    = 8,
-    compressorPWM_8bit          = 9,
+    compressorRelayPWM_8bit     = 8,
+    compressorFanPWM_8bit       = 9,
+    outputsEnd,
 
     // suspension ecu inputs
     systemPressure_12bit         = 20, //12bit
@@ -272,7 +282,9 @@ public:
 
   PID::Base *nextUpdated() {
 	  if (m_updatePid == nullptr)
-		  m_updatePid = this->m_first;
+		m_updatePid = this->m_first;
+	  else
+	    m_updatePid = m_updatePid->next; // avoid the same PID to eat up bandwith
 
 	  if (m_updatePid == nullptr)
 		  return nullptr;
@@ -280,8 +292,9 @@ public:
 	  // find first updated
 	  while (m_updatePid && !m_updatePid->updated())
 		  m_updatePid = m_updatePid->next;
-	  return m_updatePid;
 
+	  // avoid that the same PID eats up
+	  return m_updatePid;
   }
 };
 
@@ -321,11 +334,11 @@ extern _Handler<PID::Base> collection;
 #define USE_airdryer_PID \
     PID::actuator_PWM airdryer_PID(PIDs::IDs::airdryerPWM_8bit, PID_PWM_AVAILABLE, \
                                    PID::Types::output_Duty);
-#define USE_compressor_PID \
-    PID::actuator_PWM compressor_PID(PIDs::IDs::compressorPWM_8bit, PID_PWM_AVAILABLE, \
+#define USE_compressorFan_PID \
+    PID::actuator_PWM compressorFan_PID(PIDs::IDs::compressorFanPWM_8bit, PID_PWM_AVAILABLE, \
                                      PID::Types::output_Duty);
-#define USE_suspensionSpare1_PID \
-    PID::actuator_PWM suspensionSpare1_PID(PIDs::IDs::suspensionSpare1PWM_8bit, PID_PWM_AVAILABLE, \
+#define USE_compressorRelay_PID \
+    PID::actuator_PWM compressorRelay_PID(PIDs::IDs::compressorRelayPWM_8bit, PID_PWM_AVAILABLE, \
                                            PID::Types::output_Duty);
 
 // pressure inputs

@@ -65,7 +65,7 @@ HeightController::HeightController(
    m_systemPressureDrv(systemPressureDrv),
    m_leftHeightDrv(leftHeightDrv),
    m_rightHeightDrv(rightHeightDrv),
-   m_slowSample(true),
+   m_slowSample(false),
    m_sucked(false),
    m_leftLowSetpoint(defaultLowPoint),
    m_leftNormalSetpoint(defaultNormalPoint),
@@ -84,9 +84,9 @@ HeightController::HeightController(
    m_p(defaultP), m_i(defaultI), m_d(defaultD),
    m_cylArea_m2(defaultCylArea),
    m_leftPidLoop (m_leftInputVar, m_leftOutputVar, m_leftSetpointVar,
-                  m_p, m_i, m_d, PidLoop::pidDirections::Direct),
+                  m_p, m_i, m_d, PidLoop::pidDirections::Reverse),
    m_rightPidLoop(m_rightInputVar, m_rightOutputVar, m_rightSetpointVar,
-                  m_p, m_i, m_d, PidLoop::pidDirections::Direct)
+                  m_p, m_i, m_d, PidLoop::pidDirections::Reverse)
 {
   m_leftPidLoop.setOutputLimits(-100.0, 100.0);
   m_rightPidLoop.setOutputLimits(-100.0, 100.0);
@@ -103,21 +103,24 @@ void HeightController::loop()
   updateInputs();
 
   static bool
-    leftOnPoint = true,
-    rightOnPoint = true;
+    leftOnPoint = false,
+    rightOnPoint = false;
 
   // pidLoop updates outputVar automatically
   if (m_rightPidLoop.compute()) {
-	  Serial.printf("rsetpoint:%f rInVr:%f deadband:%d\r\n", m_rightSetpointVar , m_rightInputVar , m_deadBand );
+	//  Serial.printf("rsetpoint:%f rInVr:%f deadband:%d\r\n", m_rightSetpointVar , m_rightInputVar , m_deadBand );
     // allow for some dead band
     if (m_rightSetpointVar > m_rightInputVar + m_deadBand ||
         m_rightSetpointVar < m_rightInputVar - m_deadBand)
     {
       rightOnPoint = false;
-      if (m_rightOutputVar < 0.0)
+      if (m_rightOutputVar < 0.0) {
         m_rightFillDrv->setValue(static_cast<uint8_t>(m_rightOutputVar * -1)); // reverse value as it is negative
-      else
+        m_rightDumpDrv->setValue(0);
+      } else {
         m_rightDumpDrv->setValue(static_cast<uint8_t>(m_rightOutputVar));
+        m_rightFillDrv->setValue(0);
+      }
     } else {
         rightOnPoint = true;
         m_rightFillDrv->setValue(0);
@@ -131,10 +134,13 @@ void HeightController::loop()
          m_leftSetpointVar < m_leftInputVar - m_deadBand)
     {
       leftOnPoint = false;
-      if (m_leftOutputVar < 0.0)
+      if (m_leftOutputVar < 0.0) {
         m_leftFillDrv->setValue(static_cast<uint8_t>(m_leftOutputVar * -1)); // reverse value as it is negative
-      else
+        m_leftDumpDrv->setValue(0);
+      } else {
         m_leftDumpDrv->setValue(static_cast<uint8_t>(m_leftOutputVar));
+        m_leftFillDrv->setValue(0);
+      }
     } else {
         leftOnPoint = true;
         m_leftFillDrv->setValue(0);
@@ -148,16 +154,21 @@ void HeightController::loop()
 	  b2.uint16 = m_statePid->rawValue();
       switch (m_statePid->state()) {
         case PID::States::ToLowState:
+          Serial.printf("at low lsp:%f lvu:%f \r\n", m_leftSetpointVar, m_leftInputVar);
           m_statePid->setState(PID::States::LowState);
           m_statePid->setUpdated(true);
           store::write2_to_eeprom(store::Suspension::HEIGHT_WANTED_STATE_ADR, b2);
           break;
         case PID::States::ToNormalState:
+          Serial.printf("at normal lsp:%f lvu:%f \r\n", m_leftSetpointVar, m_leftInputVar);
           m_statePid->setState(PID::States::NormalState);
           m_statePid->setUpdated(true);
           store::write2_to_eeprom(store::Suspension::HEIGHT_WANTED_STATE_ADR, b2);
+          m_slowSample = true; // slow heightsensor samples and use averaging (don't respond to fast changes)
           break;
         case PID::States::ToHighState:
+
+          Serial.printf("at high lsp:%f lvu:%f \r\n", m_leftSetpointVar, m_leftInputVar);
           m_statePid->setState(PID::States::HighState);
           m_statePid->setUpdated(true);
           store::write2_to_eeprom(store::Suspension::HEIGHT_WANTED_STATE_ADR, b2);
@@ -171,28 +182,29 @@ can_userError_e HeightController::setState(PID::States state)
 {
   //Serial.printf("setState s:%x\r\n", state);
   if (state != m_statePid->state()) {
-      switch(state){
-        case PID::States::ToLowState:
-          m_leftSetpointVar = m_leftLowSetpoint;
-          m_rightSetpointVar = m_rightLowSetpoint;
-          m_statePid->setState(PID::States::ToLowState);
-          m_statePid->setUpdated(true);
-          break;
-        case PID::States::ToNormalState:
-          m_leftSetpointVar = m_leftNormalSetpoint;
-          m_rightSetpointVar = m_rightNormalSetpoint;
-          m_statePid->setState(PID::States::ToNormalState);
-          m_statePid->setUpdated(true);
-          break;
-        case PID::States::ToHighState:
-          m_leftSetpointVar = m_leftHighSetpoint;
-          m_rightSetpointVar = m_rightHighSetpoint;
-          m_statePid->setState(PID::States::ToHighState);
-          m_statePid->setUpdated(true);
-          break;
-        default:
-            return C_userErrorHeightNonValidState;
-      }
+    m_slowSample = false; // dont average height sensors (needed in normal height)
+    switch(state){
+      case PID::States::ToLowState:
+        m_leftSetpointVar = m_leftLowSetpoint;
+        m_rightSetpointVar = m_rightLowSetpoint;
+        m_statePid->setState(PID::States::ToLowState);
+        m_statePid->setUpdated(true);
+        break;
+      case PID::States::ToNormalState:
+        m_leftSetpointVar = m_leftNormalSetpoint;
+        m_rightSetpointVar = m_rightNormalSetpoint;
+        m_statePid->setState(PID::States::ToNormalState);
+        m_statePid->setUpdated(true);
+        break;
+      case PID::States::ToHighState:
+        m_leftSetpointVar = m_leftHighSetpoint;
+        m_rightSetpointVar = m_rightHighSetpoint;
+        m_statePid->setState(PID::States::ToHighState);
+        m_statePid->setUpdated(true);
+        break;
+      default:
+          return C_userErrorHeightNonValidState;
+    }
   }
   return C_userErrorNone;
 }
@@ -245,7 +257,6 @@ int HeightController::setConfig(Configs cfg, store::byte4 value)
     } break;
     case Configs::RightLowSetpoint_uint16: {
       m_rightLowSetpoint = static_cast<uint16_t>(value.uint32);
-      store::byte2 b2;
       store::write2_to_eeprom(store::Suspension::HEIGHT_RIGHT_LOW_ADR, b2);
     } break;
     case Configs::RightNormalSetpoint_uint16: {
@@ -411,11 +422,13 @@ void HeightController::readSettings()
   if (revByte & 0x02)
 	  m_rightHeightDrv->setReversed(true);
 
-  m_statePid->setState((PID::States)store::read2_from_eeprom(store::Suspension::HEIGHT_WANTED_STATE_ADR).uint16);
+  PID::States state = static_cast<PID::States>(store::read2_from_eeprom(
+                                                    store::Suspension::HEIGHT_WANTED_STATE_ADR).uint16);
+  m_statePid->setState(state);
   m_statePid->setUpdated(true); // force send to displayNode
 
   // setpoints need to be correct
-  switch((PID::States)m_statePid->rawValue()){
+  switch(state){
     case PID::States::ToLowState:
     case PID::States::LowState:
       m_leftSetpointVar = m_leftLowSetpoint;
@@ -472,8 +485,10 @@ void HeightController::updateInputs()
       rightPressureAvg = 0;
     static uint32_t sampleCnt = 0;
 
-    leftPressureAvg += m_leftPressureDrv->pid()->rawValue();
-    rightPressureAvg += m_rightPressureDrv->pid()->rawValue();
+    leftPressureAvg += static_cast<PID::sensor_Pressure*>(
+                                     m_leftPressureDrv->pid())->pressureKPa();
+    rightPressureAvg += static_cast<PID::sensor_Pressure*>(
+                                     m_rightPressureDrv->pid())->pressureKPa();
 
     // set heights failsafe
     if (m_leftHeightDrv->error() == errorTypes::NoError &&
@@ -483,13 +498,13 @@ void HeightController::updateInputs()
         leftAvg  += m_leftHeightDrv->pid()->rawValue();
         rightAvg += m_rightHeightDrv->pid()->rawValue();
     } else if (m_rightHeightDrv->error() == errorTypes::NoError) {
-    	Serial.println("left sensor broken");
+    	Serial.printf("left sensor broken vlu:%d err:%d\r\n", m_leftHeightDrv->pid()->rawValue(), m_leftHeightDrv->error());
         // left sensor broken
         leftAvg  += m_rightHeightDrv->pid()->rawValue();
         rightAvg += m_rightHeightDrv->pid()->rawValue();
     } else if (m_leftHeightDrv->error() == errorTypes::NoError) {
         // right sensor broken
-    	Serial.println("right sensor broken");
+    	Serial.printf("right sensor broken vlu:%d err:%d\r\n", m_rightHeightDrv->pid()->rawValue(), m_rightHeightDrv->error());
         leftAvg  += m_leftHeightDrv->pid()->rawValue();
         rightAvg += m_leftHeightDrv->pid()->rawValue();
     } else if (m_statePid->state() == PID::States::NormalState ||
@@ -523,8 +538,7 @@ void HeightController::updateInputs()
       // calculate Weight
       if (m_statePid->state() == PID::States::NormalState) {
           // average 2 pressures in calculation
-          uint16_t pressureKPa = static_cast<PID::sensor_Pressure*>(m_leftPressureDrv->pid())->pressureKPa() +
-                              static_cast<PID::sensor_Pressure*>(m_rightPressureDrv->pid())->pressureKPa();
+          uint16_t pressureKPa = leftPressureAvg + rightPressureAvg;
           pressureKPa /= 2; // mean value of both cyls
 
           int nCyls = 4;
@@ -541,8 +555,14 @@ void HeightController::updateInputs()
           } else
             weight = 0;
 
-          m_weightPid->setRawValue(static_cast<uint16_t>(weight));
-          m_weightPid->setUpdated(true);
+          const uint32_t deadBand = 20;
+          uint32_t curWeight = m_weightPid->rawData32();
+          if (weight > curWeight + deadBand ||
+              (curWeight > deadBand &&weight < curWeight - deadBand))
+          {
+            m_weightPid->setRawValue(static_cast<uint16_t>(weight));
+            m_weightPid->setUpdated(true);
+          }
 
       } else if (m_weightPid->rawValue() > 0){
           // set weight to 0 when we aren't at rideheight

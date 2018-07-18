@@ -46,7 +46,7 @@ PIDs::IDs SuspensionPID1ids [] = {
     PIDs::IDs::rightDumpPWM_8bit,
     PIDs::IDs::rightSuckPWM_8bit,
     PIDs::IDs::airdryerPWM_8bit,
-    PIDs::IDs::compressorPWM_8bit,
+    PIDs::IDs::compressorFanPWM_8bit,
 };
 Frame_t SuspensionPID_1_Frame8bit = {
   C_suspensionUpdPID_1,
@@ -59,8 +59,8 @@ PIDs::IDs SuspensionPID2ids [] = {
     PIDs::IDs::systemPressure_12bit, // 2byte
     PIDs::IDs::leftPressure_12bit, // 4byte
     PIDs::IDs::rightPressure_12bit, // 6byte
-    PIDs::IDs::compressorCurrent_8bit, // 7byte
-    PIDs::IDs::suspensionSpare1PWM_8bit, // 8byte
+    PIDs::IDs::compressorRelayPWM_8bit, // 7byte
+//    PIDs::IDs::compressorCurrent_8bit, // 8byte // is no more as compressor is relay steered
 };
 Frame_t SuspensionPID_2_FrameMixed = {
   C_suspensionUpdPID_2,
@@ -114,14 +114,14 @@ PidID_to_Frame_t ID_to_FrameTable[] = {
     { PIDs::IDs::rightDumpPWM_8bit, CAN::SuspensionPID_1_Frame8bitPtr },
     { PIDs::IDs::rightSuckPWM_8bit, CAN::SuspensionPID_1_Frame8bitPtr },
     { PIDs::IDs::airdryerPWM_8bit, CAN::SuspensionPID_1_Frame8bitPtr },
-    { PIDs::IDs::compressorPWM_8bit, CAN::SuspensionPID_1_Frame8bitPtr },
+    { PIDs::IDs::compressorFanPWM_8bit, CAN::SuspensionPID_1_Frame8bitPtr },
 
     // suspension frame2
     { PIDs::IDs::systemPressure_12bit, CAN::SuspensionPID_2_FrameMixedPtr },
     { PIDs::IDs::leftPressure_12bit, CAN::SuspensionPID_2_FrameMixedPtr },
     { PIDs::IDs::rightPressure_12bit, CAN::SuspensionPID_2_FrameMixedPtr },
-    { PIDs::IDs::compressorCurrent_8bit, CAN::SuspensionPID_2_FrameMixedPtr },
-    { PIDs::IDs::suspensionSpare1PWM_8bit, CAN::SuspensionPID_2_FrameMixedPtr },
+    { PIDs::IDs::compressorRelayPWM_8bit, CAN::SuspensionPID_2_FrameMixedPtr },
+//    { PIDs::IDs::compressorCurrent_8bit, CAN::SuspensionPID_2_FrameMixedPtr }, // is no more as relay controlled
 
     // suspension frame3
     { PIDs::IDs::leftHeight_12bit, CAN::SuspensionPID_3_FrameMixedPtr },
@@ -202,54 +202,57 @@ ControllerBase::~ControllerBase ()
 void ControllerBase::_recievedUpdate(CAN_message_t *msg,
                                      can_senderIds_e /*senderId*/, can_msgIdsUpdate_e msgId)
 {
-  // find the correct frame
-  const Frame_t *frame = frame_from_msgId(msgId);
-  if (frame == nullptr)
-    return;
-
   // its intended for this node
 #ifdef DEBUG_UART_ON
 	  Serial.println("CAN upd rcv");
 #endif
 
-  // read each pid from the msg bytes
-  int byteCnt = 0;
-  for (int i = 0; i < 8; ++i) {
-      PIDs::IDs id = frame->ids[i];
-      if (id == PIDs::IDs::Nothing) {
-          break;
-      }
+   _buildUpdateFrame(frame_from_msgId(msg->id & CAN_MSG_ID_MASK), *msg);
+  Serial.printf("send update req:%d id:%x len:%d\r\n", msg->id, msg->len);
 
-      PID::Base *pid = PIDs::collection.find(id);
-      if (pid != nullptr) {
-          PID::byteSizes siz = pid->size();
-          switch(siz) {
-            case PID::byteSizes::oneByte: {
-              uint16_t vlu = pid->rawValue();
-              msg->buf[byteCnt++] = vlu & 0x00FF;
-            } break;
-            case PID::byteSizes::twoByte: {
-              // little endian, LSB byte first
-              uint16_t vlu = pid->rawValue();
-              msg->buf[byteCnt++] = (vlu & 0x00FF) << 0;
-              msg->buf[byteCnt++] = (vlu & 0xFF00) << 8;
-            } break;
-            case PID::byteSizes::fourByte:
-              // little endian, LSB byte first
-              uint32_t vlu32 = pid->rawData32();
-              msg->buf[byteCnt++] = (vlu32 & 0x000000FF) << 0;
-              msg->buf[byteCnt++] = (vlu32 & 0x0000FF00) << 8;
-              msg->buf[byteCnt++] = (vlu32 & 0x00FF0000) << 16;
-              msg->buf[byteCnt++] = (vlu32 & 0xFF000000) << 24;
-              break;
-          }
-      }
+  if (msg->len) {
+    send(*msg);
+    Serial.printf("send update id:%x len:%d\r\n", msg->id, msg->len);
   }
 
-  _init_CAN_message_t(msg, 5);
-  msg->id = CAN_MSG_TYPE_UPDATE | msgId | m_senderId;
-  msg->len = byteCnt;
-  send(*msg);
+//  // read each pid from the msg bytes
+//  int byteCnt = 0;
+//  for (int i = 0; i < 8; ++i) {
+//      PIDs::IDs id = frame->ids[i];
+//      if (id == PIDs::IDs::Nothing) {
+//          break;
+//      }
+//
+//      PID::Base *pid = PIDs::collection.find(id);
+//      if (pid != nullptr) {
+//          PID::byteSizes siz = pid->size();
+//          switch(siz) {
+//            case PID::byteSizes::oneByte: {
+//              uint16_t vlu = pid->rawValue();
+//              msg->buf[byteCnt++] = vlu & 0x00FF;
+//            } break;
+//            case PID::byteSizes::twoByte: {
+//              // little endian, LSB byte first
+//              uint16_t vlu = pid->rawValue();
+//              msg->buf[byteCnt++] = (vlu & 0x00FF) << 0;
+//              msg->buf[byteCnt++] = (vlu & 0xFF00) << 8;
+//            } break;
+//            case PID::byteSizes::fourByte:
+//              // little endian, LSB byte first
+//              uint32_t vlu32 = pid->rawData32();
+//              msg->buf[byteCnt++] = (vlu32 & 0x000000FF) << 0;
+//              msg->buf[byteCnt++] = (vlu32 & 0x0000FF00) << 8;
+//              msg->buf[byteCnt++] = (vlu32 & 0x00FF0000) << 16;
+//              msg->buf[byteCnt++] = (vlu32 & 0xFF000000) << 24;
+//              break;
+//          }
+//      }
+//  }
+//
+//  _init_CAN_message_t(msg, 5);
+//  msg->id = CAN_MSG_TYPE_UPDATE | msgId | m_senderId;
+//  msg->len = byteCnt;
+//  send(*msg);
 }
 
 void ControllerBase::_recievedDiagnose(CAN_message_t *msg,
@@ -472,6 +475,79 @@ CAN_message_t ControllerBase::_buildDTC_Msg(DTC *dtc, uint8_t idx) const
   return msg;
 }
 
+CAN_message_t &ControllerBase::_buildUpdateFrame(PIDs::IDs id, CAN_message_t &msg) const
+{
+  this->_init_CAN_message_t(&msg);
+
+  // find which frame this pid belongs to
+  const Frame_t *frame = frame_from_id(id);
+  if (frame == nullptr)
+    return msg; // empty and no id
+
+  return _buildUpdateFrame(frame, msg);
+
+}
+
+CAN_message_t &ControllerBase::_buildUpdateFrame(Frame_t *frame, CAN_message_t &msg) const
+{
+  // read the pids and send them
+  msg.id = static_cast<uint16_t>(frame->msgId) | CAN_MSG_TYPE_UPDATE;
+
+  // stuff the bytes into this frame
+  for(int i = 0; i < frame->len; ++i) {
+    PIDs::IDs tID = frame->ids[i];
+    PID::Base *pid = PIDs::collection.find(tID);
+    if(pid == nullptr){
+      //Serial.printf("pid stuff bust out id:%d\r\n", tID);
+      break;
+    }
+    //Serial.printf("pid stuff i:%d pid:%d frame_id:%x frame->len:%d\r\n", i, pid->id(), frame->msgId, frame->len);
+
+    // mark as read
+    pid->setUpdated(false);
+
+    // output the PID value to the CAN frame
+    switch(pid->size()){
+    case PID::byteSizes::oneByte:
+      // Serial.println("1byte");
+      if (pid->preferedType() == PID::Types::input_Current) {
+        msg.buf[msg.len++] = static_cast<PID::sensor_Current*>(pid)->current();
+      } else {
+        msg.buf[msg.len++] = static_cast<uint8_t>(pid->rawValue());
+      }
+      break;
+    case PID::byteSizes::twoByte:
+      // little endian, highest byte first
+      // Serial.println("2byte");
+      uint16_t vlu16;
+      if (pid->preferedType() == PID::Types::input_Pressure) {
+        vlu16 = static_cast<PID::sensor_Pressure*>(pid)->pressureKPa();
+      } else if (pid->preferedType() == PID::Types::input_Temperature) {
+        // need to handle signed int's here (negative temp)
+        int16_t vlu = (int16_t)static_cast<PID::sensor_NTC*>(pid)->celcius();
+        msg.buf[msg.len++] = (vlu & 0x00FF) >> 0;
+        msg.buf[msg.len++] = (vlu & 0xFF00) >> 8;
+        break;
+      } else {
+        vlu16 = pid->rawValue();
+      }
+      msg.buf[msg.len++] = (vlu16 & 0x00FF) >> 0;
+      msg.buf[msg.len++] = (vlu16 & 0xFF00) >> 8;
+      break;
+    case PID::byteSizes::fourByte:
+      // little endian, highest byte first
+      // Serial.println("4byte");
+      uint32_t vlu32;
+      vlu32 = pid->rawData32();
+      msg.buf[msg.len++] = (vlu32 & 0x000000FF) >> 0;
+      msg.buf[msg.len++] = (vlu32 & 0x0000FF00) >> 8;
+      msg.buf[msg.len++] = (vlu32 & 0x00FF0000) >> 16;
+      msg.buf[msg.len++] = (vlu32 & 0xFF000000) >> 24;
+      break;
+    }
+  }
+  return msg;
+}
 
 void ControllerBase::_init_CAN_message_t(CAN_message_t *msg, uint16_t timeout /*= 0*/) const
 {
@@ -539,71 +615,10 @@ void ControllerBase::loop()
   // eases out on our poor network
   PID::Base *pid = PIDs::collection.nextUpdated();
   if (pid) {
-	  // find which frame this pid belongs to
-	  const Frame_t *frame = frame_from_id(pid->id());
-	  if (frame == nullptr)
-		return;
-
-	  // read the pids and send them
-	  this->_init_CAN_message_t(&msg);
-	  msg.id = static_cast<uint16_t>(frame->msgId) | CAN_MSG_TYPE_UPDATE;
-
-	  // stuff the bytes into this frame
-	  for(int i = 0; i < frame->len; ++i) {
-		PIDs::IDs tID = frame->ids[i];
-		pid = PIDs::collection.find(tID);
-		if(pid == nullptr){
-          //Serial.printf("pid stuff bust out id:%d\r\n", tID);
-		  break;
-		}
-        //Serial.printf("pid stuff i:%d pid:%d frame_id:%x frame->len:%d\r\n", i, pid->id(), frame->msgId, frame->len);
-
-		// mark as read
-		pid->setUpdated(false);
-
-		// output the PID value to the CAN frame
-		switch(pid->size()){
-		  case PID::byteSizes::oneByte:
-            // Serial.println("1byte");
-            if (pid->preferedType() == PID::Types::input_Current) {
-              msg.buf[msg.len++] = static_cast<PID::sensor_Current*>(pid)->current();
-            } else {
-              msg.buf[msg.len++] = static_cast<uint8_t>(pid->rawValue());
-            }
-			break;
-		  case PID::byteSizes::twoByte:
-			// little endian, highest byte first
-            // Serial.println("2byte");
-			uint16_t vlu16;
-			if (pid->preferedType() == PID::Types::input_Pressure) {
-				vlu16 = static_cast<PID::sensor_Pressure*>(pid)->pressureKPa();
-			} else if (pid->preferedType() == PID::Types::input_Temperature) {
-				// need to handle signed int's here (negative temp)
-				int16_t vlu = (int16_t)static_cast<PID::sensor_NTC*>(pid)->celcius();
-				msg.buf[msg.len++] = (vlu & 0x00FF) >> 0;
-				msg.buf[msg.len++] = (vlu & 0xFF00) >> 8;
-				break;
-			} else {
-				vlu16 = pid->rawValue();
-			}
-			msg.buf[msg.len++] = (vlu16 & 0x00FF) >> 0;
-			msg.buf[msg.len++] = (vlu16 & 0xFF00) >> 8;
-			break;
-		  case PID::byteSizes::fourByte:
-			// little endian, highest byte first
-            // Serial.println("4byte");
-			uint32_t vlu32;
-			vlu32 = pid->rawData32();
-			msg.buf[msg.len++] = (vlu32 & 0x000000FF) >> 0;
-			msg.buf[msg.len++] = (vlu32 & 0x0000FF00) >> 8;
-			msg.buf[msg.len++] = (vlu32 & 0x00FF0000) >> 16;
-			msg.buf[msg.len++] = (vlu32 & 0xFF000000) >> 24;
-			break;
-		}
-	  }
-	  //Serial.printf("updated m.len:%d id:%x [0]:%x\r\n", msg.len, msg.id, msg.buf[0]);
-	  // send the updated frame
-	  send(msg);
+    _buildUpdateFrame(pid->id(), msg);
+    if (msg.len)
+      send(msg);
+      //Serial.printf("send updated:%d\r\n", pid->id());
 	}
 #endif
 }

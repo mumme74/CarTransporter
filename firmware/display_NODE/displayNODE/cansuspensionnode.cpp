@@ -2,6 +2,7 @@
 #include "can_protocol.h"
 #include "PID.h"
 #include <QDebug>
+#include <QTimer>
 
 // #define TEST_DIAG 1
 
@@ -60,6 +61,12 @@ CanSuspensionNode::CanSuspensionNode(CanInterface *canInterface, QObject *parent
     // ------------ end test -------------------
 #endif
 
+    // autoload state
+    m_stateCheckTmr.setInterval(400);
+    m_stateCheckTmr.setSingleShot(false);
+    m_stateCheckTmr.start();
+    connect(&m_stateCheckTmr, SIGNAL(timeout()), this, SLOT(checkStateTicker()));
+
     updatedFromCan(frames);
 
     qmlRegisterUncreatableType<CanSuspensionNode>("mummesoft", 0, 1, "suspensionNode", QStringLiteral("Cant create CanSuspensionNode from QML"));
@@ -89,7 +96,7 @@ bool CanSuspensionNode::clearAllDtcs()
 
 bool CanSuspensionNode::activateOutput(quint8 pid, quint8 vlu) const
 {
-    if (pid == 0 || pid > PIDs::compressorPWM_8bit)
+    if (pid == 0 || pid >= PIDs::outputsEnd)
         return false;
 
     QByteArray pl;
@@ -101,7 +108,7 @@ bool CanSuspensionNode::activateOutput(quint8 pid, quint8 vlu) const
 
 bool CanSuspensionNode::clearActivateOutput(quint8 pid) const
 {
-    if (pid == 0 || pid > PIDs::compressorPWM_8bit)
+    if (pid == 0 || pid >= PIDs::outputsEnd)
         return false;
 
     QByteArray pl;
@@ -193,18 +200,18 @@ void CanSuspensionNode::updateCanFrame(const QCanBusFrame &frame)
         setPidsValue(tr("RightDump_duty"), QString::number(data[4]), "%", m_pids, C_suspensionNode);
         setPidsValue(tr("RightSuck_duty"), QString::number(data[5]), "%", m_pids, C_suspensionNode);
         setPidsValue(tr("Airdryer_duty"), QString::number(data[6]), "%", m_pids, C_suspensionNode);
-        setPidsValue(tr("Compressor_duty"), QString::number(data[7]), "%", m_pids, C_suspensionNode);
+        setPidsValue(tr("Comp.Fan_duty"), QString::number(data[7]), "%", m_pids, C_suspensionNode);
     } break;
     case C_suspensionUpdPID_2: {
         // response:
-        //   [0:15]              [0:15]        [0:15]          [0:7]             [0:7]
-        // systemPressure | leftPressure | rightPressure | compressorCurrent | spare1Duty
+        //   [0:15]              [0:15]        [0:15]          [0:7]  //           [0:7]
+        // systemPressure | leftPressure | rightPressure | spare1Duty // | compressorCurrent // compressorCurrent is now compressorFan
         //    12bit              12bit          12bit
         setPidsValue(tr("System_pressure"), QString::number(data[1] << 8 | (0x00ff & data[0])), "kPa", m_pids, C_suspensionNode);
         setPidsValue(tr("Left_pressure"), QString::number(data[3] << 8 | (0x00ff & data[2])), "kPa", m_pids, C_suspensionNode);
         setPidsValue(tr("Right_pressure"), QString::number(data[5] << 8 | (0x00ff & data[4])), "kPa", m_pids, C_suspensionNode);
-        setPidsValue(tr("Compressor_current"), QString::number(data[6]), "A", m_pids, C_suspensionNode);
-        setPidsValue(tr("Spare1_duty"), QString::number(data[7]), "%", m_pids, C_suspensionNode);
+        setPidsValue(tr("Comp.relay_duty"), QString::number(data[6]), "%", m_pids, C_suspensionNode);
+        //setPidsValue(tr("Compressor_current"), QString::number(data[6]), "A", m_pids, C_suspensionNode);
     } break;
     case C_suspensionUpdPID_3: {
         // response:
@@ -279,7 +286,7 @@ void CanSuspensionNode::commandCanFrame(const QCanBusFrame &frame)
     case C_suspensionCmdSetNormal:
     case C_suspensionCmdSetHigh:
     case C_suspensionCmdSetRearWheelsUp: {
-        if (payload[0] != 0xAA)
+        if (static_cast<quint8>(payload[0]) != 0xAA)
             break;
         int idx = sid & CAN_MSG_ID_MASK;
         if (m_heightStateSetCallback.contains(idx)) {
@@ -431,11 +438,11 @@ void CanSuspensionNode::diagCanFrame(const QCanBusFrame &frame)
         case PIDs::airdryerPWM_8bit: {
             setPidsValue(tr("Airdryer_duty"), QString::number(payload[1]), "%", m_pids, C_suspensionNode);
         } break;
-        case PIDs::suspensionSpare1PWM_8bit: {
-            setPidsValue(tr("Spare1_duty"), QString::number(payload[1]), "%", m_pids, C_suspensionNode);
+        case PIDs::compressorRelayPWM_8bit: {
+            setPidsValue(tr("Comp.relay_duty"), QString::number(payload[1]), "%", m_pids, C_suspensionNode);
         } break;
-        case PIDs::compressorPWM_8bit: {
-            setPidsValue(tr("Compressor_duty"), QString::number(payload[1]), "%", m_pids, C_suspensionNode);
+        case PIDs::compressorFanPWM_8bit: {
+            setPidsValue(tr("Comp.Fan_duty"), QString::number(payload[1]), "%", m_pids, C_suspensionNode);
         } break;
         default:
             break;
@@ -450,7 +457,7 @@ void CanSuspensionNode::diagCanFrame(const QCanBusFrame &frame)
         // request a update pid from node
         can_msgIdsUpdate_e canUpdId = C_suspensionUpdPID_1;
 
-        if (static_cast<quint8>(payload[0]) == PIDs::suspensionSpare1PWM_8bit)
+        if (static_cast<quint8>(payload[0]) == PIDs::compressorRelayPWM_8bit)
             canUpdId = C_suspensionUpdPID_2;
 
         QCanBusFrame f; //(QCanBusFrame::RemoteRequestFrame); // FlexCAN hardware limitation, can't recieve rtr
@@ -545,6 +552,20 @@ void CanSuspensionNode::setHeightStatePid(QString key, quint16 state, CanAbstrac
     // now that state has changed we can emit
     if (stateChanged)
         emit heightStateChanged(stateStr);
+}
+
+void CanSuspensionNode::checkStateTicker()
+{
+    if (m_pids.keys().contains(tr("Height_state")) &&
+        m_pids[tr("Height_state")]->valueStr() == tr("UnknownState"))
+    {
+        // send update request for state
+        QByteArray pl;
+        QCanBusFrame f(CAN_MSG_TYPE_UPDATE | C_suspensionUpdPID_4 | C_displayNode, pl);
+        m_canIface->sendFrame(f);
+    } else {
+        m_stateCheckTmr.stop();
+    }
 }
 
 
@@ -643,12 +664,14 @@ CanPid *SuspensionPressureDlgModel::getPidForIdx(int idx) const
     case 0:
         return m_node->getPid(tr("System_pressure"));
     case 1:
-        return m_node->getPid(tr("Compressor_duty"));
+        return m_node->getPid(tr("Comp.relay_duty"));
     case 2:
-        return m_node->getPid(tr("Airdryer_duty"));
+        return m_node->getPid(tr("Comp.Fan_duty"));
     case 3:
-        return m_node->getPid(tr("Left_pressure"));
+        return m_node->getPid(tr("Airdryer_duty"));
     case 4:
+        return m_node->getPid(tr("Left_pressure"));
+    case 5:
         return m_node->getPid(tr("Right_pressure"));
     default:
         return nullptr;

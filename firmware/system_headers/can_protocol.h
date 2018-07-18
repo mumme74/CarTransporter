@@ -272,12 +272,12 @@ typedef enum {
     C_suspensionUpdPID_1        = 0x20 << 3, // request might be RTR: no paylod on request
                                              // response:
                                              //    [0:7]          [0:7]         [0:7]          [0:7]            [0:7]           [0:7]           [0:7]           [0:7]
-                                             // leftFillDuty | leftDumpDuty | leftSuckDuty | rightFillDuty | rightDumpDuty | rightSuckDuty | airDryerDuty | compressorDuty
+                                             // leftFillDuty | leftDumpDuty | leftSuckDuty | rightFillDuty | rightDumpDuty | rightSuckDuty | airDryerDuty | compressorFanDuty
 
     C_suspensionUpdPID_2        = 0x21 << 3, // request might be RTR, no payload on request
                                              // response:
-                                             //   [0:15]              [0:15]        [0:15]          [0:7]             [0:7]
-                                             // systemPressure | leftPressure | rightPressure | compressorCurrent | spare1Duty
+                                             //   [0:15]              [0:15]        [0:15]          [0:7]        //     [0:7]
+                                             // systemPressure | leftPressure | rightPressure | compressorRelay  //| compressorCurrent // is no more as compressor is relay steered
                                              //    12bit              12bit          12bit
 
     C_suspensionUpdPID_3        = 0x22 << 3, // request might be RTR, no payload on request

@@ -153,11 +153,12 @@ inline void ITS5215L::interval()
 // -------------------------- begin BTS6133D driver --------------------
 BTS6133D::BTS6133D(uint8_t outPin, uint8_t diagPin, uint8_t csPin,
                    PID::actuator_PWM  *pidPwm, PID::sensor_Current *pidCs,
-                   ADC_Module *compressorADC) :
+                   ADC_Module *compressorADC, uint16_t openLoadThreshold) :
     ITS5215L(outPin, diagPin, pidPwm),
     m_csPin(csPin),
     m_pidCs(pidCs),
-    m_compressorADC(compressorADC)
+    m_compressorADC(compressorADC),
+    m_openLoadThreshold(openLoadThreshold)
 {
 }
 
@@ -228,7 +229,6 @@ inline void BTS6133D::interval()
         m_pidCs->setUpdated(true);
 
         uint8_t currentSteps8 = currentSteps8 / 16;
-    	//Serial.printf("v16:%d v8:%d\r\n",currentSteps,currentSteps8);
 
 
         // check for over temp
@@ -236,9 +236,10 @@ inline void BTS6133D::interval()
           m_errType = errorTypes::Overload;
           m_state = PID::States::Error;
           digitalWriteFast(m_outPin, LOW);
-        } else if ((currentSteps < (openLoadThreshold * duty) / 100) &&
+        } else if ((currentSteps < (m_openLoadThreshold * duty) / 100) &&
                    (m_state != PID::States::ActuatorTest))
         {
+          Serial.printf("open load v16:%d v8:%d\r\n",currentSteps,currentSteps8);
           m_state = PID::States::Error;
           m_errType = errorTypes::OpenLoad;
         }

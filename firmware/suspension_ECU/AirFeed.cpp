@@ -7,10 +7,12 @@
 
 #include "AirFeed.h"
 
-AirFeed::AirFeed (PID::State *pid, BTS6133D *compressorDrv, ITS5215L *airdryerDrv,
-                  PID::sensor_Pressure *systemPressurePID, PID::sensor_NTC *compressorTemp) :
-  m_compressorOutDrv(compressorDrv),
+AirFeed::AirFeed (PID::State *pid, BTS6133D *compressorFanDrv, ITS5215L *airdryerDrv,
+                  ITS5215L *compressorRelayDrv, PID::sensor_Pressure *systemPressurePID,
+                  PID::sensor_NTC *compressorTemp) :
+  m_compressorFanDrv(compressorFanDrv),
   m_airdryerOutDrv(airdryerDrv),
+  m_compressorRelayDrv(compressorRelayDrv),
   m_errType(errorTypes::NoError),
   m_pid(pid),
   m_systemPressure(systemPressurePID),
@@ -39,12 +41,13 @@ void AirFeed::loop()
         // softStart compressor
         m_pid->setState(PID::States::RevUp);
         m_pid->setUpdated(true);
-        m_compressorOutDrv->setValue(10);
+        m_compressorFanDrv->setValue(10);
+        m_compressorRelayDrv->setValue(100);
     } else if (state == PID::States::RevUp &&
-        m_compressorOutDrv->pidCs()->current() < maxCurrent)
+        m_compressorFanDrv->pidCs()->current() < maxCurrent)
     {
-        int duty = m_compressorOutDrv->pid()->rawValue() + incDuty;
-        m_compressorOutDrv->setValue(duty);
+        int duty = m_compressorFanDrv->pid()->rawValue() + incDuty;
+        m_compressorFanDrv->setValue(duty);
         if (duty > 99) {
             m_pid->setState(PID::States::FullRev);
             m_pid->setUpdated(true);
@@ -59,7 +62,8 @@ void AirFeed::loop()
     } else if(m_pid->state() == PID::States::Airdryer &&
               airdryerEndAt < millis())
     {
-        int duty = m_compressorOutDrv->pid()->rawValue() - incDuty;
+        m_compressorRelayDrv->setValue(0);
+        int duty = m_compressorFanDrv->pid()->rawValue() - incDuty;
         if (duty < 0) {
           // overflow
           duty = 0;
@@ -70,12 +74,13 @@ void AirFeed::loop()
           m_pid->setState(PID::States::RevDown);
           m_pid->setUpdated(true);
         }
-        m_compressorOutDrv->setValue(duty);
+        m_compressorFanDrv->setValue(duty);
     } else if (m_pid->state() != PID::States::Off &&
                state != PID::States::Error &&
                m_compressorTemp->celcius() > maxCompressorTemp)
     {
-        m_compressorOutDrv->setValue(0);
+        m_compressorFanDrv->setValue(100);
+        m_compressorRelayDrv->setValue(0);
         m_pid->setState(PID::States::Error);
         m_pid->setUpdated(true);
         m_errType = errorTypes::OverHeated;

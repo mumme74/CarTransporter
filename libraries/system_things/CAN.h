@@ -31,6 +31,7 @@ struct CAN_DTC_send : public CAN_message_t
   CAN_DTC_send(PID::Base *pid, errorTypes err, uint8_t occurences);
 };
 
+class Frame_t;
 class ControllerBase
 {
 protected:
@@ -41,6 +42,8 @@ protected:
   virtual void  _recievedDiagnose(CAN_message_t *msg, can_senderIds_e senderId, can_msgIdsDiag_e msgId);
   bool          sendDTC(DTC *dtc, can_msgIdsException_e msgId);
   CAN_message_t _buildDTC_Msg(DTC *dtc, uint8_t idx) const;
+  CAN_message_t &_buildUpdateFrame(PIDs::IDs id, CAN_message_t &msg) const;
+  CAN_message_t &_buildUpdateFrame(Frame_t *frame, CAN_message_t &msg) const;
   void          _init_CAN_message_t(CAN_message_t *msg, uint16_t timeout = 0) const;
   void          _parseID(uint16_t id, uint16_t &targetNode, uint16_t &action) const;
   uint16_t      _normalizeAction(uint16_t action) const;

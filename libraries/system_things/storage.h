@@ -61,7 +61,7 @@ static const uint16_t
   HEIGHT_RIGHT_NORMAL_SIZE = 2,
   HEIGHT_LEFT_HIGH_ADR     = 0x0022, // setpoint for left high position
   HEIGHT_LEFT_HIGH_SIZE    = 2,
-  HEIGHT_RIGHT_HIGH_ADR    = 0x0024,
+  HEIGHT_RIGHT_HIGH_ADR    = 0x0024, // setpoint for right high position
   HEIGHT_RIGHT_HIGH_SIZE   = 2,
   HEIGHT_CYL_DIA_MM_ADR    = 0x0026, // air bellows diameter
   HEIGHT_CYL_DIA_MM_SIZE   = 2,

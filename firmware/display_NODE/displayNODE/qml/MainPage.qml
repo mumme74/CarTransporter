@@ -326,7 +326,7 @@ Page {
 
         Connections {
             target: suspensionNode
-            onHeightStateChanged: function(state) {
+            onHeightStateChanged: {
                 if (state === "UnknownState" ||
                     state === "ErrorState")
                 {

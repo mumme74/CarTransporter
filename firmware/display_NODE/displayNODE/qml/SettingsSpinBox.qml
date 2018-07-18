@@ -25,7 +25,7 @@ SpinBox {
         onTriggered: {
             Helpers.getNotifier().setContent("qrc:/images/error.svg",
                                              qsTr("Network error"),
-                                             qsTr("No response from SuspensionNode"));
+                                             qsTr("No response from Node"));
             Helpers.getNotifier().showNotification();
         }
     }

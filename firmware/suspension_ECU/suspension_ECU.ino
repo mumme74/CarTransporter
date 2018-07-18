@@ -21,8 +21,8 @@ USE_rightDump_PID;
 USE_leftSuck_PID;
 USE_rightSuck_PID;
 USE_airdryer_PID;
-USE_compressor_PID;
-USE_suspensionSpare1_PID;
+USE_compressorFan_PID;
+USE_compressorRelay_PID;
 USE_compressorCurrent_PID;
 USE_leftHeight_PID;
 USE_rightHeight_PID;
@@ -44,11 +44,11 @@ ITS5215L leftFillDrv(leftFill_outPin, leftFill_diagPin, &leftFill_PID),
        leftSuckDrv(leftSuck_outPin, leftSuck_diagPin, &leftSuck_PID),
        rightSuckDrv(rightDump_outPin, rightDump_diagPin, &rightSuck_PID),
        airdryerDrv(airdryer_outPin, airdryer_diagPin, &airdryer_PID),
-	   spare1Drv(spare1_outPin, spare1_diagPin, &suspensionSpare1_PID);
+	   compressorRelayDrv(spare1_outPin, spare1_diagPin, &compressorRelay_PID);
 
-BTS6133D compressorDrv(compressor_outPin, compressor_diagPin, compressor_csPin,
-                       &compressor_PID, &compressorCurrent_PID,
-                       measure.sensorADC0());
+BTS6133D compressorFanDrv(compressor_outPin, compressor_diagPin, compressor_csPin,
+                       &compressorFan_PID, &compressorCurrent_PID,
+                       measure.sensorADC0(), 0);
 
 // inputs
 AnalogIn leftHeightDrv(leftHeightAD_pin, 100, 4096 - 100, 25, &leftHeight_PID),
@@ -62,8 +62,8 @@ AnalogIn leftHeightDrv(leftHeightAD_pin, 100, 4096 - 100, 25, &leftHeight_PID),
 //TempIn compressorTemp(compressorTempAD_pin, 300, 4096 - 300, 1, &compressorNtc, PIDs::compressorTemp);
 
 // AirFeed, compressor and airdryer statemachine
-AirFeed airFeedStateMachine(&airFeedState_PID, &compressorDrv, &airdryerDrv,
-                            &systemPressure_PID, &compressorTemp_PID);
+AirFeed airFeedStateMachine(&airFeedState_PID, &compressorFanDrv, &airdryerDrv,
+                            &compressorRelayDrv, &systemPressure_PID, &compressorTemp_PID);
 
 
 // the suspension height controller
@@ -95,9 +95,9 @@ void setup()
   PIDs::collection.addItem(&leftSuck_PID);
   PIDs::collection.addItem(&rightSuck_PID);
   PIDs::collection.addItem(&airdryer_PID);
-  PIDs::collection.addItem(&compressor_PID);
-  PIDs::collection.addItem(&suspensionSpare1_PID);
-  PIDs::collection.addItem(&compressorCurrent_PID);
+  PIDs::collection.addItem(&compressorFan_PID);
+  PIDs::collection.addItem(&compressorRelay_PID);
+//  PIDs::collection.addItem(&compressorCurrent_PID);
   PIDs::collection.addItem(&leftHeight_PID);
   PIDs::collection.addItem(&rightHeight_PID);
   PIDs::collection.addItem(&leftPressure_PID);
@@ -118,8 +118,8 @@ void setup()
   leftSuckDrv.init();
   rightSuckDrv.init();
   airdryerDrv.init();
-  compressorDrv.init();
-  spare1Drv.init();
+  compressorRelayDrv.init();
+  compressorFanDrv.init();
   init_outputs();
 
   // init input drivers
@@ -156,6 +156,7 @@ void testloop() {
 // The loop function is called in an endless loop
 void loop()
 {
+  static uint32_t startTime = millis();
   static uint32_t lastErrCheck = millis();
 
 #ifdef DEBUG_UART_ON
@@ -195,7 +196,6 @@ void loop()
        }
     }
     // error check input drivers
-    int i = 0;
     for (IInput *inDrv = InputsController.first();
          inDrv != nullptr;
          inDrv = inDrv->next)
@@ -222,8 +222,11 @@ void loop()
   }
 
   // call eventloop on statemachines
-  airFeedStateMachine.loop();
-  heightStateMachine.loop();
+  const uint32_t startupSettleTime = 100;
+  if (startTime + startupSettleTime) {
+    airFeedStateMachine.loop();
+    heightStateMachine.loop();
+  }
 
   canIO.loop();
 

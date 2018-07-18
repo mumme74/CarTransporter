@@ -51,7 +51,7 @@ void ctrl_setStateAxle(ctrl_states state, ctrl_axles axle);
 void ctrl_setStateWheel(ctrl_states state, ctrl_wheels wheel);
 
 // on a single wheel
-ctrl_states ctrl_getState(ctrl_wheels wheel);
+ctrl_states ctrl_getStateWheel(ctrl_wheels wheel);
 // on a single wheel
 bool ctrl_checkForError(ctrl_wheels wheel);
 // check on all wheels

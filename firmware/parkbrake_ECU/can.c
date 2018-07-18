@@ -185,10 +185,10 @@ static void processRx(CANRxFrame *rxf)
             CANTxFrame txf;
             can_initTxFrame(&txf, CAN_MSG_TYPE_COMMAND, C_parkbrakeCmdGetState);
             txf.DLC = 4;
-            txf.data8[0] = ctrl_getState(LeftFront);
-            txf.data8[1] = ctrl_getState(RightFront);
-            txf.data8[2] = ctrl_getState(LeftRear);
-            txf.data8[3] = ctrl_getState(RightRear);
+            txf.data8[0] = ctrl_getStateWheel(LeftFront);
+            txf.data8[1] = ctrl_getStateWheel(RightFront);
+            txf.data8[2] = ctrl_getStateWheel(LeftRear);
+            txf.data8[3] = ctrl_getStateWheel(RightRear);
             canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, MS2ST(10));
         }   return;
         case C_parkbrakeCmdServiceSet:
@@ -333,10 +333,10 @@ void can_init(void)
 void can_buildPid1Data(uint8_t data8[])
 {
 
-    data8[0] = ctrl_getState(LeftFront);
-    data8[1] = ctrl_getState(RightFront);
-    data8[2] = ctrl_getState(LeftRear);
-    data8[3] = ctrl_getState(RightRear);
+    data8[0] = ctrl_getStateWheel(LeftFront);
+    data8[1] = ctrl_getStateWheel(RightFront);
+    data8[2] = ctrl_getStateWheel(LeftRear);
+    data8[3] = ctrl_getStateWheel(RightRear);
     data8[4] = sen_wheelSpeeds.leftFront_rps;
     data8[5] = sen_wheelSpeeds.rightFront_rps;
     data8[6] = sen_wheelSpeeds.leftRear_rps;

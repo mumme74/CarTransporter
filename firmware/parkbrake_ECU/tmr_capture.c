@@ -25,7 +25,7 @@
 
 // ---------------------------------------------------------------------------------
 // begin function prototypes
-static void dmaCallback(void *arg, uint32_t flags);
+//static void dmaCallback(void *arg, uint32_t flags);
 
 // ----------------------------------------------------------------------------------
 // begin private functions and variables to this module
@@ -42,10 +42,10 @@ static volatile uint16_t samplesBuf[NR_DMA_STREAMS][NR_SAMPLES];
 uint32_t *tim3CcrForWheel(ctrl_wheels wheel)
 {
     switch (wheel) {
-    case LeftFront:  return &STM32_TIM3->CCR[0];
-    case RightFront: return &STM32_TIM3->CCR[1];
-    case LeftRear:   return &STM32_TIM3->CCR[2];
-    case RightRear:  return &STM32_TIM3->CCR[3];
+    case LeftFront:  return (uint32_t*)&STM32_TIM3->CCR[0]; /* typecast to squeslh warning about discarding volatile*/
+    case RightFront: return (uint32_t*)&STM32_TIM3->CCR[1];
+    case LeftRear:   return (uint32_t*)&STM32_TIM3->CCR[2];
+    case RightRear:  return (uint32_t*)&STM32_TIM3->CCR[3];
     }
     return NULL;
 }
@@ -151,7 +151,7 @@ void init_TIM3(void)
 // -----------------------------------------------------------------------------------
 // begin callbacks
 
-
+/*
 static void dmaCallback(void *arg, uint32_t flags)
 {
     (void)flags;
@@ -175,6 +175,7 @@ static void dmaCallback(void *arg, uint32_t flags)
 
     }
 }
+*/
 
 // ------------------------------------------------------------------------------------
 // begin public API

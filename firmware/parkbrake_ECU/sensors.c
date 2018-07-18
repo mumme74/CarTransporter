@@ -545,7 +545,7 @@ static THD_FUNCTION(adcHandlerThd, arg)
     // listen to msgs to this thread to change action
     chEvtRegisterMask(&sen_MsgHandlerThd, &evtMsg, EVENT_MASK(MSG_EVT));
 
-    msg_t msg;
+    msg_t msg = 0;
     eventmask_t evt;
     sen_measure action = StopAll;
     systime_t timeout = TIME_INFINITE;

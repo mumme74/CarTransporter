@@ -498,46 +498,6 @@ Connection ~ 1900 1200
 Connection ~ 2275 1200
 Connection ~ 2700 1200
 Wire Wire Line
-	3300 1800 3300 2025
-Wire Wire Line
-	3325 1900 3300 1900
-Connection ~ 3300 1900
-Wire Wire Line
-	2900 1800 2900 2025
-Wire Wire Line
-	2900 1900 2700 1900
-Connection ~ 2900 1900
-Wire Wire Line
-	1425 2725 1425 2950
-Wire Wire Line
-	1400 2850 1425 2850
-Connection ~ 1425 2850
-Wire Wire Line
-	1825 2725 1825 2950
-Wire Wire Line
-	1825 2850 1950 2850
-Connection ~ 1825 2850
-Wire Wire Line
-	1825 1800 1825 2025
-Wire Wire Line
-	1825 1900 1950 1900
-Connection ~ 1825 1900
-Wire Wire Line
-	1425 1800 1425 2025
-Wire Wire Line
-	1425 1900 1400 1900
-Connection ~ 1425 1900
-Wire Wire Line
-	3325 2725 3325 2950
-Wire Wire Line
-	3350 2850 3325 2850
-Connection ~ 3325 2850
-Wire Wire Line
-	2925 2725 2925 2950
-Wire Wire Line
-	2925 2850 2700 2850
-Connection ~ 2925 2850
-Wire Wire Line
 	2575 4775 2575 5175
 Wire Wire Line
 	2575 5175 1375 5175
@@ -826,4 +786,44 @@ F 5 "MC01W0805110K" V 9250 5225 60  0001 C CNN "part"
 	1    9250 5225
 	1    0    0    -1  
 $EndComp
+Wire Wire Line
+	1775 1800 1775 2025
+Wire Wire Line
+	1475 1800 1475 2025
+Wire Wire Line
+	1400 1900 1475 1900
+Connection ~ 1475 1900
+Wire Wire Line
+	2950 1800 2950 2025
+Wire Wire Line
+	2700 1900 2950 1900
+Connection ~ 2950 1900
+Wire Wire Line
+	3250 1800 3250 2025
+Wire Wire Line
+	3325 1900 3250 1900
+Connection ~ 3250 1900
+Wire Wire Line
+	2975 2725 2975 2950
+Wire Wire Line
+	2700 2850 2975 2850
+Connection ~ 2975 2850
+Wire Wire Line
+	3275 2725 3275 2950
+Wire Wire Line
+	3350 2850 3275 2850
+Connection ~ 3275 2850
+Wire Wire Line
+	1475 2725 1475 2950
+Wire Wire Line
+	1400 2850 1475 2850
+Connection ~ 1475 2850
+Wire Wire Line
+	1775 2725 1775 2950
+Wire Wire Line
+	1950 2850 1775 2850
+Connection ~ 1775 2850
+Wire Wire Line
+	1950 1900 1775 1900
+Connection ~ 1775 1900
 $EndSCHEMATC

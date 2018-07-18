@@ -191,7 +191,7 @@ Text Label 1000 4575 2    60   ~ 0
 +12V_batF
 Text GLabel 1675 4575 2    60   Input ~ 0
 +12V_powerFront
-Text GLabel 1350 5325 2    60   Input ~ 0
+Text GLabel 1350 5275 2    60   Input ~ 0
 Enable_Bridge_PWR
 Text GLabel 5425 6550 2    60   Input ~ 0
 +12V_Feed
@@ -825,7 +825,7 @@ Text Label 1000 6375 2    60   ~ 0
 +12V_batR
 Text GLabel 1675 6375 2    60   Input ~ 0
 +12V_powerRear
-Text GLabel 1350 7125 2    60   Input ~ 0
+Text GLabel 1350 7075 2    60   Input ~ 0
 Enable_Bridge_PWR
 $Comp
 L VR VR2

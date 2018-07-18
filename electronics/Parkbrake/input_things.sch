@@ -423,6 +423,8 @@ $Comp
 L BSS138 Q31
 U 1 1 57942372
 P 7625 5175
+AR Path="/57942372" Ref="Q31"  Part="1" 
+AR Path="/570A3FC3/5793D1EA/57942372" Ref="Q31"  Part="1" 
 F 0 "Q31" H 7825 5250 50  0000 L CNN
 F 1 "BSS138" H 7825 5175 50  0000 L CNN
 F 2 "TO_SOT_Packages_SMD:SOT-323" H 7825 5100 50  0001 L CIN
@@ -445,7 +447,7 @@ F 3 "" H 7725 5375 50  0000 C CNN
 $EndComp
 Text GLabel 7725 4675 0    60   Input ~ 0
 Parkbrake_indicator_lamp
-Text GLabel 7425 5225 0    60   Input ~ 0
+Text GLabel 7425 5175 0    60   Input ~ 0
 INDICATOR_ON
 Text Notes 6375 4450 0    60   ~ 0
 Turns on (grounds) indicator LED

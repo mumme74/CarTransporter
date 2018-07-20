@@ -29,6 +29,7 @@
 #define CHCONF_H
 
 #define _CHIBIOS_RT_CONF_
+#define _CHIBIOS_RT_CONF_VER_5_0_
 
 /*===========================================================================*/
 /**
@@ -49,6 +50,12 @@
  *          setting also defines the system tick time unit.
  */
 #define CH_CFG_ST_FREQUENCY                 10000
+
+/**
+ * @brief   Time types data size.
+ * @note    Allowed values are 16 or 32 bits.
+ */
+#define CH_CFG_TIME_TYPES_SIZE              32
 
 /**
  * @brief   Time delta constant for the tick-less mode.
@@ -122,7 +129,11 @@
  * @note    This is not related to the compiler optimization options.
  * @note    The default is @p TRUE.
  */
+#ifdef DEBUG_MODE
+#define CH_CFG_OPTIMIZE_SPEED               FALSE
+#else
 #define CH_CFG_OPTIMIZE_SPEED               TRUE
+#endif
 
 /** @} */
 
@@ -309,6 +320,56 @@
 
 /*===========================================================================*/
 /**
+ * @name Objects factory options
+ * @{
+ */
+/*===========================================================================*/
+
+/**
+ * @brief   Objects Factory APIs.
+ * @details If enabled then the objects factory APIs are included in the
+ *          kernel.
+ *
+ * @note    The default is @p FALSE.
+ */
+#define CH_CFG_USE_FACTORY                  TRUE
+
+/**
+ * @brief   Maximum length for object names.
+ * @details If the specified length is zero then the name is stored by
+ *          pointer but this could have unintended side effects.
+ */
+#define CH_CFG_FACTORY_MAX_NAMES_LENGTH     8
+
+/**
+ * @brief   Enables the registry of generic objects.
+ */
+#define CH_CFG_FACTORY_OBJECTS_REGISTRY     TRUE
+
+/**
+ * @brief   Enables factory for generic buffers.
+ */
+#define CH_CFG_FACTORY_GENERIC_BUFFERS      TRUE
+
+/**
+ * @brief   Enables factory for semaphores.
+ */
+#define CH_CFG_FACTORY_SEMAPHORES           TRUE
+
+/**
+ * @brief   Enables factory for mailboxes.
+ */
+#define CH_CFG_FACTORY_MAILBOXES            TRUE
+
+/**
+ * @brief   Enables factory for objects FIFOs.
+ */
+#define CH_CFG_FACTORY_OBJ_FIFOS            TRUE
+
+/** @} */
+
+/*===========================================================================*/
+/**
  * @name Debug options
  * @{
  */
@@ -456,6 +517,24 @@
 #define CH_CFG_THREAD_INIT_HOOK(tp) {                                       \
   /* Add threads initialization code here.*/                                \
 }
+
+/**
+ * @brief   Threads descriptor structure extension.
+ * @details User fields added to the end of the @p thread_t structure.
+ */
+#define CH_CFG_THREAD_EXTRA_FIELDS                                          \
+  /* Add threads custom fields here.*/
+
+ /**
+  * @brief   Threads initialization hook.
+  * @details User initialization code added to the @p _thread_init() function.
+  *
+  * @note    It is invoked from within @p _thread_init() and implicitly from all
+  *          the threads creation APIs.
+  */
+ #define CH_CFG_THREAD_INIT_HOOK(tp) {                                       \
+   /* Add threads initialization code here.*/                                \
+ }
 
 /**
  * @brief   Threads finalization hook.

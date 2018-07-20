@@ -223,7 +223,7 @@ CPPWARN = -Wall -Wextra -Wundef
 UDEFS = $(C_EXTRAFLAGS)
 
 # Define ASM defines here
-UADEFS =
+UADEFS = $(C_EXTRAFLAGS)
 
 # List all user directories here
 UINCDIR =

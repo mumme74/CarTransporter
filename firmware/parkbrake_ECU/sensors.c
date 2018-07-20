@@ -435,6 +435,8 @@ static void extCallback(EXTDriver *extp, expchannel_t channel)
 {
     (void)extp; (void)channel;
 
+    chSysLockFromISR();
+
     switch (channel) {
     case 1: // PB1 -> LeftFront_DIAG
         chEvtBroadcastFlagsI(&sen_measuredEvts, EVENT_FLAG_BRIDGE_LF_DIAG);
@@ -460,6 +462,8 @@ static void extCallback(EXTDriver *extp, expchannel_t channel)
     default:
         break; // not handled?
     }
+
+    chSysUnlockFromISR();
 }
 
 
@@ -721,16 +725,14 @@ void sen_initSensors(void)
     chEvtObjectInit(&sen_MsgHandlerThd);
 
     // initialize and start handler thread
-    adcHandlerp = chThdCreateStatic(&waAdcHandlerThd, 128, NORMALPRIO+10, adcHandlerThd, NULL);
-    chThdStart(adcHandlerp);
+    adcHandlerp = chThdCreateStatic(&waAdcHandlerThd, sizeof(waAdcHandlerThd), NORMALPRIO +10, adcHandlerThd, NULL);
 
     // initialize and start input polling thread
-    pollInputsp = chThdCreateStatic(&waInputPoll, 128, NORMALPRIO-5, inputPoll, NULL);
+    pollInputsp = chThdCreateStatic(&waInputPoll, sizeof(waInputPoll), NORMALPRIO -5, inputPoll, NULL);
 
     // initialize factors from settings
-    settingsHandlerp = chThdCreateStatic(&waSettingsHandler, 128, LOWPRIO,
+    settingsHandlerp = chThdCreateStatic(&waSettingsHandler, sizeof(waSettingsHandler), LOWPRIO,
                                          settingsHandler, NULL);
-    chThdStart(settingsHandlerp);
 }
 
 // diagnose wheelsensor circuits

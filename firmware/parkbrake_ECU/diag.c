@@ -342,11 +342,9 @@ void diag_init(void)
     chMBObjectInit(&dtc_MB,  dtcMBqueue, MAILBOX_SIZE);
     chMBObjectInit(&diag_CanMB,  diagCanMBqueue, MAILBOX_SIZE);
 
-    setDtcp = chThdCreateStatic(&waSetDtc, 128, LOWPRIO, setDtc, NULL);
-    chThdStart(setDtcp);
+    setDtcp = chThdCreateStatic(&waSetDtc, sizeof(waSetDtc), LOWPRIO, setDtc, NULL);
 
-    diagCanThdp = chThdCreateStatic(&waDiagCanThd, 256, LOWPRIO, diagCanThd, NULL);
-    chThdStart(diagCanThdp);
+    diagCanThdp = chThdCreateStatic(&waDiagCanThd, sizeof(waDiagCanThd), LOWPRIO, diagCanThd, NULL);
 }
 
 uint8_t dtc_length(void)

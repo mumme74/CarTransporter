@@ -277,9 +277,9 @@ static THD_FUNCTION(canRxThd, arg)
     chRegSetThreadName("canRxThd");
 
     while (TRUE) {
-        if (chEvtWaitAnyTimeout(ALL_EVENTS, MS2ST(100)) == 0)
-          continue;
-        while (canReceive(&CAND1, CAN_ANY_MAILBOX, &rxmsg, TIME_IMMEDIATE) == MSG_OK) {
+//        if (chEvtWaitAnyTimeout(ALL_EVENTS, MS2ST(100)) == 0)
+//          continue;
+        while (canReceive(&CAND1, CAN_ANY_MAILBOX, &rxmsg, TIME_INFINITE) == MSG_OK) {
             /* Process message.*/
             processRx(&rxmsg);
         }
@@ -320,13 +320,11 @@ void can_init(void)
     canStart(&CAND1, &canCfg);
 
     // start rx thread listener
-    canRxThdp = chThdCreateStatic(&waCanRxThd, 256, NORMALPRIO -1, canRxThd, NULL);
-    chThdStart(canRxThdp);
+    canRxThdp = chThdCreateStatic(&waCanRxThd, sizeof(waCanRxThd), NORMALPRIO -1, canRxThd, NULL);
 
     // start periodic PID thread (broadcast sensor values on CAN)
-    canPIDPeriodicSendp = chThdCreateStatic(&waCanPIDPeriodicSend, 256, NORMALPRIO -5,
+    canPIDPeriodicSendp = chThdCreateStatic(&waCanPIDPeriodicSend, sizeof(waCanPIDPeriodicSend), NORMALPRIO -5,
                                             canPIDPeriodicSend, NULL);
-    chThdStart(canPIDPeriodicSendp);
 }
 
 // requires a uint8_t[8] buffer

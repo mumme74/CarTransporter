@@ -2,7 +2,7 @@
 <export version="D">
   <design>
     <source>/Users/jof/elektronik/CarTransporter/electronics/Parkbrake_switch/Parkbrake_switch.sch</source>
-    <date>Onsdag 11 Juli 2018 13:25:47</date>
+    <date>Torsdag 19 Juli 2018 20:00:49</date>
     <tool>Eeschema 4.0.7</tool>
     <sheet number="1" name="/" tstamps="/">
       <title_block>
@@ -350,14 +350,14 @@
     </libpart>
   </libparts>
   <libraries>
+    <library logical="switches">
+      <uri>/Library/Application Support/kicad/library/switches.lib</uri>
+    </library>
     <library logical="device">
       <uri>/Library/Application Support/kicad/library/device.lib</uri>
     </library>
     <library logical="conn">
       <uri>/Library/Application Support/kicad/library/conn.lib</uri>
-    </library>
-    <library logical="switches">
-      <uri>/Library/Application Support/kicad/library/switches.lib</uri>
     </library>
   </libraries>
   <nets>

@@ -61,7 +61,7 @@ static uint32_t stateFlags = 0;
 typedef struct {
     const char *threadName;
     mailbox_t *mb;
-    msg_t **mb_queue;
+    msg_t *mb_queue;
     uint8_t evtReceiveFlag;
     sen_measure adcMeasure;
     volatile const uint16_t *motorcurrent;
@@ -81,10 +81,10 @@ static msg_t serviceWheel(wheelthreadinfo_t *info);
 
 static mailbox_t mbLF, mbLR, mbRF, mbRR;
 
-static msg_t mbLF_queue[MAILBOX_SIZE] = { 0, 0 },
-             mbLR_queue[MAILBOX_SIZE] = { 0, 0 },
-             mbRF_queue[MAILBOX_SIZE] = { 0, 0 },
-             mbRR_queue[MAILBOX_SIZE] = { 0, 0 };
+static msg_t mbLF_queue[MAILBOX_SIZE]/* = { 0, 0 }*/,
+             mbLR_queue[MAILBOX_SIZE]/* = { 0, 0 }*/,
+             mbRF_queue[MAILBOX_SIZE]/* = { 0, 0 }*/,
+             mbRR_queue[MAILBOX_SIZE]/* = { 0, 0 }*/;
 
 static virtual_timer_t bridgeDisableTimer,
                        saveStateTimer;
@@ -127,22 +127,22 @@ void saveStateTimerCallback(void *arg)
 
 // some thread local info
 wheelthreadinfo_t lfInfo = {
-    "leftFrontThread", &mbLF, (msg_t**)&mbLF_queue, EVENT_FLAG_ADC_FRONTAXLE,
+    "leftFrontThread", &mbLF, (msg_t*)&mbLF_queue, EVENT_FLAG_ADC_FRONTAXLE,
     StartFront, &sen_motorCurrents.leftFront, &sen_wheelSpeeds.leftFront_rps,
     "LF", LeftFront, GPIOC_LeftFront_Loosen, GPIOC_LeftFront_Tighten
 };
 wheelthreadinfo_t rfInfo = {
-    "rightFrontThread", &mbRF, (msg_t**)&mbRF_queue, EVENT_FLAG_ADC_FRONTAXLE,
+    "rightFrontThread", &mbRF, (msg_t*)&mbRF_queue, EVENT_FLAG_ADC_FRONTAXLE,
     StartFront, &sen_motorCurrents.rightFront, &sen_wheelSpeeds.rightFront_rps,
     "RF", RightFront, GPIOC_RightFront_Loosen, GPIOC_RightFront_Tighten
 };
 wheelthreadinfo_t lrInfo = {
-    "leftRearThread", &mbLR, (msg_t**)&mbLR_queue, EVENT_FLAG_ADC_REARAXLE,
+    "leftRearThread", &mbLR, (msg_t*)&mbLR_queue, EVENT_FLAG_ADC_REARAXLE,
     StartRear, &sen_motorCurrents.leftRear, &sen_wheelSpeeds.leftRear_rps,
     "LR", LeftRear, GPIOC_LeftRear_Loosen, GPIOC_LeftRear_Tighten
 };
 wheelthreadinfo_t rrInfo = {
-    "rightRearThread", &mbRR, (msg_t**)&mbRR_queue, EVENT_FLAG_ADC_REARAXLE,
+    "rightRearThread", &mbRR, (msg_t*)&mbRR_queue, EVENT_FLAG_ADC_REARAXLE,
     StartRear, &sen_motorCurrents.rightRear, &sen_wheelSpeeds.rightRear_rps,
     "RR", RightRear, GPIOC_RightRear_Loosen, GPIOC_RightRear_Tighten
 };
@@ -161,7 +161,7 @@ static THD_FUNCTION(wheelHandler, args)
     static event_listener_t adcEvt;
 
     while(TRUE) {
-        ctrl_states action = (ctrl_states)chMBFetch(info->mb, *info->mb_queue, TIME_INFINITE);
+        ctrl_states action = (ctrl_states)chMBFetch(info->mb, info->mb_queue, TIME_INFINITE);
 
         // listen to currents to perform this action
         chEvtRegisterMaskWithFlags(&sen_measuredEvts, &adcEvt,
@@ -486,13 +486,13 @@ void ctrl_init(void)
     chVTObjectInit(&saveStateTimer);
 
     // init wheel control threads
-    lfThdp = chThdCreateStatic(&waLeftFrontHandler, WHEEL_THD_STACK_SIZE,
+    lfThdp = chThdCreateStatic(&waLeftFrontHandler, sizeof(waLeftFrontHandler),
                                NORMALPRIO, wheelHandler, &lfInfo);
-    rfThdp = chThdCreateStatic(&waRightFrontHandler, WHEEL_THD_STACK_SIZE,
+    rfThdp = chThdCreateStatic(&waRightFrontHandler, sizeof(waRightFrontHandler),
                                NORMALPRIO, wheelHandler, &rfInfo);
-    lrThdp = chThdCreateStatic(&waLeftRearHandler, WHEEL_THD_STACK_SIZE,
+    lrThdp = chThdCreateStatic(&waLeftRearHandler, sizeof(waLeftRearHandler),
                                NORMALPRIO, wheelHandler, &lrInfo);
-    rrThdp = chThdCreateStatic(&waRightRearHandler, WHEEL_THD_STACK_SIZE,
+    rrThdp = chThdCreateStatic(&waRightRearHandler, sizeof(waRightRearHandler),
                                NORMALPRIO, wheelHandler, &rrInfo);
 
 }

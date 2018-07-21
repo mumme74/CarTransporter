@@ -39,7 +39,8 @@
 extern EepromFileStream *stateFile;
 extern EepromFileStream *dtcFile;
 
-extern const uint16_t settings[S_EOF];
+// all settings, should be considered readonly except for this module
+extern uint16_t settings[S_EOF];
 
 extern event_source_t ee_settingsChanged;
 

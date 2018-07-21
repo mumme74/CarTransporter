@@ -74,7 +74,7 @@
 // begin global exported symbols
 
 // fill settings with sensible default
-const uint16_t settings[S_EOF];
+uint16_t settings[S_EOF];
 
 event_source_t ee_settingsChanged;
 
@@ -153,30 +153,27 @@ void initSettings(void)
     // a event for settings
     chEvtObjectInit(&ee_settingsChanged);
 
-    // unconst
-    uint16_t **s = (uint16_t**)&settings;
-
     // fill settings with sensible defaults
     // release
-    *s[S_TimeRevupRelease]           = 150; // ms
-    *s[S_TimeContinueAfterFreed]     = 300; // ms
-    *s[S_CurrentFreeThreshold]       = 5000; //mA
-    *s[S_CurrentRevupMaxRelease]     = 20000; // mA
-    *s[S_CurrentMaxRelease]          = 15000; // mA
+    settings[S_TimeRevupRelease]           = 150; // ms
+    settings[S_TimeContinueAfterFreed]     = 300; // ms
+    settings[S_CurrentFreeThreshold]       = 5000; //mA
+    settings[S_CurrentRevupMaxRelease]     = 20000; // mA
+    settings[S_CurrentMaxRelease]          = 15000; // mA
     // tighten
-    *s[S_TimeRevupTighten]           = 50; // ms
-    *s[S_TimeContinueAfterTightened] = 100; // ms
-    *s[S_CurrentTightenedThreshold]  = 15000; // mA
-    *s[S_CurrentMaxTighten]          = 18000; // mA
-    *s[S_CurrentRevupMaxTighten]     = 19000; // mA
+    settings[S_TimeRevupTighten]           = 50; // ms
+    settings[S_TimeContinueAfterTightened] = 100; // ms
+    settings[S_CurrentTightenedThreshold]  = 15000; // mA
+    settings[S_CurrentMaxTighten]          = 18000; // mA
+    settings[S_CurrentRevupMaxTighten]     = 19000; // mA
 
     // user settings
-    *s[S_AntilockParkbrake]          = 1; // true
+    settings[S_AntilockParkbrake]          = 1; // true
 
     // vehicle settings
-    *s[S_RimDiameter]                = 17; // in inches
-    *s[S_TireThread]                 = 225; // in mm
-    *s[S_TireProfile]                = 65; // in percent
+    settings[S_RimDiameter]                = 17; // in inches
+    settings[S_TireThread]                 = 225; // in mm
+    settings[S_TireProfile]                = 65; // in percent
 
     // user settings
 
@@ -190,7 +187,7 @@ void initSettings(void)
         if (fileStreamSeek(settingsFile, pos) == pos) {
             uint16_t vlu = EepromReadHalfword(settingsFile);
             if (vlu > 0)
-                *s[i] = vlu;
+              settings[i] = vlu;
         }
     }
 }
@@ -202,6 +199,9 @@ void initSettings(void)
 
 void ee_initEeprom(void)
 {
+    // start SPI
+    spiStart(&SPID1, &spiConfig);
+
     // init EEprom files
     dtcFile = SPIEepromFileOpen(&dtcFileStream, &dtcFileConfig, EepromFindDevice(EEPROM_DRIVER_NAME));
     stateFile = SPIEepromFileOpen(&stateFileStream, &stateConfig, EepromFindDevice(EEPROM_DRIVER_NAME));

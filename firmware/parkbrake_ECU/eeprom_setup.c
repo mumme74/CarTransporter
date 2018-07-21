@@ -142,9 +142,12 @@ SPIEepromFileConfig dtcFileConfig = {
    &EEPROM_SPID,
    &spiConfig
 };
+
 static SPIEepromFileStream dtcFileStream;
 EepromFileStream *dtcFile = NULL;
 
+// ----------------------------------------------------------------------------------
+// begin threads
 
 // ----------------------------------------------------------------------------------
 // begin private functions for this module

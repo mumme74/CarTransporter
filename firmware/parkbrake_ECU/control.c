@@ -497,27 +497,29 @@ void ctrl_init(void)
 
 }
 
-void ctrl_setStateAll(ctrl_states state)
+int ctrl_setStateAll(ctrl_states state)
 {
-    ctrl_setStateAxle(state, FrontAxle);
-    ctrl_setStateAxle(state, RearAxle);
+    if (ctrl_setStateAxle(state, FrontAxle) > 0)
+      return ctrl_setStateAxle(state, RearAxle);
+    return 0;
 }
 
-void ctrl_setStateAxle(ctrl_states state, ctrl_axles axle)
+int ctrl_setStateAxle(ctrl_states state, ctrl_axles axle)
 {
     chDbgAssert(axle <= RearAxle, "Invalid axle");
 
     if  (axle == RearAxle) {
-        ctrl_setStateWheel(state, LeftRear);
-        ctrl_setStateWheel(state, RightRear);
+        if (ctrl_setStateWheel(state, LeftRear) > 0)
+          return ctrl_setStateWheel(state, RightRear);
     } else {
-        ctrl_setStateWheel(state, LeftFront);
-        ctrl_setStateWheel(state, RightFront);
+        if (ctrl_setStateWheel(state, LeftFront) > 0)
+          ctrl_setStateWheel(state, RightFront);
     }
+    return 0;
 }
 
 // set on a single wheel
-void ctrl_setStateWheel(ctrl_states state, ctrl_wheels wheel)
+int ctrl_setStateWheel(ctrl_states state, ctrl_wheels wheel)
 {
     chDbgAssert(state == Releasing ||
                 state == Tightening ||
@@ -526,25 +528,21 @@ void ctrl_setStateWheel(ctrl_states state, ctrl_wheels wheel)
 
     // wheel is already at this state
     if (state == STATE_MASK(wheel))
-        return;
+        return 1;
 
     // if we have gotten here we good, save new state!
     saveState(state, wheel);
-
     switch (wheel) {
     case LeftFront:
-        chMBPost(&mbLF, (msg_t)state, TIME_IMMEDIATE);
-        break;
+        return chMBPost(&mbLF, (msg_t)state, MS2ST(10)) == MSG_OK;
     case LeftRear:
-        chMBPost(&mbLR, (msg_t)state, TIME_IMMEDIATE);
-        break;
+        return chMBPost(&mbLR, (msg_t)state, MS2ST(10)) == MSG_OK;
     case RightFront:
-        chMBPost(&mbRF, (msg_t)state, TIME_IMMEDIATE);
-        break;
+        return chMBPost(&mbRF, (msg_t)state, MS2ST(10)) == MSG_OK;
     case RightRear:
-        chMBPost(&mbRR, (msg_t)state, TIME_IMMEDIATE);
-        break;
+        return chMBPost(&mbRR, (msg_t)state, MS2ST(10)) == MSG_OK;
     }
+    return 0;
 }
 
 ctrl_states ctrl_getStateWheel(ctrl_wheels wheel)

@@ -42,13 +42,13 @@ typedef enum  {
 void ctrl_init(void);
 
 // on all axles
-void ctrl_setStateAll(ctrl_states state);
+int ctrl_setStateAll(ctrl_states state);
 
 // Axle wise
-void ctrl_setStateAxle(ctrl_states state, ctrl_axles axle);
+int ctrl_setStateAxle(ctrl_states state, ctrl_axles axle);
 
 // on single wheel
-void ctrl_setStateWheel(ctrl_states state, ctrl_wheels wheel);
+int ctrl_setStateWheel(ctrl_states state, ctrl_wheels wheel);
 
 // on a single wheel
 ctrl_states ctrl_getStateWheel(ctrl_wheels wheel);

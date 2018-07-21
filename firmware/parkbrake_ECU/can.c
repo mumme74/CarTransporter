@@ -15,11 +15,19 @@
 #include "sensors.h"
 #include "diag.h"
 
+#define MAILBOX_SIZE 10
+
 // -----------------------------------------------------------------------------------------
 // begin private variables and configurations for this module
 
 static thread_t *canRxThdp,
-                *canPIDPeriodicSendp;
+                *canPIDPeriodicSendThdp,
+                *canCmdSetThdp;
+
+static mailbox_t cmdSet_MB;
+
+static msg_t cmdSetMBqueue[MAILBOX_SIZE];
+
 
 static CANConfig canCfg = {
     // MCR register (Master control register)
@@ -66,7 +74,7 @@ static CANConfig canCfg = {
 
 // ----------------------------------------------------------------------------------------
 // begin function prototypes
-static bool isRemoteFrame(CANRxFrame *rxf);
+//static bool isRemoteFrame(CANRxFrame *rxf);
 static void processRx(CANRxFrame *rxf);
 static void broadcastOnCan(can_msgIdsUpdate_e PID);
 static void sendCurrents(void);
@@ -106,12 +114,11 @@ static void processRx(CANRxFrame *rxf)
                 DEBUG_OUT_PRINTF("malformed CAN diag: %x wrong DLC", rxf->SID);
                 return;
             }
-            uint8_t idx = rxf->data8[0];
-            if (idx >= dtc_length()) {
-                DEBUG_OUT_PRINTF("malformed CAN diag: %x wrong DTC idx", idx);
+            if (rxf->data8[0] >= dtc_length()) {
+                DEBUG_OUT_PRINTF("malformed CAN diag: %x wrong DTC idx", rxf->data8[0]);
                 return;
             }
-            msg_t msg = (sid << 16) | idx;
+            msg_t msg = (sid << 16) | rxf->data8[0];
             chMBPost(&diag_CanMB, msg, TIME_IMMEDIATE);
         }    return;
 
@@ -120,12 +127,11 @@ static void processRx(CANRxFrame *rxf)
                 DEBUG_OUT_PRINTF("malformed CAN diag erase dtc: %x wrong DLC", rxf->SID);
                 return;
             }
-            uint8_t idx = rxf->data8[0];
-            if (idx != dtc_length()) {
-                DEBUG_OUT_PRINTF("malformed CAN diag erase dtc: %x wrong DTC len", idx);
+            if (rxf->data8[0] > dtc_length()) {
+                DEBUG_OUT_PRINTF("malformed CAN diag erase dtc: %x wrong DTC len", rxf->data8[0]);
                 return;
             }
-            msg_t msg = (sid << 16) | idx;
+            msg_t msg = (sid << 16) | rxf->data8[0];
             chMBPost(&diag_CanMB, msg, TIME_IMMEDIATE);
         } return;
         case C_parkbrakeDiagActuatorTest:
@@ -133,11 +139,10 @@ static void processRx(CANRxFrame *rxf)
                 DEBUG_OUT_PRINTF("malformed CAN diag erase dtc: %x wrong DLC", rxf->SID);
                 return;
             }
-            uint8_t data = rxf->data8[0];
-            msg_t msg = (sid << 16) | data;
+            msg_t msg = (sid << 16) | rxf->data8[0];
             chMBPost(&diag_CanMB, msg, TIME_IMMEDIATE);
-            return;
-        }
+
+        } return;
     } else if (sid == CAN_MSG_TYPE_COMMAND) {
         // set in service and so forth
         sid = rxf->SID & CAN_MSG_ID_MASK;
@@ -150,20 +155,16 @@ static void processRx(CANRxFrame *rxf)
                 DEBUG_OUT_PRINTF("malformed CAN config cmd: %x wrong DLC", rxf->SID);
                 return;
             }
-            uint8_t idx = rxf->data8[0];
-            if (idx >= S_EOF) {
-                DEBUG_OUT_PRINTF("malformed CAN config cmd: %d index out of range", idx);
+            if (rxf->data8[0] >= S_EOF) {
+                DEBUG_OUT_PRINTF("malformed CAN config cmd: %d index out of range", rxf->data8[0]);
                 return;
             }
-            uint16_t vlu = rxf->data8[1] | (rxf->data8[2] << 8); // little endian
-            ee_changeSetting(idx, vlu);
-            int res = ee_saveSetting(idx);
-            CANTxFrame txf;
-            can_initTxFrame(&txf, CAN_MSG_TYPE_COMMAND, C_parkbrakeCmdSetConfig);
-            txf.DLC = 2;
-            txf.data8[0] = idx;
-            txf.data8[1] = res;
-            canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, MS2ST(10));
+            // bitstuff our msg to fit in 32bits
+            msg_t msg = rxf->data8[1] | (rxf->data8[2] << 8); // 2 lowest bytes are settings value
+            msg |= (rxf->data8[0] & 0x7F) << 12;// these bits is idx
+            msg |= C_parkbrakeCmdSetConfig << 16;// 2 highest bytes is action
+
+            chMBPost(&cmdSet_MB, msg, TIME_IMMEDIATE);
 
         } return;
         case C_parkbrakeCmdGetConfig: {
@@ -188,8 +189,6 @@ static void processRx(CANRxFrame *rxf)
 
         } return;
         case C_parkbrakeCmdGetState: {
-//            if (!isRemoteFrame(rxf))
-//                return;
             CANTxFrame txf;
             can_initTxFrame(&txf, CAN_MSG_TYPE_COMMAND, C_parkbrakeCmdGetState);
             txf.DLC = 4;
@@ -200,13 +199,9 @@ static void processRx(CANRxFrame *rxf)
             canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, MS2ST(10));
         }   return;
         case C_parkbrakeCmdServiceSet:
-//            if (!isRemoteFrame(rxf))
-//                return;
             ctrl_setStateAll(SetServiceState);
             return;
         case C_parkbrakeCmdServiceUnset:
-            if (!isRemoteFrame(rxf))
-                return;
             // do the state change
             ctrl_setStateAll(Tightening);
             return;
@@ -220,7 +215,7 @@ static void processRx(CANRxFrame *rxf)
 }
 // ----------------------------------------------------------------------------------------
 // begin private helper functions
-
+/*
 static bool isRemoteFrame(CANRxFrame *rxf)
 {
     if (rxf->RTR != CAN_RTR_REMOTE) {
@@ -229,7 +224,7 @@ static bool isRemoteFrame(CANRxFrame *rxf)
     }
     return true;
 }
-
+*/
 
 // send update pids of volts wheel brakes status etc
 // C_parkbrakePID_1 and C_parkbrakePID_3
@@ -283,9 +278,9 @@ static void sendCurrents(void)
     txf.DLC = 8;
     canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, TIME_IMMEDIATE);
 }
+
 // ----------------------------------------------------------------------------------------
 // begin threads
-
 static THD_WORKING_AREA(waCanRxThd, 256);
 static THD_FUNCTION(canRxThd, arg)
 {
@@ -331,6 +326,57 @@ static THD_FUNCTION(canPIDPeriodicSend, arg)
     }
 }
 
+
+// operations in this thread blocks, so we dont process them in rxHandlerthd
+static THD_WORKING_AREA(waCanCmdSet, 128);
+static THD_FUNCTION(canCmdSet, arg)
+{
+    (void)arg;
+    chRegSetThreadName("canCmdSet");
+
+    static CANTxFrame txf;
+
+    while(TRUE) {
+      static msg_t msg;
+      if (chMBFetch(&cmdSet_MB, &msg, TIME_INFINITE) != MSG_OK)
+          continue;
+
+      static uint16_t settingsVlu;
+      static uint8_t     settingsIdx;
+      static can_msgIdsDiag_e action;
+
+      settingsVlu  =  msg & 0x0000FFFF; // 2 lowest bytes are settings value
+      settingsIdx  = (msg & 0x0007F000) >> 12; // lowest bytes is idx
+      action       = (msg & 0xFFF80000) >> 16; // 2 highest bytes is action, parkbrakeCmds begin at 0x10 << 3
+
+
+      switch (action) {
+      case C_parkbrakeCmdSetConfig: {
+        ee_changeSetting(settingsIdx, settingsVlu);
+        can_initTxFrame(&txf, CAN_MSG_TYPE_COMMAND, C_parkbrakeCmdSetConfig);
+        txf.DLC = 2;
+        txf.data8[0] = settingsIdx;
+        txf.data8[1] = ee_saveSetting(settingsIdx) > 0 ? 0xAA : 0;
+      } break;
+      case C_parkbrakeCmdServiceSet: {
+        can_initTxFrame(&txf, CAN_MSG_TYPE_COMMAND, C_parkbrakeCmdServiceSet);
+        txf.DLC = 1;
+        txf.data8[0] = ctrl_setStateAll(SetServiceState) > 0 ? 0xAA : 0;
+      } break;
+      case C_parkbrakeCmdServiceUnset: {
+        can_initTxFrame(&txf, CAN_MSG_TYPE_COMMAND, C_parkbrakeCmdServiceUnset);
+        txf.DLC = 1;
+        txf.data8[0] = ctrl_setStateAll(Tightening) > 0 ? 0xAA : 0;
+      } break;
+      default:
+        continue; // do nothing
+      }
+
+      // send response
+      canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, MS2ST(10));
+    }
+}
+
 // ----------------------------------------------------------------------------------------
 // begin public API for this module
 
@@ -342,8 +388,13 @@ void can_init(void)
     canRxThdp = chThdCreateStatic(&waCanRxThd, sizeof(waCanRxThd), NORMALPRIO -1, canRxThd, NULL);
 
     // start periodic PID thread (broadcast sensor values on CAN)
-    canPIDPeriodicSendp = chThdCreateStatic(&waCanPIDPeriodicSend, sizeof(waCanPIDPeriodicSend), NORMALPRIO -5,
-                                            canPIDPeriodicSend, NULL);
+    canPIDPeriodicSendThdp = chThdCreateStatic(&waCanPIDPeriodicSend, sizeof(waCanPIDPeriodicSend),
+                                               NORMALPRIO -5, canPIDPeriodicSend, NULL);
+
+    // blocking cmds thd
+    chMBObjectInit(&cmdSet_MB, cmdSetMBqueue, MAILBOX_SIZE);
+    canCmdSetThdp = chThdCreateStatic(&waCanCmdSet, sizeof(waCanCmdSet),
+                                      NORMALPRIO -2, canCmdSet, NULL);
 }
 
 // requires a uint8_t[8] buffer

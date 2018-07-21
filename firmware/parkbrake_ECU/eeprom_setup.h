@@ -44,7 +44,6 @@ extern uint16_t settings[S_EOF];
 
 extern event_source_t ee_settingsChanged;
 
-
 // initializes this module
 void ee_initEeprom(void);
 

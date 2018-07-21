@@ -183,13 +183,17 @@ static THD_FUNCTION(diagCanThd, arg)
     chRegSetThreadName("diagCanThd");
 
     while (TRUE) {
-        msg_t msg;
+        static msg_t msg;
         if (chMBFetch(&diag_CanMB, &msg, TIME_INFINITE) != MSG_OK)
             continue;
 
-        uint8_t idx = msg & 0xFF; // lowest bytes is idx
-        msg_t pos;
-        can_msgIdsDiag_e action = (msg & 0xFFFF0000) >> 16; // 2 highest bytes is action
+        static uint8_t idx;
+        static msg_t pos;
+        static can_msgIdsDiag_e action;
+
+        action = (msg & 0xFFFF0000) >> 16; // 2 highest bytes is action
+        idx  = msg & 0xFF; // lowest bytes is idx
+
         switch (action) {
         case C_parkbrakeDiagClearDTCs: {
             uint8_t cleared = eraseAll();

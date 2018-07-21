@@ -60,14 +60,21 @@ typedef enum  {
 
     C_parkbrakeCmdSetConfig          = 0x10 << 3, // request: b0=configvalue in enum, b2:b3 value as uint16_t little endian
                                                   // response:
-                                                  //  b0=configvalue in enum, b1=1 if ok, b1=0 on fail
+                                                  //  b0=configvalue in enum, b1=0xAA if ok, b1=0 on fail
     C_parkbrakeCmdGetConfig          = 0x11 << 3, // request b0=configValue in enum
                                                   // response:
                                                   // b0=configValue in enum, b2:b3 value as uint16_t little endian
-    C_parkbrakeCmdServiceSet         = 0x12 << 3, // RTR, Look for update on PID to see if state changed, asyncronous
-    C_parkbrakeCmdServiceUnset       = 0x13 << 3, // RTR, --" same as above "--
-    C_parkbrakeCmdGetState           = 0x14 << 3, // RTR, get the state of each wheel,
-                                                  // b0=LF,b1=RF,b2=LR,b3=RR, State = ctrl_states 0=tightened, 1Released, 8 error etc
+    C_parkbrakeCmdServiceSet         = 0x12 << 3, // Request
+                                                  //    Empty
+                                                  // Response: userException frame if on error
+                                                  // or if ok with [0:7] = 0xAA
+    C_parkbrakeCmdServiceUnset       = 0x13 << 3, // --" same as above "--
+    C_parkbrakeCmdGetState           = 0x14 << 3, // get the state of each wheel,
+                                                  // Request: empty
+                                                  // Response:
+                                                  //  LF     RF     LR     RR  State = ctrl_states 0=tightened, 1Released, 8 error etc
+                                                  // [0:7]  [0:7]  [0:7]  [0:7]
+                                                  // State = ctrl_states 0=tightened, 1Released, 8 error etc
     C_parkbrakeCmd_last              = 0x19 << 3,
 
     C_suspensionCmd_first            = 0x1A << 3,

@@ -68,10 +68,10 @@ static void calculateWheelCircumference(void);
 // ---------------------------------------------------------------
 // start globally shared variables
 
-const sen_motor_currents_t sen_motorCurrents = { 0, 0, 0, 0, 0, 0, 0, 0 };
-const sen_voltages_t       sen_voltages = { 0, 0 };
-const int8_t               sen_chipTemperature = 0;
-const sen_wheelspeeds_t    sen_wheelSpeeds = { 0, 0, 0, 0 };
+sen_motor_currents_t sen_motorCurrents = { 0, 0, 0, 0, 0, 0, 0, 0 };
+sen_voltages_t       sen_voltages = { 0, 0 };
+int8_t               sen_chipTemperature = 0;
+sen_wheelspeeds_t    sen_wheelSpeeds = { 0, 0, 0, 0 };
 
 
 event_source_t sen_measuredEvts,
@@ -310,18 +310,14 @@ static void bridgeFrontAdcCallback(ADCDriver *adcp, adcsample_t *buffer, size_t 
         uint16_t left_ma, right_ma;
         bridgeCurrents(&left_ma, &right_ma);
 
-        // go around the constness, we don't want any another code to write to this object
-        sen_motor_currents_t *m;
-        m = (sen_motor_currents_t*)&sen_motorCurrents;
-
         // enter exclusion zone to update variables
         chSysLockFromISR();
-        m->leftFront  = left_ma;
-        m->rightFront = right_ma;
-        if (m->maxLeftFront < left_ma)
-            m->maxLeftFront = left_ma;
-        if (m->maxRightFront < right_ma)
-            m->maxRightFront = right_ma;
+        sen_motorCurrents.leftFront  = left_ma;
+        sen_motorCurrents.rightFront = right_ma;
+        if (sen_motorCurrents.maxLeftFront < left_ma)
+            sen_motorCurrents.maxLeftFront = left_ma;
+        if (sen_motorCurrents.maxRightFront < right_ma)
+            sen_motorCurrents.maxRightFront = right_ma;
         chSysUnlockFromISR();
 
         // notify our subscribers
@@ -339,18 +335,14 @@ static void bridgeRearAdcCallback(ADCDriver *adcp, adcsample_t *buffer, size_t n
         uint16_t left_ma, right_ma;
         bridgeCurrents(&left_ma, &right_ma);
 
-        // go around the constness, we don't want any another code to write to this object
-        sen_motor_currents_t *m;
-        m = (sen_motor_currents_t*)&sen_motorCurrents;
-
         // enter exclusion zone to update variables
         chSysLockFromISR();
-        m->leftRear  = left_ma;
-        m->rightRear = right_ma;
-        if (m->maxLeftRear < left_ma)
-            m->maxLeftRear = left_ma;
-        if (m->maxRightRear < right_ma)
-            m->maxRightRear = right_ma;
+        sen_motorCurrents.leftRear  = left_ma;
+        sen_motorCurrents.rightRear = right_ma;
+        if (sen_motorCurrents.maxLeftRear < left_ma)
+            sen_motorCurrents.maxLeftRear = left_ma;
+        if (sen_motorCurrents.maxRightRear < right_ma)
+            sen_motorCurrents.maxRightRear = right_ma;
         chSysUnlockFromISR();
 
         // notify our subscribers
@@ -373,12 +365,12 @@ static void backgroundAdcCallback(ADCDriver *adcp, adcsample_t *buffer, size_t n
 
         // convert to real voltages
         // 1V in = 10V on pwr line so 3,3V = 33 real volts
-        // so 4095 steps * 8 = 32760mv, so factor 8 is close enough here too
+        // so 4096 steps * 8 = 32760mv, so factor 8 is close enough here too
         // that way we only need integer maths
         uint16_t batMilliVolt, ignMilliVolt;
         float tempF;
-        batMilliVolt = avgBatVolt * 8;
-        ignMilliVolt = avgIgnVolt * 8; // 12V (1489steps * 8) -> 11912mv
+        batMilliVolt = avgBatVolt * 8.2;
+        ignMilliVolt = avgIgnVolt * 8.2; // 12V (1489steps * 8) -> 11912mv
         /*
          * From programming manual page 207
          * Temperature (in °C) = {(V25 - VSENSE) / Avg_Slope} + 25.
@@ -396,18 +388,16 @@ static void backgroundAdcCallback(ADCDriver *adcp, adcsample_t *buffer, size_t n
         tempF += 25;
         int8_t temp = (uint8_t)tempF;
 
-        // un-const
-        sen_voltages_t *v = (sen_voltages_t*)&sen_voltages;
-        uint8_t *t = (uint8_t*)&sen_chipTemperature;
         chSysLockFromISR();
-        v->batVolt = batMilliVolt;
-        v->ignVolt = ignMilliVolt;
-        *t = temp;
-        chSysUnlockFromISR();
 
+        sen_voltages.batVolt = batMilliVolt;
+        sen_voltages.ignVolt = ignMilliVolt;
+        sen_chipTemperature = temp;
 
         // notify our subscribers
         chEvtBroadcastFlagsI(&sen_measuredEvts, EVENT_FLAG_ADC_BACKGROUND);
+
+        chSysUnlockFromISR();
     }
 }
 
@@ -418,7 +408,7 @@ static void backgroundTimerCallback(void)
     chSysLockFromISR();
     // restart the background ADC (voltage and temp) each 250ms
     systime_t nextStop;
-    if (ADCD1.state != ADC_ACTIVE) {
+    if (ADCD1.state != ADC_READY) {
         // ADC busy, retry in 250 us
         nextStop = US2ST(250);
     } else {
@@ -489,27 +479,21 @@ static void bridgeCurrents(uint16_t *left_ma, uint16_t *right_ma)
 
 static void clearFrontCurrents(void)
 {
-    sen_motor_currents_t *m;
-    m = (sen_motor_currents_t *)&sen_motorCurrents;
-
     chSysLock();
-    m->leftFront = 0;
-    m->rightFront = 0;
-    m->maxLeftFront = 0;
-    m->maxRightFront = 0;
+    sen_motorCurrents.leftFront = 0;
+    sen_motorCurrents.rightFront = 0;
+    sen_motorCurrents.maxLeftFront = 0;
+    sen_motorCurrents.maxRightFront = 0;
     chSysUnlock();
 }
 
 static void clearRearCurrents(void)
 {
-    sen_motor_currents_t *m;
-    m = (sen_motor_currents_t *)&sen_motorCurrents;
-
     chSysLock();
-    m->leftRear = 0;
-    m->rightRear = 0;
-    m->maxLeftRear = 0;
-    m->maxRightRear = 0;
+    sen_motorCurrents.leftRear = 0;
+    sen_motorCurrents.rightRear = 0;
+    sen_motorCurrents.maxLeftRear = 0;
+    sen_motorCurrents.maxRightRear = 0;
     chSysUnlock();
 }
 
@@ -710,10 +694,14 @@ void sen_initSensors(void)
 {
     clearFrontCurrents();
     clearRearCurrents();
+
     adcStart(&ADCD1, NULL); // warmup ADC...
+    adcSTM32Calibrate(&ADCD1);
     adcSTM32EnableTSVREFE(); // enable chip temp. measurements
+    adcSTM32EnableVBATE();
 
     // start a background loop to read voltages, temp.
+    chVTObjectInit(&backgroundTimer);
     chVTSet(&backgroundTimer, MS2ST(BACKGROUND_TIMER_MS),
              (void*)backgroundTimerCallback, NULL);
 

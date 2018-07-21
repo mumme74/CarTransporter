@@ -121,10 +121,10 @@ extern event_source_t sen_measuredEvts;
 extern event_source_t sen_MsgHandlerThd;
 
 // shared sensor info, should only be readable everywhere except sensors.c
-extern const sen_motor_currents_t sen_motorCurrents;
-extern const sen_voltages_t       sen_voltages;
-extern const int8_t               sen_chipTemperature;
-extern const sen_wheelspeeds_t    sen_wheelSpeeds;
+extern sen_motor_currents_t sen_motorCurrents;
+extern sen_voltages_t       sen_voltages;
+extern int8_t               sen_chipTemperature;
+extern sen_wheelspeeds_t    sen_wheelSpeeds;
 
 void sen_initSensors(void);
 // clears previous measurement (should be called when starting a Tighten or Loosen sequence)

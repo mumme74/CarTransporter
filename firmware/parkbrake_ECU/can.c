@@ -28,7 +28,7 @@ static CANConfig canCfg = {
     CAN_BTR_SJW(0) |
     CAN_BTR_TS2(2U) | // Synchronization width=0, time quanta TS2 (sample point+transmit point)
     CAN_BTR_TS1(13U) | // time quanta on bit quanta ts1 (sample point)
-    CAN_BTR_BRP(18U-1)    // Baud rate prescaler
+    CAN_BTR_BRP(7U)    // Baud rate prescaler
     /**
      * |<------------------------nominal bit time--------------------------->|
      * |--------------|---------------------------------|--------------------|
@@ -68,7 +68,7 @@ static CANConfig canCfg = {
 // begin function prototypes
 static bool isRemoteFrame(CANRxFrame *rxf);
 static void processRx(CANRxFrame *rxf);
-static void broadcastOnCan(void);
+static void broadcastOnCan(can_msgIdsUpdate_e PID);
 static void sendCurrents(void);
 
 // ----------------------------------------------------------------------------------------
@@ -81,8 +81,12 @@ static void processRx(CANRxFrame *rxf)
     if (sid == CAN_MSG_TYPE_EXCEPTION) {
         // not interested in incoming exceptions... TODO filter out
     } else if (sid == CAN_MSG_TYPE_UPDATE) {
-        // not sure if we're really interested in anything here
         // our own updates send by a dedicated thread
+        // remote Node requests update frame
+      sid = rxf->SID & CAN_MSG_ID_MASK;
+      if (sid >= C_parkbrakeUpdPID_FIRST && sid <= C_parkbrakeUpdPID_LAST)
+        broadcastOnCan((can_msgIdsUpdate_e)sid);
+
     } else if (sid == CAN_MSG_TYPE_DIAG) {
         // DTCs data list etc
         sid = rxf->SID & CAN_MSG_ID_MASK;
@@ -90,11 +94,12 @@ static void processRx(CANRxFrame *rxf)
             return; // not meant for this node
 
         switch (sid) {
-        case C_parkbrakeDiagDTCLength:
-            if (!isRemoteFrame(rxf))
-                return;
-            chMBPost(&diag_CanMB, (C_parkbrakeDiagDTCLength << 16), TIME_IMMEDIATE);
-            break;
+        case C_parkbrakeDiagDTCLength: {
+//            if (!isRemoteFrame(rxf))
+//                return;
+            msg_t msg = C_parkbrakeDiagDTCLength << 16;
+            chMBPost(&diag_CanMB, msg, TIME_IMMEDIATE);
+        }   return;
         case C_parkbrakeDiagDTC: // fallthrough
         case C_parkbrakeDiagDTCFreezeFrame: {
             if (rxf->DLC != 1) {
@@ -106,7 +111,8 @@ static void processRx(CANRxFrame *rxf)
                 DEBUG_OUT_PRINTF("malformed CAN diag: %x wrong DTC idx", idx);
                 return;
             }
-            chMBPost(&diag_CanMB, (sid << 16) & idx, TIME_IMMEDIATE);
+            msg_t msg = (sid << 16) | idx;
+            chMBPost(&diag_CanMB, msg, TIME_IMMEDIATE);
         }    return;
 
         case C_parkbrakeDiagClearDTCs: {
@@ -119,7 +125,8 @@ static void processRx(CANRxFrame *rxf)
                 DEBUG_OUT_PRINTF("malformed CAN diag erase dtc: %x wrong DTC len", idx);
                 return;
             }
-            chMBPost(&diag_CanMB, (sid << 16) & idx, TIME_IMMEDIATE);
+            msg_t msg = (sid << 16) | idx;
+            chMBPost(&diag_CanMB, msg, TIME_IMMEDIATE);
         } return;
         case C_parkbrakeDiagActuatorTest:
             if (rxf->DLC != 1) {
@@ -127,7 +134,8 @@ static void processRx(CANRxFrame *rxf)
                 return;
             }
             uint8_t data = rxf->data8[0];
-            chMBPost(&diag_CanMB, (sid << 16) & data, TIME_IMMEDIATE);
+            msg_t msg = (sid << 16) | data;
+            chMBPost(&diag_CanMB, msg, TIME_IMMEDIATE);
             return;
         }
     } else if (sid == CAN_MSG_TYPE_COMMAND) {
@@ -147,7 +155,7 @@ static void processRx(CANRxFrame *rxf)
                 DEBUG_OUT_PRINTF("malformed CAN config cmd: %d index out of range", idx);
                 return;
             }
-            uint16_t vlu = rxf->data8[1] & (rxf->data8[2] << 8); // little endian
+            uint16_t vlu = rxf->data8[1] | (rxf->data8[2] << 8); // little endian
             ee_changeSetting(idx, vlu);
             int res = ee_saveSetting(idx);
             CANTxFrame txf;
@@ -180,8 +188,8 @@ static void processRx(CANRxFrame *rxf)
 
         } return;
         case C_parkbrakeCmdGetState: {
-            if (!isRemoteFrame(rxf))
-                return;
+//            if (!isRemoteFrame(rxf))
+//                return;
             CANTxFrame txf;
             can_initTxFrame(&txf, CAN_MSG_TYPE_COMMAND, C_parkbrakeCmdGetState);
             txf.DLC = 4;
@@ -192,8 +200,8 @@ static void processRx(CANRxFrame *rxf)
             canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, MS2ST(10));
         }   return;
         case C_parkbrakeCmdServiceSet:
-            if (!isRemoteFrame(rxf))
-                return;
+//            if (!isRemoteFrame(rxf))
+//                return;
             ctrl_setStateAll(SetServiceState);
             return;
         case C_parkbrakeCmdServiceUnset:
@@ -225,16 +233,17 @@ static bool isRemoteFrame(CANRxFrame *rxf)
 
 // send update pids of volts wheel brakes status etc
 // C_parkbrakePID_1 and C_parkbrakePID_3
-static void broadcastOnCan(void)
+static void broadcastOnCan(can_msgIdsUpdate_e PID)
 {
     static uint64_t oldPid_1 = 0,
+                    oldPid_2 = 0,
                     oldPid_3 = 0;
 
     // build data for PID_1
     CANTxFrame txf;
     can_buildPid1Data(txf.data8);
 
-    if (txf.data64[0] != oldPid_1) {
+    if (txf.data64[0] != oldPid_1 || PID == C_parkbrakeUpdPID_1) {
         // something changed, broadcast
         oldPid_1 = txf.data64[0];
         can_initTxFrame(&txf, CAN_MSG_TYPE_UPDATE, C_parkbrakeUpdPID_1);
@@ -242,10 +251,20 @@ static void broadcastOnCan(void)
         canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, TIME_IMMEDIATE);
     }
 
+      // PID_2
+      can_buildPid2Data(txf.data8);
+    if (txf.data64[0] != oldPid_2 || PID == C_parkbrakeUpdPID_2) {
+        // something changed, broadcast
+        oldPid_2 = txf.data64[0];
+        can_initTxFrame(&txf, CAN_MSG_TYPE_UPDATE, C_parkbrakeUpdPID_2);
+        txf.DLC = 8;
+        canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, TIME_IMMEDIATE);
+    }
+
     // build data for PID_3
     can_buildPid3Data(txf.data8);
 
-    if (txf.data64[0] != oldPid_3) {
+    if (txf.data64[0] != oldPid_3 || PID == C_parkbrakeUpdPID_3) {
         // something changed, broadcast
         oldPid_3 = txf.data64[0];
         can_initTxFrame(&txf, CAN_MSG_TYPE_UPDATE, C_parkbrakeUpdPID_3);
@@ -303,7 +322,7 @@ static THD_FUNCTION(canPIDPeriodicSend, arg)
                                             MS2ST(broadcastTime));
         if (flg == 0) {
             // timeout, try periodic send
-            broadcastOnCan();
+            broadcastOnCan(C_NoUpdateFrame);
         } else if (pid2_timeout < chVTGetSystemTime()) {
             // send currents each 100ms
             pid2_timeout = MS2ST(100);
@@ -369,9 +388,9 @@ void can_buildPid3Data(uint8_t data8[])
     data8[4] = sen_chipTemperature; // as signed int
 
     data8[5] = (SEN_IGN_ON_SIG << 7)      | (SEN_LIGHTS_ON_SIG << 6) |
-                (SEN_BUTTON_SIG << 5)      | (SEN_BUTTON_INV_SIG << 4) |
-                (SEN_LEFT_FRONT_DIAG << 3) | (SEN_RIGHT_FRONT_DIAG << 2) |
-                (SEN_LEFT_REAR_DIAG << 1)  | (SEN_RIGHT_REAR_DIAG << 0);
+               (SEN_BUTTON_SIG << 5)      | (SEN_BUTTON_INV_SIG << 4) |
+               (SEN_LEFT_FRONT_DIAG << 3) | (SEN_RIGHT_FRONT_DIAG << 2) |
+               (SEN_LEFT_REAR_DIAG << 1)  | (SEN_RIGHT_REAR_DIAG << 0);
 }
 
 void can_initTxFrame(CANTxFrame *txf, uint16_t msgType, uint16_t msgId)

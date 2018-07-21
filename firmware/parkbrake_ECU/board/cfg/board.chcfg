@@ -109,15 +109,15 @@
         ID="CAN_RX"
         Type="PushPull"
         Speed="Maximum"
-        Resistor="PullUp"
-        Level="High"
+        Resistor="PullDown"
+        Level="Low"
         Mode="Alternate"
         Alternate="9" />
       <pin12
         ID="CAN_TX"
         Type="PushPull"
         Speed="Maximum"
-        Resistor="PullUp"
+        Resistor="PullDown"
         Level="Low"
         Mode="Alternate"
         Alternate="9" />
@@ -182,7 +182,7 @@
       <pin4
         ID="JTNRST"
         Type="PushPull"
-        Speed="Maximum"
+        Speed="Low"
         Resistor="Floating"
         Level="High"
         Mode="Alternate"
@@ -197,20 +197,20 @@
         Alternate="0" ></pin5>
       <pin6
         ID="USART_TX"
-        Type="OpenDrain"
-        Speed="Maximum"
-        Resistor="Floating"
+        Type="PushPull"
+        Speed="Low"
+        Resistor="PullUp"
         Level="High"
         Mode="Alternate"
         Alternate="7" />
       <pin7
         ID="USART_RX"
-        Type="OpenDrain"
+        Type="PushPull"
         Speed="Maximum"
         Resistor="PullUp"
         Level="High"
         Mode="Alternate"
-        Alternate="7" />
+        Alternate="7" ></pin7>
       <pin8
         ID="L_speed_out"
         Type="PushPull"

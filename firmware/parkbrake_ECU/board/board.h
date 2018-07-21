@@ -353,8 +353,8 @@
                                      PIN_PUPDR_PULLUP(GPIOA_LeftRear_DIAG) |\
                                      PIN_PUPDR_FLOATING(GPIOA_RightRear_DIAG) |\
                                      PIN_PUPDR_FLOATING(GPIOA_PWR_ENABLED_SIG) |\
-                                     PIN_PUPDR_PULLUP(GPIOA_CAN_RX) |       \
-                                     PIN_PUPDR_PULLUP(GPIOA_CAN_TX) |       \
+                                     PIN_PUPDR_PULLDOWN(GPIOA_CAN_RX) |       \
+                                     PIN_PUPDR_PULLDOWN(GPIOA_CAN_TX) |       \
                                      PIN_PUPDR_PULLUP(GPIOA_JTMS) |         \
                                      PIN_PUPDR_PULLDOWN(GPIOA_JTCLK) |      \
                                      PIN_PUPDR_FLOATING(GPIOA_JTDI))
@@ -369,7 +369,7 @@
                                      PIN_ODR_HIGH(GPIOA_LeftRear_DIAG) |    \
                                      PIN_ODR_HIGH(GPIOA_RightRear_DIAG) |   \
                                      PIN_ODR_HIGH(GPIOA_PWR_ENABLED_SIG) |  \
-                                     PIN_ODR_HIGH(GPIOA_CAN_RX) |           \
+                                     PIN_ODR_LOW(GPIOA_CAN_RX) |           \
                                      PIN_ODR_LOW(GPIOA_CAN_TX) |            \
                                      PIN_ODR_HIGH(GPIOA_JTMS) |             \
                                      PIN_ODR_LOW(GPIOA_JTCLK) |             \
@@ -433,8 +433,8 @@
                                      PIN_OTYPE_PUSHPULL(GPIOB_JTDO) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOB_JTNRST) |     \
                                      PIN_OTYPE_PUSHPULL(GPIOB_Bridge_Disable) |\
-                                     PIN_OTYPE_OPENDRAIN(GPIOB_USART_TX) |  \
-                                     PIN_OTYPE_OPENDRAIN(GPIOB_USART_RX) |  \
+                                     PIN_OTYPE_PUSHPULL(GPIOB_USART_TX) |  \
+                                     PIN_OTYPE_PUSHPULL(GPIOB_USART_RX) |  \
                                      PIN_OTYPE_PUSHPULL(GPIOB_L_speed_out) |\
                                      PIN_OTYPE_PUSHPULL(GPIOB_L_speed_out_inv) |\
                                      PIN_OTYPE_PUSHPULL(GPIOB_PIN10) |      \
@@ -449,8 +449,8 @@
                                      PIN_OSPEED_HIGH(GPIOB_JTDO) |          \
                                      PIN_OSPEED_HIGH(GPIOB_JTNRST) |        \
                                      PIN_OSPEED_HIGH(GPIOB_Bridge_Disable) |\
-                                     PIN_OSPEED_HIGH(GPIOB_USART_TX) |      \
-                                     PIN_OSPEED_HIGH(GPIOB_USART_RX) |      \
+                                     PIN_OSPEED_VERYLOW(GPIOB_USART_TX) |      \
+                                     PIN_OSPEED_VERYLOW(GPIOB_USART_RX) |      \
                                      PIN_OSPEED_HIGH(GPIOB_L_speed_out) |   \
                                      PIN_OSPEED_HIGH(GPIOB_L_speed_out_inv) |\
                                      PIN_OSPEED_VERYLOW(GPIOB_PIN10) |      \
@@ -465,7 +465,7 @@
                                      PIN_PUPDR_FLOATING(GPIOB_JTDO) |       \
                                      PIN_PUPDR_FLOATING(GPIOB_JTNRST) |     \
                                      PIN_PUPDR_PULLUP(GPIOB_Bridge_Disable) |\
-                                     PIN_PUPDR_FLOATING(GPIOB_USART_TX) |   \
+                                     PIN_PUPDR_PULLUP(GPIOB_USART_TX) |   \
                                      PIN_PUPDR_PULLUP(GPIOB_USART_RX) |     \
                                      PIN_PUPDR_PULLUP(GPIOB_L_speed_out) |  \
                                      PIN_PUPDR_PULLUP(GPIOB_L_speed_out_inv) |\

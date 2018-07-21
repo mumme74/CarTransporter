@@ -574,8 +574,8 @@ void CanAbstractNode::setAmpPid(QString key, quint8 amp,
 void CanAbstractNode::setVoltPid(QString key, quint16 volt,
                                  PidStore &pidStore, can_senderIds_e senderId)
 {
-    double fVolt = volt / 1000;
-    QString value = QString::number(fVolt, 'g', 1);
+    double fVolt = volt / 1000.0;
+    QString value = QString::number(fVolt, 'f', 1);
     setPidsValue(key, value, "V", pidStore, senderId);
 }
 

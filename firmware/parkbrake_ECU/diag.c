@@ -183,10 +183,13 @@ static THD_FUNCTION(diagCanThd, arg)
     chRegSetThreadName("diagCanThd");
 
     while (TRUE) {
-        msg_t msg = chMBFetch(&diag_CanMB, diagCanMBqueue, TIME_INFINITE);
+        msg_t msg;
+        if (chMBFetch(&diag_CanMB, &msg, TIME_INFINITE) != MSG_OK)
+            continue;
+
         uint8_t idx = msg & 0xFF; // lowest bytes is idx
         msg_t pos;
-        can_msgIdsDiag_e action = (msg & 0xFFFF0000 >> 16); // 2 highest bytes is action
+        can_msgIdsDiag_e action = (msg & 0xFFFF0000) >> 16; // 2 highest bytes is action
         switch (action) {
         case C_parkbrakeDiagClearDTCs: {
             uint8_t cleared = eraseAll();
@@ -339,8 +342,8 @@ void diag_init(void)
 {
     initDtcListFromEeprom();
 
-    chMBObjectInit(&dtc_MB,  dtcMBqueue, MAILBOX_SIZE);
-    chMBObjectInit(&diag_CanMB,  diagCanMBqueue, MAILBOX_SIZE);
+    chMBObjectInit(&dtc_MB, dtcMBqueue, MAILBOX_SIZE);
+    chMBObjectInit(&diag_CanMB, diagCanMBqueue, MAILBOX_SIZE);
 
     setDtcp = chThdCreateStatic(&waSetDtc, sizeof(waSetDtc), LOWPRIO, setDtc, NULL);
 

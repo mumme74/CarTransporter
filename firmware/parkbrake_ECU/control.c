@@ -505,7 +505,7 @@ void ctrl_setStateAll(ctrl_states state)
 
 void ctrl_setStateAxle(ctrl_states state, ctrl_axles axle)
 {
-    chDbgAssert(axle > RearAxle, "Invalid axle");
+    chDbgAssert(axle <= RearAxle, "Invalid axle");
 
     if  (axle == RearAxle) {
         ctrl_setStateWheel(state, LeftRear);
@@ -519,10 +519,10 @@ void ctrl_setStateAxle(ctrl_states state, ctrl_axles axle)
 // set on a single wheel
 void ctrl_setStateWheel(ctrl_states state, ctrl_wheels wheel)
 {
-    chDbgAssert(state != Releasing &&
-                state != Tightening &&
-                state != SetServiceState, "Invalid state");
-    chDbgAssert(wheel > RightRear, "Invalid wheel");
+    chDbgAssert(state == Releasing ||
+                state == Tightening ||
+                state == SetServiceState, "Invalid state");
+    chDbgAssert(wheel <= RightRear, "Invalid wheel");
 
     // wheel is already at this state
     if (state == STATE_MASK(wheel))

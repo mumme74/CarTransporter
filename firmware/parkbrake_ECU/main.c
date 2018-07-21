@@ -27,6 +27,7 @@
 #include "button_logic.h"
 #include "can.h"
 #include "diag.h"
+#include "debug.h"
 
 
 /*
@@ -56,8 +57,8 @@ int main(void) {
   sen_initSensors();
   btn_initButtonLogic();
 
-
   while (TRUE) {
-    chThdSleep(S2ST(500)); // do nothing loop, let the kernel handle it for us
+    chThdSleepMilliseconds(500); // do nothing loop, let the kernel handle it for us
+    DEBUG_OUT_PRINTF("beat\r\n", ST2MS(chVTGetSystemTime()));
   }
 }

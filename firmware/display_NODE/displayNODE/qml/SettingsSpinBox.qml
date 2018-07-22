@@ -36,7 +36,7 @@ SpinBox {
 
     Component.onCompleted: {
         function callbackGet(vlu) {
-            value = vlu;
+            root.value = vlu;
             deadNodeWarn.stop();
         }
 

@@ -162,7 +162,7 @@ Item {
                         }
                         SettingsSpinBox {
                             id: currentMaxTighten
-                            settingsIndex: ParkbrakeConfig.S_CurrentRevupMaxTighten // 9
+                            settingsIndex: ParkbrakeConfig.S_CurrentMaxTighten // 9
                             node: parkbrakeNode
                             from: 0
                             to: 30

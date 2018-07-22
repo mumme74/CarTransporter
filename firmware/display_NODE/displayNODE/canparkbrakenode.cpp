@@ -306,8 +306,10 @@ void CanParkbrakeNode::exceptionCanFrame(const QCanBusFrame &frame)
         quint16 code = (payload[2] << 8) | (0x00ff & payload[1]);
         CanDtc *dtc = getDtc(payload[0]);
         if (dtc == nullptr) {
-            dtc = new CanDtc(this, payload[0], code, payload[3], 0);
+            quint16 dtcTime = payload[5] << 8 | payload[4];
+            dtc = new CanDtc(this, payload[0], code, payload[3], dtcTime);
             m_dtcs.insert(dtc->storedNr(), dtc);
+            m_dtcCount++;
             emit dtcAdded(dtc->storedNr());
         } else {
             dtc->setOccurences(payload[3]);
@@ -316,7 +318,7 @@ void CanParkbrakeNode::exceptionCanFrame(const QCanBusFrame &frame)
 
     }   break;
     case C_parkbrakeExcUserError: {
-        quint16 excId = (payload.at(1) << 8) | (0x00ff & payload.at(0));
+        quint16 excId = (payload[1] << 8) | (0x00ff & payload[0]);
         if (excId == C_userErrorBrakeOff) {
             emit userErrorBrakeOff();
         } else if (excId == C_userErrorBtnInvOff) {
@@ -506,7 +508,8 @@ void CanParkbrakeNode::setStatePid(QString key, quint8 state, PidStore &pidStore
     case SetServiceState:
         value = tr("ToServiceState");
         break;
-    case ErrorState:
+    case ErrorState: // fallthrough
+    default:
         value = tr("ErrorState");
         break;
     }
@@ -579,6 +582,8 @@ QVariant ParkbrakeDTCModel::data(const QModelIndex &index, int role) const
         return QVariant(dtc->dtcDescription());
     else if (role == OccurencesRole)
         return QVariant(dtc->occurences());
+    else if (role == TimeRole)
+        return QVariant(dtc->timeSinceStartup());
     else
         return QVariant();
 }
@@ -599,15 +604,15 @@ void ParkbrakeDTCModel::cleared(bool cleared, int count)
 {
     Q_UNUSED(cleared)
     Q_UNUSED(count)
-    beginResetModel();
-    endResetModel();
-//    if (cleared) {
-//        beginRemoveRows(QModelIndex(), 0, count > 0 ? count -1 : 0);
-//        endRemoveRows();
-//    } else {
+//    beginResetModel();
+//    endResetModel();
+    if (cleared) {
+        beginRemoveRows(QModelIndex(), 0, count > 0 ? count -1 : 0);
+        endRemoveRows();
+    } else {
         // force refresh
-//        emit dataChanged(QModelIndex(), QModelIndex());
-//    }
+        emit dataChanged(QModelIndex(), QModelIndex());
+    }
 }
 
 void ParkbrakeDTCModel::updated(int idx)
@@ -627,6 +632,7 @@ QHash<int, QByteArray> ParkbrakeDTCModel::roleNames() const
     roles[CodeRole] = "code";
     roles[DescRole] = "desc";
     roles[OccurencesRole]  = "occurrences";
+    roles[TimeRole] = "time";
     return roles;
 }
 

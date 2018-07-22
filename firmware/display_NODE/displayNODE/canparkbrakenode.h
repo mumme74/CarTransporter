@@ -78,7 +78,8 @@ public:
     enum Roles {
         CodeRole = Qt::UserRole + 1,
         DescRole,
-        OccurencesRole
+        OccurencesRole,
+        TimeRole
     };
 
 private slots:
@@ -91,7 +92,7 @@ protected:
 
 private:
     CanParkbrakeNode *m_node;
-    const int m_colCount = 3;
+    const int m_colCount = 4;
 };
 
 #endif // CANPARKBRAKENODE_H

@@ -307,12 +307,13 @@ static THD_FUNCTION(canPIDPeriodicSend, arg)
 
     event_listener_t el;
     chEvtRegisterMaskWithFlags(&sen_measuredEvts, &el, EVENT_MASK(0),
-                    EVENT_FLAG_ADC_REARAXLE | EVENT_FLAG_ADC_FRONTAXLE);
+                               AdcRearAxle | AdcFrontAxle);
+//                    EVENT_FLAG_ADC_REARAXLE | EVENT_FLAG_ADC_FRONTAXLE);
     static const uint16_t broadcastTime = 500; // ms
     systime_t pid2_timeout = 0;
 
     while (TRUE) {
-        eventflags_t flg = chEvtWaitAnyTimeout(EVENT_FLAG_ADC_REARAXLE | EVENT_FLAG_ADC_FRONTAXLE,
+        eventflags_t flg = chEvtWaitAnyTimeout(AdcRearAxle | AdcFrontAxle,  //EVENT_FLAG_ADC_REARAXLE | EVENT_FLAG_ADC_FRONTAXLE,
                                             MS2ST(broadcastTime));
         if (flg == 0) {
             // timeout, try periodic send

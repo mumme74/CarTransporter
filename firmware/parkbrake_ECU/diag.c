@@ -18,10 +18,10 @@
 
 #define MAILBOX_SIZE 10
 
-#define DIAG_CAN_TIMEOUT MS2ST(10)
+#define DIAG_CAN_TIMEOUT MS2ST(25)
 
-#define MAX_DTCS 35
-#define DTC_SIZE 26  /* each DTC occupies 26byte including freeze frame*/
+#define MAX_DTCS 34
+#define DTC_SIZE 27  /* each DTC occupies 26byte including freeze frame*/
 
 
 // ---------------------------------------------------------------------------------------
@@ -41,7 +41,7 @@ static msg_t dtcMBqueue[MAILBOX_SIZE],
 static systime_t startupTime = 0;
 
 static uint16_t storedDtcs[MAX_DTCS +1];
-static uint16_t storedDtcLength;
+static uint8_t storedDtcLength;
 
 // ---------------------------------------------------------------------------------------
 // begin helper functions for this module
@@ -108,14 +108,17 @@ static THD_FUNCTION(setDtc, arg)
         msg_t i;
         uint8_t occurences = 0,
                 storedIdx = 0;
+        uint16_t dtcTime = 0;
+
         for (i = 0; i < storedDtcLength; ++i) {
             if (storedDtcs[i] == dtc) {
                 // already stored, increment occurence counter
-                msg_t pos = 1 + (i * DTC_SIZE);
+                msg_t pos = 1 + (i * DTC_SIZE) + sizeof(uint16_t);
                 if (fileStreamSeek(dtcFile, pos) == pos) {
                     occurences = EepromReadByte(dtcFile);
                     if (occurences < 0xFF)
                         ++occurences;
+                    dtcTime = EepromReadHalfword(dtcFile);
                     fileStreamSeek(dtcFile, pos);
                     EepromWriteByte(dtcFile, occurences);
                     storedIdx = i;
@@ -130,34 +133,44 @@ static THD_FUNCTION(setDtc, arg)
             if (storedDtcLength > MAX_DTCS) {
                 // restart DTC from bottom
                 pos = 1;
+                storedIdx = 0;
+            } else {
+                storedIdx = storedDtcLength;
             }
             if (fileStreamSeek(dtcFile, pos) == pos) {
                 static uint8_t data8[8]; // static to save stackspace
-                storedDtcs[pos -1] = (uint16_t)dtc;
+                storedDtcs[storedDtcLength] = (uint16_t)dtc;
 
-                // save dtc code and occurrences
+                // save dtc code
                 EepromWriteHalfword(dtcFile, (uint16_t)dtc);
-                EepromWriteByte(dtcFile, occurences +1);
+
+                // occurences
+                EepromWriteByte(dtcFile, ++occurences);
 
                 // time since start
                 systime_t t = chVTTimeElapsedSinceX(startupTime);
-                uint16_t time = ST2S(t);
-                EepromWriteHalfword(dtcFile, time);
+                dtcTime = ST2S(t);
+                EepromWriteHalfword(dtcFile, dtcTime);
 
                 // freeze frame
                 // pid1 8bytes
                 can_buildPid1Data(data8);
-                EepromWriteWord(dtcFile, (uint32_t)data8[0]);
-                EepromWriteWord(dtcFile, (uint32_t)data8[4]);
+                EepromWriteWord(dtcFile, (data8[3] << 24 | data8[2] << 16 |
+                                          data8[1] << 8 | data8[0]));
+                EepromWriteWord(dtcFile, (data8[7] << 24 | data8[6] << 16 |
+                                          data8[5] << 8 | data8[4]));
 
                 // pid2 8bytes
                 can_buildPid2Data(data8);
-                EepromWriteWord(dtcFile, (uint32_t)data8[0]);
-                EepromWriteWord(dtcFile, (uint32_t)data8[4]);
+                EepromWriteWord(dtcFile, (data8[3] << 24 | data8[2] << 16 |
+                                          data8[1] << 8 | data8[0]));
+                EepromWriteWord(dtcFile, (data8[7] << 24 | data8[6] << 16 |
+                                          data8[5] << 8 | data8[4]));
 
                 // pid3 5 bytes
                 can_buildPid3Data(data8);
-                EepromWriteWord(dtcFile, (uint32_t)data8[0]);
+                EepromWriteWord(dtcFile, (data8[3] << 24 | data8[2] << 16 |
+                                          data8[1] << 8 | data8[0]));
                 EepromWriteByte(dtcFile, data8[4]);
 
                 // save the new dtc length
@@ -171,15 +184,16 @@ static THD_FUNCTION(setDtc, arg)
             }
         }
 
-
         // broadcast this dtc as a new error
         static CANTxFrame txf;
         can_initTxFrame(&txf, CAN_MSG_TYPE_EXCEPTION, C_parkbrakeExcNewDTC);
-        txf.DLC = 4;
+        txf.DLC = 6;
         txf.data8[0] = storedIdx;
         txf.data8[1] = dtc & 0x00FF;
-        txf.data8[2] = (dtc & 0xFF00 >> 8);
+        txf.data8[2] = (dtc & 0xFF00) >> 8;
         txf.data8[3] = occurences;
+        txf.data8[4] = (dtcTime & 0x00FF);
+        txf.data8[5] = (dtcTime & 0xFF00) >> 8;
         canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, DIAG_CAN_TIMEOUT);
     }
 }
@@ -205,15 +219,15 @@ static THD_FUNCTION(diagCanThd, arg)
 
         switch (action) {
         case C_parkbrakeDiagClearDTCs: {
-            uint8_t cleared = eraseAll();
             CANTxFrame txf;
             can_initTxFrame(&txf, CAN_MSG_TYPE_DIAG, C_parkbrakeDiagClearDTCs);
             txf.DLC = 1;
-            txf.data8[0] = cleared;
+            txf.data8[0] = storedDtcLength;
+            eraseAll();
             canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, DIAG_CAN_TIMEOUT);
         }   break;
         case C_parkbrakeDiagDTC:
-            pos = 2 + (idx * DTC_SIZE);
+            pos = 1 + (idx * DTC_SIZE);
             if (fileStreamSeek(dtcFile, pos) == pos) {
                 CANTxFrame txf;
                 can_initTxFrame(&txf, CAN_MSG_TYPE_DIAG, C_parkbrakeDiagDTC);
@@ -221,16 +235,16 @@ static THD_FUNCTION(diagCanThd, arg)
 
                 // read DTC code
                 uint16_t hwd = EepromReadHalfword(dtcFile);
-                txf.data8[1] = hwd & 0xFF;
-                txf.data8[2] = (hwd & 0xFF00 >> 8);
+                txf.data8[1] = (hwd & 0x00FF);
+                txf.data8[2] = (hwd & 0xFF00) >> 8;
 
                 // read occurrences
                 txf.data8[3] = EepromReadByte(dtcFile);
 
                 // read time when set
                 hwd = EepromReadHalfword(dtcFile);
-                txf.data8[4] = hwd & 0xFF;
-                txf.data8[5] = (hwd & 0xFF00 >> 8);
+                txf.data8[4] = (hwd & 0x00FF);
+                txf.data8[5] = (hwd & 0xFF00) >> 8;
 
                 // 6 bytes to send
                 txf.DLC = 6;
@@ -239,57 +253,59 @@ static THD_FUNCTION(diagCanThd, arg)
 
             break;
         case C_parkbrakeDiagDTCFreezeFrame: {
-            pos = 2 + (idx * DTC_SIZE);
+            pos = (idx * DTC_SIZE) + 6; // dtcLen:1by + code:2by + occu:1by + time:2by;
             if (fileStreamSeek(dtcFile, pos) == pos) {
-                CANTxFrame txf;
+                static CANTxFrame txf;
                 can_initTxFrame(&txf, CAN_MSG_TYPE_DIAG, C_parkbrakeDiagDTCFreezeFrame);
+
                 txf.data8[0] = idx;
                 // build frame 0
                 txf.data8[1] = 0; // frame 0 ,states of wheels
                 uint32_t wd = EepromReadWord(dtcFile);
-                txf.data8[2] = wd & 0x000000FF;
-                txf.data8[3] = (wd & 0x0000FF00) >> 8;
-                txf.data8[4] = (wd & 0x00FF0000) >> 16;
-                txf.data8[5] = (wd & 0xFF000000) >> 24;
+                txf.data8[2] = wd & 0x000000FF;         // LF state
+                txf.data8[3] = (wd & 0x0000FF00) >> 8;  // RF state
+                txf.data8[4] = (wd & 0x00FF0000) >> 16; // RL state
+                txf.data8[5] = (wd & 0xFF000000) >> 24; // RR state
                 txf.DLC = 6;
                 canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, DIAG_CAN_TIMEOUT);
+
                 // build frame 1
                 txf.data8[1] = 1; // frame 1, revs of wheels
                 wd = EepromReadWord(dtcFile);
-                txf.data8[2] = wd & 0x000000FF;
-                txf.data8[3] = (wd & 0x0000FF00) >> 8;
-                txf.data8[4] = (wd & 0x00FF0000) >> 16;
-                txf.data8[5] = (wd & 0xFF000000) >> 24;
+                txf.data8[2] = wd & 0x000000FF;         // LF r/s
+                txf.data8[3] = (wd & 0x0000FF00) >> 8;  // RF r/s
+                txf.data8[4] = (wd & 0x00FF0000) >> 16; // LR r/s
+                txf.data8[5] = (wd & 0xFF000000) >> 24; // RR r/s
                 txf.DLC = 6;
                 canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, DIAG_CAN_TIMEOUT);
                 // build frame 2
                 txf.data8[1] = 2; // frame 2, amps momentarily
                 wd = EepromReadWord(dtcFile);
-                txf.data8[2] = wd & 0x000000FF;
-                txf.data8[3] = (wd & 0x0000FF00) >> 8;
-                txf.data8[4] = (wd & 0x00FF0000) >> 16;
-                txf.data8[5] = (wd & 0xFF000000) >> 24;
+                txf.data8[2] = wd & 0x000000FF;         // LF A now
+                txf.data8[3] = (wd & 0x0000FF00) >> 8;  // RF A now
+                txf.data8[4] = (wd & 0x00FF0000) >> 16; // LR A now
+                txf.data8[5] = (wd & 0xFF000000) >> 24; // RR A now
                 txf.DLC = 6;
                 canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, DIAG_CAN_TIMEOUT);
                 // build frame 3
                 txf.data8[1] = 3; // frame 3, amps maximum
                 wd = EepromReadWord(dtcFile);
-                txf.data8[2] = wd & 0x000000FF;
-                txf.data8[3] = (wd & 0x0000FF00) >> 8;
-                txf.data8[4] = (wd & 0x00FF0000) >> 16;
-                txf.data8[5] = (wd & 0xFF000000) >> 24;
+                txf.data8[2] = wd & 0x000000FF;         // LF A max
+                txf.data8[3] = (wd & 0x0000FF00) >> 8;  // RF A max
+                txf.data8[4] = (wd & 0x00FF0000) >> 16; // LR A max
+                txf.data8[5] = (wd & 0xFF000000) >> 24; // RR A max
                 txf.DLC = 6;
                 canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, DIAG_CAN_TIMEOUT);
                 // build frame 4
                 txf.data8[1] = 4; // frame 4, volts, chip temp and digital inputs
                 wd = EepromReadWord(dtcFile);
-                txf.data8[2] = wd & 0x000000FF;         // bat volts
+                txf.data8[2] = (wd & 0x000000FF);        // bat mV [0:15]
                 txf.data8[3] = (wd & 0x0000FF00) >> 8;
-                txf.data8[4] = (wd & 0x00FF0000) >> 16; // ign volts
+                txf.data8[4] = (wd & 0x00FF0000) >> 16; // ign mV [0:15]
                 txf.data8[5] = (wd & 0xFF000000) >> 24;
                 // chip temp and inputs
                 wd = EepromReadHalfword(dtcFile);
-                txf.data8[6] = (wd & 0xFF);  // temp
+                txf.data8[6] = (wd & 0x00FF);      // chiptemp
                 txf.data8[7] = (wd & 0xFF00) >> 8; // digital inputs
                 txf.DLC = 8;
                 canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, DIAG_CAN_TIMEOUT);

@@ -150,12 +150,17 @@ Item {
                 TableViewColumn {
                     role: "desc"
                     title: qsTr("Description")+ tr.str
-                    width: 510
+                    width: 310
                 }
                 TableViewColumn {
                     role: "occurrences"
                     title: qsTr("Occurrences")+ tr.str
                     width: 70
+                }
+                TableViewColumn {
+                    role: "time"
+                    title: qsTr("s. since startup")+ tr.str
+                    width: 180
                 }
             }
             Button {

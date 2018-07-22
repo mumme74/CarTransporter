@@ -653,19 +653,17 @@ bool CanAbstractNode::fetchFreezeFrame(int dtcNr, QJSValue jsCallback, can_msgId
             freezeFrameArrival(dtcNr);
             return true;
         }
-        // we are waiting for more frames here
-        return true;
+        // refetch
+    } else {
+        // we havent yet tried to fetch this frame
+
+        // store in stack for later use
+        m_freezeFrameFetchCallback.insert(dtcNr, jsCallback);
+        // create a freezeFrame object for this dtc,
+        // used later to check against multiple fetches
+        CanFreezeFrame *ff = new CanFreezeFrame(this, dtcNr);
+        m_freezeFrames.insert(dtcNr, ff);
     }
-
-    // we havent yet tried to fetch this frame
-
-    // store in stack for later use
-    m_freezeFrameFetchCallback.insert(dtcNr, jsCallback);
-
-    // create a freezeFrame object for this dtc,
-    // used later to check against multiple fetches
-    CanFreezeFrame *ff = new CanFreezeFrame(this, dtcNr);
-    m_freezeFrames.insert(dtcNr, ff);
 
     // get from can
     QByteArray pl;

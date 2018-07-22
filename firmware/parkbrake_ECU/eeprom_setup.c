@@ -135,7 +135,7 @@ static EepromFileStream *settingsFile = NULL;
 
 SPIEepromFileConfig dtcFileConfig = {
    105, // start address
-   1023, // end address
+   1024, // end address
    EEPROM_SIZE,
    EEPROM_PAGE_SIZE,
    MS2ST(EEPROM_WRITE_TIME_MS),

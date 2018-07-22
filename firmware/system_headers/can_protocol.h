@@ -127,8 +127,8 @@ typedef enum {
     C_parkbrakeExcNewDTC           = 0x06 << 3,   // a new DTC has been set
                                                   // broadcasted when a dtc is set
                                                   // response
-                                                  //  [0:7]        [0:15]    [0:7]
-                                                  // stored nr     dtc code  occurrences
+                                                  //  [0:7]        [0:15]    [0:7]        [0:15]
+                                                  // stored nr     dtc code  occurrences  time since startup when set
 
     C_parkbrakeExcUserError        = 0x07 << 3,   // action wasn't allowed like when parkbrake during moving
                                                   // sent by parkbrake node when user does something wrong

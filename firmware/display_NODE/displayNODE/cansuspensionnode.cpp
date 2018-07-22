@@ -317,6 +317,7 @@ void CanSuspensionNode::exceptionCanFrame(const QCanBusFrame &frame)
             dtc = new CanDtc(this, payload[0], code, occurences, 0);
             dtc->setPending(pending);
             m_dtcs.insert(dtc->storedNr(), dtc);
+            m_dtcCount++;
             emit dtcAdded(dtc->storedNr());
         } else {
             dtc->setPending(pending);

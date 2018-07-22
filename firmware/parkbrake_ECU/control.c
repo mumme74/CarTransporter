@@ -32,7 +32,7 @@
 
 
 #define BRIDGE_ENABLE \
-    chVTReset(&bridgeDisableTimer); \
+    /*chVTReset(&bridgeDisableTimer);*/ \
     palClearPad(GPIOB, GPIOB_Bridge_Disable); \
     palSetPad(GPIOC, GPIOC_uC_SET_POWER);
 
@@ -78,6 +78,7 @@ static void saveState(uint32_t state, ctrl_wheels wheel);
 static msg_t releaseWheel(wheelthreadinfo_t *info);
 static msg_t tightenWheel(wheelthreadinfo_t *info);
 static msg_t serviceWheel(wheelthreadinfo_t *info);
+static bool disableBridge(void);
 
 static mailbox_t mbLF, mbLR, mbRF, mbRR;
 
@@ -86,7 +87,7 @@ static msg_t mbLF_queue[MAILBOX_SIZE]/* = { 0, 0 }*/,
              mbRF_queue[MAILBOX_SIZE]/* = { 0, 0 }*/,
              mbRR_queue[MAILBOX_SIZE]/* = { 0, 0 }*/;
 
-static virtual_timer_t bridgeDisableTimer,
+static virtual_timer_t /*bridgeDisableTimer,*/
                        saveStateTimer;
 
 static thread_t *lfThdp,
@@ -98,6 +99,7 @@ static thread_t *lfThdp,
 // ------------------------------------------------------------------------------------
 // begin callbacks
 
+/*
 // this callback is so we don't inadvertently turn off the bridge until all wheels are finished
 void bridgeDisableTimerCallback(void *arg)
 {
@@ -109,6 +111,7 @@ void bridgeDisableTimerCallback(void *arg)
     // stop current measurement, resume background checks
     chEvtBroadcastFlags(&sen_MsgHandlerThd, (eventflags_t)StopAll);
 }
+*/
 
 // this callback is only so we don't save 4 times in eeprom when 1 is enough
 // it takes 10ms each time and that would block thread
@@ -161,7 +164,9 @@ static THD_FUNCTION(wheelHandler, args)
     static event_listener_t adcEvt;
 
     while(TRUE) {
-        ctrl_states action = (ctrl_states)chMBFetch(info->mb, info->mb_queue, TIME_INFINITE);
+        ctrl_states action;
+        if (chMBFetch(info->mb, (msg_t*)&action, TIME_INFINITE) != MSG_OK)
+            continue;
 
         // listen to currents to perform this action
         chEvtRegisterMaskWithFlags(&sen_measuredEvts, &adcEvt,
@@ -221,9 +226,11 @@ static THD_FUNCTION(wheelHandler, args)
         chEvtUnregister(&sen_measuredEvts, &adcEvt);
 
         // when done we start a timer which eventually disables the bridge
-        // we don't want to do that in this instant as there maight be other wheels that are still
-        // doing some actions on there part
-        chVTSet(&bridgeDisableTimer, S2ST(5), bridgeDisableTimerCallback, NULL);
+        // we don't want to do that in this instant as there might be other wheels that are still
+        // doing some actions on there own part
+        //chVTSet(&bridgeDisableTimer, S2ST(5), bridgeDisableTimerCallback, NULL);
+
+        disableBridge();
     }
 }
 
@@ -236,7 +243,7 @@ static THD_FUNCTION(wheelHandler, args)
 
 static void saveState(uint32_t state, ctrl_wheels wheel)
 {
-    chSysLock();
+    //chSysLock();
     // only set the bits that is related to this wheel
     uint32_t mask = 0xF << wheel;
     stateFlags = (stateFlags & ~mask) | ((state << wheel) & mask);
@@ -244,7 +251,7 @@ static void saveState(uint32_t state, ctrl_wheels wheel)
     // we use a timer here so we don't save 4 times in eeprom when 1 is enough
     // it takes 10ms each time and that would block thread
     chVTSet(&saveStateTimer, MS2ST(5), saveStateTimerCallback, NULL);
-    chSysUnlock();
+    //chSysUnlock();
 }
 
 
@@ -256,8 +263,8 @@ static msg_t releaseWheel(wheelthreadinfo_t *info)
     msg_t success = MSG_OK;
 
     systime_t curOffTime = 0,
-              maxTime = MS2ST(2000),
-              revupTime = MS2ST(settings[S_TimeRevupRelease]); // start of release means higher currents is allowed
+              maxTime = MS2ST(2000) + chVTGetSystemTime(),
+              revupTime = MS2ST(settings[S_TimeRevupRelease]) + chVTGetSystemTime(); // start of release means higher currents is allowed
 
     bool isReleased = false;
 
@@ -319,8 +326,8 @@ static msg_t tightenWheel(wheelthreadinfo_t *info)
     msg_t success = MSG_OK;
 
     systime_t curOffTime = 0,
-           maxTime = MS2ST(2000),
-           revupTime = MS2ST(settings[S_TimeRevupRelease]); // revup means higher currents is allowed
+           maxTime = MS2ST(2000) + chVTGetSystemTime(),
+           revupTime = MS2ST(settings[S_TimeRevupRelease]) + chVTGetSystemTime(); // revup means higher currents is allowed
 
     bool isTightened = false;
     uint8_t avgSpeed = 0, lockSpeed = 0;
@@ -463,6 +470,28 @@ static msg_t serviceWheel(wheelthreadinfo_t *info)
     return success;
 }
 
+static bool disableBridge(void)
+{
+    ctrl_wheels wh = LeftFront;
+    for (;wh <= RightRear; ++wh) {
+      ctrl_states state = ctrl_getStateWheel(wh);
+      if (state == Releasing ||
+          state == Tightening ||
+          state == SetServiceState)
+      {
+        return false; // somedriver is still blocking poweroff
+      }
+    }
+
+    // all drivers are in off state
+    palSetPad(GPIOB, GPIOB_Bridge_Disable);
+    palClearPad(GPIOC, GPIOC_uC_SET_POWER);
+
+    // stop current measurement, resume background checks
+    chEvtBroadcastFlags(&sen_MsgHandlerThd, (eventflags_t)StopAll);
+    return true;
+}
+
 
 // ---------------------------------------------------------------------------------------
 // begin API functions
@@ -481,7 +510,8 @@ void ctrl_init(void)
     chMBObjectInit(&mbRR, mbRR_queue, MAILBOX_SIZE);
 
     // timer which disables bridge when all wheels are done
-    chVTObjectInit(&bridgeDisableTimer);
+    //chVTObjectInit(&bridgeDisableTimer);
+
     // timer which saves a changed state in eeprom (later so we don't write to many times)
     chVTObjectInit(&saveStateTimer);
 

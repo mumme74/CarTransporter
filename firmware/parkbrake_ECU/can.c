@@ -161,8 +161,8 @@ static void processRx(CANRxFrame *rxf)
             }
             // bitstuff our msg to fit in 32bits
             msg_t msg = rxf->data8[1] | (rxf->data8[2] << 8); // 2 lowest bytes are settings value
-            msg |= (rxf->data8[0] & 0x7F) << 12;// these bits is idx
-            msg |= C_parkbrakeCmdSetConfig << 16;// 2 highest bytes is action
+            msg |= (rxf->data8[0] & 0x7F) << 16;// these bits is idx
+            msg |= C_parkbrakeCmdSetConfig << 20;// 2 highest bytes is action
 
             chMBPost(&cmdSet_MB, msg, TIME_IMMEDIATE);
 
@@ -172,9 +172,8 @@ static void processRx(CANRxFrame *rxf)
                 DEBUG_OUT_PRINTF("malformed CAN config cmd: %x wrong DLC", rxf->SID);
                 return;
             }
-            uint8_t idx = rxf->data8[0];
-            if (idx >= S_EOF) {
-                DEBUG_OUT_PRINTF("malformed CAN config cmd: %d index out of range", idx);
+            if (rxf->data8[0] >= S_EOF) {
+                DEBUG_OUT_PRINTF("malformed CAN config cmd: %d index out of range", rxf->data8[0]);
                 return;
             }
 
@@ -182,9 +181,9 @@ static void processRx(CANRxFrame *rxf)
             CANTxFrame txf;
             can_initTxFrame(&txf, CAN_MSG_TYPE_COMMAND, C_parkbrakeCmdGetConfig);
             txf.DLC = 3;
-            txf.data8[0] = idx;
-            txf.data8[1] = settings[idx] & 0x00FF; // little byte first
-            txf.data8[2] = (settings[idx] & 0xFF00) >> 8;
+            txf.data8[0] = rxf->data8[0];
+            txf.data8[1] = settings[rxf->data8[0]] & 0x00FF; // little byte first
+            txf.data8[2] = (settings[rxf->data8[0]] & 0xFF00) >> 8;
             canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, MS2ST(10));
 
         } return;
@@ -198,12 +197,12 @@ static void processRx(CANRxFrame *rxf)
             txf.data8[3] = ctrl_getStateWheel(RightRear);
             canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, MS2ST(10));
         }   return;
-        case C_parkbrakeCmdServiceSet:
-            ctrl_setStateAll(SetServiceState);
-            return;
+        case C_parkbrakeCmdServiceSet: {
+            chMBPost(&cmdSet_MB, (msg_t)C_parkbrakeCmdServiceSet, TIME_IMMEDIATE);
+        }   return;
         case C_parkbrakeCmdServiceUnset:
             // do the state change
-            ctrl_setStateAll(Tightening);
+            chMBPost(&cmdSet_MB, (msg_t)C_parkbrakeCmdServiceUnset, TIME_IMMEDIATE);
             return;
         default:
             DEBUG_OUT_PRINTF("Non allowed CAN cmd: %x", rxf->SID);
@@ -328,7 +327,7 @@ static THD_FUNCTION(canPIDPeriodicSend, arg)
 
 
 // operations in this thread blocks, so we dont process them in rxHandlerthd
-static THD_WORKING_AREA(waCanCmdSet, 128);
+static THD_WORKING_AREA(waCanCmdSet, 320);
 static THD_FUNCTION(canCmdSet, arg)
 {
     (void)arg;
@@ -343,11 +342,11 @@ static THD_FUNCTION(canCmdSet, arg)
 
       static uint16_t settingsVlu;
       static uint8_t     settingsIdx;
-      static can_msgIdsDiag_e action;
+      static can_msgIdsCommand_e action;
 
       settingsVlu  =  msg & 0x0000FFFF; // 2 lowest bytes are settings value
-      settingsIdx  = (msg & 0x0007F000) >> 12; // lowest bytes is idx
-      action       = (msg & 0xFFF80000) >> 16; // 2 highest bytes is action, parkbrakeCmds begin at 0x10 << 3
+      settingsIdx  = (msg & 0x007F0000) >> 16; // lowest bytes is idx
+      action       = (msg & 0xFF800000) >> 20; // 2 highest bytes is action, parkbrakeCmds begin at 0x10 << 3
 
 
       switch (action) {
@@ -446,6 +445,8 @@ void can_buildPid3Data(uint8_t data8[])
 
 void can_initTxFrame(CANTxFrame *txf, uint16_t msgType, uint16_t msgId)
 {
-    txf->SID = msgType | msgId | C_parkbrakeNode;
-    txf->IDE = CAN_IDE_STD;
+  txf->IDE = CAN_IDE_STD;;
+  txf->EID = 0;
+  txf->RTR = 0;
+  txf->SID = msgType | msgId | C_parkbrakeNode;
 }

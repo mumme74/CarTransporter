@@ -321,7 +321,7 @@ static void bridgeFrontAdcCallback(ADCDriver *adcp, adcsample_t *buffer, size_t 
         chSysUnlockFromISR();
 
         // notify our subscribers
-        chEvtBroadcastFlagsI(&sen_measuredEvts, EVENT_FLAG_ADC_FRONTAXLE);
+        chEvtBroadcastFlagsI(&sen_measuredEvts, AdcFrontAxle); // EVENT_FLAG_ADC_FRONTAXLE);
     }
 }
 
@@ -346,7 +346,7 @@ static void bridgeRearAdcCallback(ADCDriver *adcp, adcsample_t *buffer, size_t n
         chSysUnlockFromISR();
 
         // notify our subscribers
-        chEvtBroadcastFlagsI(&sen_measuredEvts, EVENT_FLAG_ADC_REARAXLE);
+        chEvtBroadcastFlagsI(&sen_measuredEvts, AdcRearAxle); //EVENT_FLAG_ADC_REARAXLE);
     }
 }
 
@@ -395,7 +395,7 @@ static void backgroundAdcCallback(ADCDriver *adcp, adcsample_t *buffer, size_t n
         sen_chipTemperature = temp;
 
         // notify our subscribers
-        chEvtBroadcastFlagsI(&sen_measuredEvts, EVENT_FLAG_ADC_BACKGROUND);
+        chEvtBroadcastFlagsI(&sen_measuredEvts, AdcBackground); // EVENT_FLAG_ADC_BACKGROUND);
 
         chSysUnlockFromISR();
     }
@@ -429,25 +429,25 @@ static void extCallback(EXTDriver *extp, expchannel_t channel)
 
     switch (channel) {
     case 1: // PB1 -> LeftFront_DIAG
-        chEvtBroadcastFlagsI(&sen_measuredEvts, EVENT_FLAG_BRIDGE_LF_DIAG);
+        chEvtBroadcastFlagsI(&sen_measuredEvts, BrgLFDiag); //EVENT_FLAG_BRIDGE_LF_DIAG);
         break;
     case 2: // PB2 -> RightFront_DIAG
-        chEvtBroadcastFlagsI(&sen_measuredEvts, EVENT_FLAG_BRIDGE_RF_DIAG);
+        chEvtBroadcastFlagsI(&sen_measuredEvts, BrgRFDiag); //EVENT_FLAG_BRIDGE_RF_DIAG);
         break;
     case 6: // PF6 -> TIGHTEN_CMD_SIG
-        chEvtBroadcastFlagsI(&sen_measuredEvts, EVENT_FLAG_TIGHTEN_CMD_SIG);
+        chEvtBroadcastFlagsI(&sen_measuredEvts, SigTightenCmd); //EVENT_FLAG_TIGHTEN_CMD_SIG);
         break;
     case 7: // PF7 -> RELEASE_CMD_SIG
-        chEvtBroadcastFlagsI(&sen_measuredEvts, EVENT_FLAG_RELEASE_CMD_SIG);
+        chEvtBroadcastFlagsI(&sen_measuredEvts, SigReleaseCmd); //EVENT_FLAG_RELEASE_CMD_SIG);
         break;
     case 8: // PA8 -> LeftRear_DIAG
-        chEvtBroadcastFlagsI(&sen_measuredEvts, EVENT_FLAG_BRIDGE_LR_DIAG);
+        chEvtBroadcastFlagsI(&sen_measuredEvts, BrgLRDiag); //EVENT_FLAG_BRIDGE_LR_DIAG);
         break;
     case 9: // PA9 -> RightRear_DIAG
-        chEvtBroadcastFlagsI(&sen_measuredEvts, EVENT_FLAG_BRIDGE_RR_DIAG);
+        chEvtBroadcastFlagsI(&sen_measuredEvts, BrgRRDiag); //EVENT_FLAG_BRIDGE_RR_DIAG);
         break;
     case 10: // PA10 -> PWR_ENABLED_SIG
-        chEvtBroadcastFlagsI(&sen_measuredEvts, EVENT_FLAG_PWR_ENABLED_SIG);
+        chEvtBroadcastFlagsI(&sen_measuredEvts, SigPwrEnabled); // EVENT_FLAG_PWR_ENABLED_SIG);
         break;
     default:
         break; // not handled?
@@ -523,45 +523,44 @@ static THD_FUNCTION(adcHandlerThd, arg)
     chRegSetThreadName("sensor_adcHandlerThd");
 
     static event_listener_t evtMsg;
-    static const uint8_t ADC_EVT = 0,
-                         MSG_EVT = 1;
 
     // listen to ADC events for currents
     event_listener_t evtAdc;
-    chEvtRegisterMaskWithFlags(&sen_measuredEvts, &evtAdc, EVENT_MASK(ADC_EVT),
-                  EVENT_FLAG_ADC_REARAXLE | EVENT_FLAG_ADC_FRONTAXLE);
+    chEvtRegisterMaskWithFlags(&sen_measuredEvts, &evtAdc, AdcAllEvents,
+                               AdcRearAxle | AdcFrontAxle); //EVENT_FLAG_ADC_REARAXLE | EVENT_FLAG_ADC_FRONTAXLE);
     // listen to msgs to this thread to change action
-    chEvtRegisterMask(&sen_MsgHandlerThd, &evtMsg, EVENT_MASK(MSG_EVT));
+    chEvtRegisterMask(&sen_MsgHandlerThd, &evtMsg, MsgStartRear);
 
     msg_t msg = 0;
     eventmask_t evt;
-    sen_measure action = StopAll;
+    sen_measure_evt action = MsgStopAll;
     systime_t timeout = TIME_INFINITE;
 
     while (TRUE) {
         // wait for a event to occur, either a new action or ADC finished
         // or don't wait at all if a new action needs to be done
-        evt = chEvtWaitAnyTimeout(EVENT_MASK(ADC_EVT) | EVENT_MASK(MSG_EVT), timeout);
-        if ((evt | EVENT_MASK(ADC_EVT)) || evt == 0){
+        evt = chEvtWaitAnyTimeout(AdcAllEvents | MsgAllEvents, timeout);
+        if ((evt & AdcAllEvents) || evt == 0)
+        {
             // we get here each time ADC has finished OR when a new action needs to be done (timeout==0)
             switch (action) {
-            case StopAll:
+            case MsgStopAll:
                 // no current to measure, restart background timer
                 chVTSet(&backgroundTimer, MS2ST(BACKGROUND_TIMER_MS),
                         (void*)backgroundTimerCallback, NULL);
                 break;
-            case StartFront:
+            case MsgStartFront:
                 adcStartConversion(&ADCD1, &adcBridgeFrontCfg, bridgeAdcBuf, ADC_BRIDGE_BUF_DEPTH);
                 break;
-            case StartRear:
+            case MsgStartRear:
                 adcStartConversion(&ADCD1, &adcBridgeRearCfg, bridgeAdcBuf, ADC_BRIDGE_BUF_DEPTH);
                 break;
-            case StartAll: {
+            case MsgStartAll: {
                 // rationale here is to alternate between each axle
                 eventflags_t wasFlg = chEvtGetAndClearFlags(&evtAdc);
-                if (wasFlg & EVENT_FLAG_ADC_REARAXLE)
+                if (wasFlg & AdcRearAxle)//EVENT_FLAG_ADC_REARAXLE)
                     adcStartConversion(&ADCD1, &adcBridgeFrontCfg, bridgeAdcBuf, ADC_BRIDGE_BUF_DEPTH);
-                else if (wasFlg & EVENT_FLAG_ADC_FRONTAXLE)
+                else if (wasFlg & AdcFrontAxle)//EVENT_FLAG_ADC_FRONTAXLE)
                     adcStartConversion(&ADCD1, &adcBridgeRearCfg, bridgeAdcBuf, ADC_BRIDGE_BUF_DEPTH);
                 // else it was a background adc finished in which case we do nothing
             }   break;
@@ -569,28 +568,28 @@ static THD_FUNCTION(adcHandlerThd, arg)
                 break; // do nothing as that stops the ADC measuring loop
             }
 
-        } else if (evt | EVENT_MASK(MSG_EVT)) {
-            sen_measure newAction = (sen_measure)msg;
-            if (action == StartFront && newAction == StartRear) {
+        } else if (evt & MsgAllEvents) {
+          sen_measure_evt newAction = (sen_measure_evt)msg;
+            if (action == MsgStartFront && newAction == MsgStartRear) {
                 clearRearCurrents();
-                action = StartAll;
-            } else if (action == StartRear && newAction == StartFront) {
+                action = MsgStartAll;
+            } else if (action == MsgStartRear && newAction == MsgStartFront) {
                 clearFrontCurrents();
-                action = StartAll;
-            } else if (action == StartAll && newAction == StopRear) {
-                action = StartFront;
-            } else if (action == StartAll && newAction == StopFront) {
-                action = StartRear;
-            } else if (newAction == StartAll) {
+                action = MsgStartAll;
+            } else if (action == MsgStartAll && newAction == MsgStopRear) {
+                action = MsgStartFront;
+            } else if (action == MsgStartAll && newAction == MsgStopFront) {
+                action = MsgStartRear;
+            } else if (newAction == MsgStartAll) {
                 clearRearCurrents();
                 clearFrontCurrents();
-                action = StartAll;
+                action = MsgStartAll;
             } else {
                 action = newAction;
             }
 
             // stop background timer if set
-            if (action != StopAll && chVTIsArmed(&backgroundTimer))
+            if (action != MsgStopAll && chVTIsArmed(&backgroundTimer))
                 chVTReset(&backgroundTimer);
 
             // don't wait for a event to occur on next loop
@@ -634,13 +633,13 @@ static THD_FUNCTION(inputPoll, arg)
         debounceBtn    = (debounceBtn << 1)    | !SEN_BUTTON_SIG     | 0xE000;
         debounceBtnInv = (debounceBtnInv << 1) | !SEN_BUTTON_INV_SIG | 0xE000;
         if (debounceIgn == 0xF000)
-            chEvtBroadcastFlags(&sen_measuredEvts, EVENT_FLAG_IGN_ON_SIG);
+            chEvtBroadcastFlags(&sen_measuredEvts, SigIgnOn); // EVENT_FLAG_IGN_ON_SIG);
         if (debounceLights == 0xF000)
-            chEvtBroadcastFlags(&sen_measuredEvts, EVENT_FLAG_LIGHTS_ON_SIG);
+            chEvtBroadcastFlags(&sen_measuredEvts, SigLightsOn); // EVENT_FLAG_LIGHTS_ON_SIG);
         if (debounceBtn == 0xF000)
-            chEvtBroadcastFlags(&sen_measuredEvts, EVENT_FLAG_BUTTON_SIG);
+            chEvtBroadcastFlags(&sen_measuredEvts, SigButton); // EVENT_FLAG_BUTTON_SIG);
         if (debounceBtnInv == 0xF000)
-            chEvtBroadcastFlags(&sen_measuredEvts, EVENT_FLAG_BUTTON_INV_SIG);
+            chEvtBroadcastFlags(&sen_measuredEvts, SigButtonInv); //EVENT_FLAG_BUTTON_INV_SIG);
 
         // same algorithm as above but tiggers on falling edge
         offBounceIgn    = (offBounceIgn << 1)    | SEN_IGN_ON_SIG      | 0x1FFF;
@@ -648,13 +647,13 @@ static THD_FUNCTION(inputPoll, arg)
         offBounceBtn    = (offBounceBtn << 1)    | SEN_BUTTON_SIG      | 0x1FFF;
         offBounceBtnInv = (offBounceBtnInv << 1) | SEN_BUTTON_INV_SIG  | 0x1FFF;
         if (offBounceIgn == 0xF000)
-            chEvtBroadcastFlags(&sen_measuredEvts, EVENT_FLAG_IGN_ON_SIG);
+            chEvtBroadcastFlags(&sen_measuredEvts, SigIgnOn); // EVENT_FLAG_IGN_ON_SIG);
         if (offBounceLights == 0xF000)
-            chEvtBroadcastFlags(&sen_measuredEvts, EVENT_FLAG_LIGHTS_ON_SIG);
+            chEvtBroadcastFlags(&sen_measuredEvts, SigLightsOn); // EVENT_FLAG_LIGHTS_ON_SIG);
         if (offBounceBtn)
-            chEvtBroadcastFlags(&sen_measuredEvts, EVENT_FLAG_BUTTON_SIG);
+            chEvtBroadcastFlags(&sen_measuredEvts, SigButton); // EVENT_FLAG_BUTTON_SIG);
         if (offBounceBtnInv == 0xF000)
-            chEvtBroadcastFlags(&sen_measuredEvts, EVENT_FLAG_BUTTON_INV_SIG);
+            chEvtBroadcastFlags(&sen_measuredEvts, SigButtonInv); // EVENT_FLAG_BUTTON_INV_SIG);
 
         chThdSleep(MS2ST(7));
     }

@@ -54,7 +54,7 @@
 #define SEN_BUTTON_SIG       palReadPad(GPIOE, GPIOE_BUTTON_SIG)  /* activate button input */
 #define SEN_BUTTON_INV_SIG   palReadPad(GPIOE, GPIOE_BUTTON_INV_SIG) /* activate button inverted input */
 
-
+/*
 // Event flags for sensor events
 #define EVENT_FLAG_ADC_BACKGROUND 1U
 #define EVENT_FLAG_ADC_REARAXLE   2U
@@ -73,7 +73,7 @@
 #define EVENT_FLAG_BRIDGE_LR_DIAG  0x1000U
 #define EVENT_FLAG_BRIDGE_RR_DIAG  0x2000U
 #define EVENT_FLAG_BRIDGE_DIAG_PINS 0x3C00U
-
+*/
 
 // helper macros, might be useful
 #define MAX(a,b) ((a) > (b) ? a : b)
@@ -81,13 +81,44 @@
 
 
 typedef enum {
-    StopAll = 0,
-    StartAll = 1,
-    StopFront = 2,
-    StartFront = 4,
-    StopRear = 5,
-    StartRear = 6,
-} sen_measure;
+    // msg events
+    MsgStopAll      = 0x00000001U,
+    MsgStartAll     = 0x00000002U,
+    MsgStopFront    = 0x00000004U,
+    MsgStartFront   = 0x00000008U,
+    MsgStopRear     = 0x00000010U,
+    MsgStartRear    = 0x00000020U,
+    MsgEventEnd     = 0x00000080U,
+    MsgAllEvents    = 0x000000FFU,
+
+    // ADC events
+    AdcBackground   = 0x00000100U,
+    AdcRearAxle     = 0x00000200U,
+    AdcFrontAxle    = 0x00000400U,
+    AdcEventEnd     = 0x00008000U,
+    AdcAllEvents    = 0x0000FF00U,
+
+    // Signals
+    SigPwrEnabled   = 0x00010000U,
+    SigTightenCmd   = 0x00020000U,
+    SigReleaseCmd   = 0x00040000U,
+    SigButton       = 0x00080000U,
+    SigButtonInv    = 0x00100000U,
+    SigIgnOn        = 0x00200000U,
+    SigLightsOn     = 0x00400000U,
+    SigEventEnd     = 0x00800000U,
+    SigAllEvents    = 0x00FF0000U,
+
+    // Bridge
+    BrgLFDiag       = 0x01000000U,
+    BrgRFDiag       = 0x02000000U,
+    BrgLRDiag       = 0x04000000U,
+    BrgRRDiag       = 0x08000000U,
+    BrgAllDiags     = 0x0F000000U,
+    BrgEventEnd     = 0x80000000U,
+    BrgAllEvents    = 0xFF000000U,
+
+} sen_measure_evt;
 
 typedef struct {
     // motorcurrents i milliamps
@@ -115,6 +146,10 @@ typedef struct {
             rightRear_rps;
 
 } sen_wheelspeeds_t;
+
+// when broadcasting to msgHandlerThd mask with these values
+static const uint8_t ADC_EVT = 0,
+                     MSG_EVT = 4;
 
 
 extern event_source_t sen_measuredEvts;

@@ -189,7 +189,7 @@ void initSettings(void)
         msg_t pos = i * sizeof(settings[0]);
         if (fileStreamSeek(settingsFile, pos) == pos) {
             uint16_t vlu = EepromReadHalfword(settingsFile);
-            if (vlu > 0)
+            if (vlu < 0xFFFF)
               settings[i] = vlu;
         }
     }

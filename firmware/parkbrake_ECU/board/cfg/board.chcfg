@@ -331,13 +331,13 @@
         Speed="Maximum"
         Resistor="Floating"
         Level="High"
-        Mode="Alternate"
-        Alternate="5" />
+        Mode="Output"
+        Alternate="0" />
       <pin7
         ID="SPI_SCK"
         Type="PushPull"
         Speed="Maximum"
-        Resistor="Floating"
+        Resistor="PullUp"
         Level="High"
         Mode="Alternate"
         Alternate="5" />

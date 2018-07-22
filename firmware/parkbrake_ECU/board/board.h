@@ -534,7 +534,7 @@
                                      PIN_MODE_OUTPUT(GPIOC_LeftFront_Loosen) |\
                                      PIN_MODE_OUTPUT(GPIOC_RightFront_Tighten) |\
                                      PIN_MODE_OUTPUT(GPIOC_RightFront_Loosen) |\
-                                     PIN_MODE_ALTERNATE(GPIOC_SPI_CS) |     \
+                                     PIN_MODE_OUTPUT(GPIOC_SPI_CS) |     \
                                      PIN_MODE_ALTERNATE(GPIOC_SPI_SCK) |    \
                                      PIN_MODE_ALTERNATE(GPIOC_SPI_MISO) |   \
                                      PIN_MODE_ALTERNATE(GPIOC_SPI_MOSI) |   \
@@ -582,8 +582,8 @@
                                      PIN_PUPDR_FLOATING(GPIOC_LeftFront_Loosen) |\
                                      PIN_PUPDR_PULLUP(GPIOC_RightFront_Tighten) |\
                                      PIN_PUPDR_FLOATING(GPIOC_RightFront_Loosen) |\
-                                     PIN_PUPDR_FLOATING(GPIOC_SPI_CS) |     \
-                                     PIN_PUPDR_FLOATING(GPIOC_SPI_SCK) |    \
+                                     PIN_PUPDR_PULLUP(GPIOC_SPI_CS) |     \
+                                     PIN_PUPDR_PULLUP(GPIOC_SPI_SCK) |    \
                                      PIN_PUPDR_PULLUP(GPIOC_SPI_MISO) |     \
                                      PIN_PUPDR_PULLUP(GPIOC_SPI_MOSI) |     \
                                      PIN_PUPDR_FLOATING(GPIOC_LeftRear_Tighten) |\
@@ -614,7 +614,7 @@
                                      PIN_AFIO_AF(GPIOC_LeftFront_Loosen, 0U) |\
                                      PIN_AFIO_AF(GPIOC_RightFront_Tighten, 0U) |\
                                      PIN_AFIO_AF(GPIOC_RightFront_Loosen, 0U) |\
-                                     PIN_AFIO_AF(GPIOC_SPI_CS, 5U) |        \
+                                     PIN_AFIO_AF(GPIOC_SPI_CS, 0U) |        \
                                      PIN_AFIO_AF(GPIOC_SPI_SCK, 5U))
 #define VAL_GPIOC_AFRH              (PIN_AFIO_AF(GPIOC_SPI_MISO, 5U) |      \
                                      PIN_AFIO_AF(GPIOC_SPI_MOSI, 5U) |      \

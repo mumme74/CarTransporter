@@ -74,10 +74,10 @@ typedef enum {
     // Tire Profile in percent (like on a tire 225 / 17 R 65) this would be 65
     S_TireProfile = 23,
 
-    // maximum 50 settings!
+    // maximum 31 settings!
 
     // END marker
-    S_EOF = 50
+    S_EOF = 31
 } settings_e;
 
 

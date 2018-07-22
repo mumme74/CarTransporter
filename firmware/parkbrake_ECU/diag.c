@@ -61,6 +61,8 @@ void initDtcListFromEeprom(void)
     // fill from eeprom
     if (fileStreamSeek(dtcFile, 0) == 0) {
         storedDtcLength = EepromReadHalfword(dtcFile);
+        if (storedDtcLength > MAX_DTCS)
+          storedDtcLength = MAX_DTCS; // a DTC is uint16_t
     }
 
     msg_t i;
@@ -83,11 +85,13 @@ uint8_t eraseAll(void)
         written += EepromWriteWord(dtcFile, 0);
     }
 
+    storedDtcLength = 0;
+
     return written;
 }
 // ---------------------------------------------------------------------------------------
 // begin threads
-static THD_WORKING_AREA(waSetDtc, 128);
+static THD_WORKING_AREA(waSetDtc, 350);
 static THD_FUNCTION(setDtc, arg)
 {
     (void)arg;
@@ -97,11 +101,14 @@ static THD_FUNCTION(setDtc, arg)
 
 
     while (TRUE) {
-        can_DTCs_e dtc = (can_DTCs_e)chMBFetch(&dtc_MB, dtcMBqueue, TIME_INFINITE);
+        can_DTCs_e dtc;
+        if (chMBFetch(&dtc_MB, (msg_t*)&dtc, TIME_INFINITE) != MSG_OK)
+            continue;
+
         msg_t i;
         uint8_t occurences = 0,
                 storedIdx = 0;
-        for (i = 0; storedDtcLength; ++i) {
+        for (i = 0; i < storedDtcLength; ++i) {
             if (storedDtcs[i] == dtc) {
                 // already stored, increment occurence counter
                 msg_t pos = 1 + (i * DTC_SIZE);
@@ -126,6 +133,7 @@ static THD_FUNCTION(setDtc, arg)
             }
             if (fileStreamSeek(dtcFile, pos) == pos) {
                 static uint8_t data8[8]; // static to save stackspace
+                storedDtcs[pos -1] = (uint16_t)dtc;
 
                 // save dtc code and occurrences
                 EepromWriteHalfword(dtcFile, (uint16_t)dtc);
@@ -163,6 +171,7 @@ static THD_FUNCTION(setDtc, arg)
             }
         }
 
+
         // broadcast this dtc as a new error
         static CANTxFrame txf;
         can_initTxFrame(&txf, CAN_MSG_TYPE_EXCEPTION, C_parkbrakeExcNewDTC);
@@ -176,7 +185,7 @@ static THD_FUNCTION(setDtc, arg)
 }
 
 
-static THD_WORKING_AREA(waDiagCanThd, 256);
+static THD_WORKING_AREA(waDiagCanThd, 512);
 static THD_FUNCTION(diagCanThd, arg)
 {
     (void)arg;
@@ -308,7 +317,7 @@ static THD_FUNCTION(diagCanThd, arg)
             if (e != C_userErrorNone) {
                 can_initTxFrame(&txf, CAN_MSG_TYPE_EXCEPTION, C_parkbrakeExcUserError);
                 txf.DLC = 2;
-                txf.data8[0] = e & 0xFF;
+                txf.data8[0] =  e & 0x00FF;
                 txf.data8[1] = (e & 0xFF00) >> 8;
                 canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, DIAG_CAN_TIMEOUT);
                 break;
@@ -336,6 +345,9 @@ static THD_FUNCTION(diagCanThd, arg)
         }   break;
         default: break;
         }
+
+        // check sensorcircuits each diagRequest
+        sen_diagWheelSensors();
     }
 }
 
@@ -352,6 +364,10 @@ void diag_init(void)
     setDtcp = chThdCreateStatic(&waSetDtc, sizeof(waSetDtc), LOWPRIO, setDtc, NULL);
 
     diagCanThdp = chThdCreateStatic(&waDiagCanThd, sizeof(waDiagCanThd), LOWPRIO, diagCanThd, NULL);
+
+
+    // check sensorcircuits during startup
+    sen_diagWheelSensors();
 }
 
 uint8_t dtc_length(void)

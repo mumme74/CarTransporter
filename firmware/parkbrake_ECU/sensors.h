@@ -49,8 +49,8 @@
 #define SEN_PWR_ENABLED_SIG  palReadPad(GPIOA, GPIOA_PWR_ENABLED_SIG) /*when power to bridge is let through (hardware limited for safety reasons) */
 
 // external to ECU signals
-#define SEN_IGN_ON_SIG       palReadPad(GPIOD, GPIOD_IGN_ON_SIG) /* ignition is on */
-#define SEN_LIGHTS_ON_SIG    palReadPad(GPIOD, GPIOD_LIGHTS_ON_SIG) /* brake lights */
+#define SEN_IGN_ON_SIG       !palReadPad(GPIOD, GPIOD_IGN_ON_SIG) /* ignition is on */
+#define SEN_LIGHTS_ON_SIG    !palReadPad(GPIOD, GPIOD_LIGHTS_ON_SIG) /* brake lights */
 #define SEN_BUTTON_SIG       palReadPad(GPIOE, GPIOE_BUTTON_SIG)  /* activate button input */
 #define SEN_BUTTON_INV_SIG   palReadPad(GPIOE, GPIOE_BUTTON_INV_SIG) /* activate button inverted input */
 

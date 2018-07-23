@@ -341,21 +341,21 @@ static THD_FUNCTION(diagCanThd, arg)
 
             // every condition to activate is meet, we should be able to activate test
             if (idx & 0x80) {
-                ctrl_setStateWheel(Tightening, LeftFront);
-            } else if (idx & 0x40) {
-                ctrl_setStateWheel(Tightening, RightFront);
-            } else if (idx & 0x20) {
-                ctrl_setStateWheel(Tightening, LeftRear);
-            } else if (idx & 0x10) {
                 ctrl_setStateWheel(Tightening, RightRear);
+            } else if (idx & 0x40) {
+                ctrl_setStateWheel(Tightening, LeftRear);
+            } else if (idx & 0x20) {
+                ctrl_setStateWheel(Tightening, RightFront);
+            } else if (idx & 0x10) {
+                ctrl_setStateWheel(Tightening, LeftFront);
             } else if (idx & 0x08) {
-                ctrl_setStateWheel(Releasing, LeftFront);
-            } else if (idx & 0x04) {
-                ctrl_setStateWheel(Releasing, RightFront);
-            } else if (idx & 0x02) {
-                ctrl_setStateWheel(Releasing, LeftRear);
-            } else if (idx & 0x01) {
                 ctrl_setStateWheel(Releasing, RightRear);
+            } else if (idx & 0x04) {
+                ctrl_setStateWheel(Releasing, LeftRear);
+            } else if (idx & 0x02) {
+                ctrl_setStateWheel(Releasing, RightFront);
+            } else if (idx & 0x01) {
+                ctrl_setStateWheel(Releasing, LeftFront);
             }
 
         }   break;

@@ -130,12 +130,13 @@ bool CanParkbrakeNode::activateOutput(int wheel, bool tighten) const
         return false;
 
     // request: t= tighten
-    //  [0  -  1  -  2  -  3  -  4  -  5  -  6  -  7]
-    //  t-LF t-RF   t-LR  t-RR  r-LF  r-RF  r-LR  r-RR
+    // bit position
+    //  [7  -  6  -  5  -  4  -  3  -  2  -  1  -  0]
+    //  t-RR t-LR   t-RF  t-LF  r-RR  r-RL  r-RF  r-LF
     // LeftFront == 0, RightRear == 3
-    quint8 shiftDecr = tighten ? 0 : 4;
-    shiftDecr -= wheel;
-    quint8 msk = 1 << (7 - shiftDecr);
+    quint8 shift = tighten ? 4 : 0;
+    shift +=  wheel;
+    quint8 msk = 1 << shift;
 
     QByteArray pl;
     pl.append(msk);

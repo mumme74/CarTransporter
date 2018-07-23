@@ -61,7 +61,6 @@ static uint32_t stateFlags = 0;
 typedef struct {
     const char *threadName;
     mailbox_t *mb;
-    msg_t *mb_queue;
     uint32_t evtReceiveFlag;
     sen_measure_evt adcMeasure;
     volatile const uint16_t *motorcurrent;
@@ -130,22 +129,22 @@ void saveStateTimerCallback(void *arg)
 
 // some thread local info
 wheelthreadinfo_t lfInfo = {
-    "leftFrontThread", &mbLF, (msg_t*)&mbLF_queue, AdcFrontAxle, //EVENT_FLAG_ADC_FRONTAXLE,
+    "leftFrontThread", &mbLF, AdcFrontAxle, //EVENT_FLAG_ADC_FRONTAXLE,
     MsgStartFront, &sen_motorCurrents.leftFront, &sen_wheelSpeeds.leftFront_rps,
     "LF", LeftFront, GPIOC_LeftFront_Loosen, GPIOC_LeftFront_Tighten
 };
 wheelthreadinfo_t rfInfo = {
-    "rightFrontThread", &mbRF, (msg_t*)&mbRF_queue, AdcFrontAxle, //EVENT_FLAG_ADC_FRONTAXLE,
+    "rightFrontThread", &mbRF, AdcFrontAxle, //EVENT_FLAG_ADC_FRONTAXLE,
     MsgStartFront, &sen_motorCurrents.rightFront, &sen_wheelSpeeds.rightFront_rps,
     "RF", RightFront, GPIOC_RightFront_Loosen, GPIOC_RightFront_Tighten
 };
 wheelthreadinfo_t lrInfo = {
-    "leftRearThread", &mbLR, (msg_t*)&mbLR_queue, AdcRearAxle, //EVENT_FLAG_ADC_REARAXLE,
+    "leftRearThread", &mbLR, AdcRearAxle, //EVENT_FLAG_ADC_REARAXLE,
     MsgStartRear, &sen_motorCurrents.leftRear, &sen_wheelSpeeds.leftRear_rps,
     "LR", LeftRear, GPIOC_LeftRear_Loosen, GPIOC_LeftRear_Tighten
 };
 wheelthreadinfo_t rrInfo = {
-    "rightRearThread", &mbRR, (msg_t*)&mbRR_queue, AdcRearAxle, //EVENT_FLAG_ADC_REARAXLE,
+    "rightRearThread", &mbRR, AdcRearAxle, //EVENT_FLAG_ADC_REARAXLE,
     MsgStartRear, &sen_motorCurrents.rightRear, &sen_wheelSpeeds.rightRear_rps,
     "RR", RightRear, GPIOC_RightRear_Loosen, GPIOC_RightRear_Tighten
 };
@@ -161,7 +160,7 @@ static THD_FUNCTION(wheelHandler, args)
 
     chRegSetThreadName(info->threadName);
 
-    static event_listener_t adcEvt;
+    event_listener_t adcEvt;
 
     while(TRUE) {
         ctrl_states action;
@@ -169,14 +168,13 @@ static THD_FUNCTION(wheelHandler, args)
             continue;
 
         // listen to currents to perform this action
-        chEvtRegisterMaskWithFlags(&sen_measuredEvts, &adcEvt,
-                                   EVENT_MASK(0), info->evtReceiveFlag);
+        chEvtRegisterMask(&sen_measuredEvts, &adcEvt, info->evtReceiveFlag);
 
         msg_t res;
         switch (action) {
         case Releasing:
             // tell sensor module to start measure currents
-            sen_postEventToAdc(info->adcMeasure);
+            chEvtBroadcastFlags(&sen_msgHandlerThdEvt, info->adcMeasure);
             // do the action
             res = releaseWheel(info);
             if (res != MSG_OK)
@@ -190,7 +188,7 @@ static THD_FUNCTION(wheelHandler, args)
             }
             break;
         case Tightening:
-            sen_postEventToAdc(info->adcMeasure);
+            chEvtBroadcastFlags(&sen_msgHandlerThdEvt,info->adcMeasure);
             res = tightenWheel(info);
             if (res != MSG_OK)
             {
@@ -204,7 +202,7 @@ static THD_FUNCTION(wheelHandler, args)
 
             break;
         case SetServiceState:
-            sen_postEventToAdc(info->adcMeasure);
+            chEvtBroadcastFlags(&sen_msgHandlerThdEvt, info->adcMeasure);
             res = serviceWheel(info);
             if (res != MSG_OK)
             {
@@ -218,18 +216,15 @@ static THD_FUNCTION(wheelHandler, args)
 
             break;
         default:
-            continue; // next while loop
-        // else nothing
+            // else nothing
+            continue; // bust out to next while loop
         }
 
         // unregister so we don't fill up queue by other old measurements
         chEvtUnregister(&sen_measuredEvts, &adcEvt);
 
         // when done we start a timer which eventually disables the bridge
-        // we don't want to do that in this instant as there might be other wheels that are still
-        // doing some actions on there own part
-        //chVTSet(&bridgeDisableTimer, S2ST(5), bridgeDisableTimerCallback, NULL);
-
+        // if all the other bridgehandlers is also off
         disableBridge();
     }
 }
@@ -491,7 +486,7 @@ static bool disableBridge(void)
     palClearPad(GPIOC, GPIOC_uC_SET_POWER);
 
     // stop current measurement, resume background checks
-    sen_postEventToAdc(MsgStopAll);
+    chEvtBroadcastFlags(&sen_msgHandlerThdEvt, MsgStopAll);
     return true;
 }
 

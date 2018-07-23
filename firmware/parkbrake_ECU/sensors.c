@@ -52,6 +52,7 @@
 static void bridgeFrontAdcCallback(ADCDriver *adcp, adcsample_t *buffer, size_t n);
 static void bridgeRearAdcCallback(ADCDriver *adcp, adcsample_t *buffer, size_t n);
 static void backgroundAdcCallback(ADCDriver *adcp, adcsample_t *buffer, size_t n);
+static void bridgeAdcErrorCallback(ADCDriver *adcp, adcerror_t err);
 
 // interupt callback for pad change interupts
 static void extCallback(EXTDriver *extp, expchannel_t channel);
@@ -94,7 +95,7 @@ static adcsample_t bridgeAdcBuf[ADC_BRIDGE_NUM_CHANNELS * ADC_BRIDGE_BUF_DEPTH];
 // a buffer for bridge voltage sense
 static adcsample_t backgroundAdcBuf[ADC_BACKGROUND_NUM_CHANNELS * ADC_BACKGROUND_BUF_DEPTH];
 
-event_source_t msgHandlerThdEvt;
+event_source_t sen_msgHandlerThdEvt;
 // a event message exchange variable
 volatile uint32_t msgEvtHandlerThdVlu = 0;
 
@@ -143,15 +144,16 @@ static const ADCConversionGroup adcBridgeFrontCfg = {
 // channels:
 static const ADCConversionGroup adcBridgeRearCfg = {
     FALSE, // circular
-    ADC_BRIDGE_NUM_CHANNELS,
-    bridgeRearAdcCallback, // conversion callback
-    NULL,              // error callback
+//    ADC_BRIDGE_NUM_CHANNELS,
+    ADC_BACKGROUND_NUM_CHANNELS,
+    backgroundAdcCallback,//bridgeRearAdcCallback, // conversion callback
+    bridgeAdcErrorCallback,              // error callback
     //---------- stm32 specific from here on ---------------------
     {{ // begin union struct adc
         // CR1 initialization data (look in ST documentation)
         0,
         // CR2 initialization data (look in ST documentation)
-        ADC_CR2_JSWSTART | ADC_CR2_TSVREFE, // start immediately,
+        ADC_CR2_JSWSTART, //| ADC_CR2_TSVREFE, // start immediately,
                                            // also start temperature check, more precisely don't turn it of
         // LTR register initialization data
         // LTR = LowThreshold watchdog level
@@ -165,15 +167,28 @@ static const ADCConversionGroup adcBridgeRearCfg = {
 
             // sample time, aka how long ADC capacitor is allowed
             // to charge in ADC clock cycles (Currently 8MHz, so around 3,5us load time)
-            ADC_SMPR2_SMP_AN0(ADC_SAMPLE_28P5) | // LeftRear_CS
-            ADC_SMPR2_SMP_AN1(ADC_SAMPLE_28P5)  // RightRear_CS
+//            ADC_SMPR2_SMP_AN0(ADC_SAMPLE_28P5) | // LeftRear_CS
+//            ADC_SMPR2_SMP_AN1(ADC_SAMPLE_28P5)  // RightRear_CS
+            // sample time, aka how long ADC capacitor is allowed to charge in ADC clock cycles
+            ADC_SMPR1_SMP_SENSOR(ADC_SAMPLE_239P5) | // internal temperature sensor need 17,1 us charge time
+
+            //  (ADC cycles currently at 8MHz, so around 3,5us load time)
+            ADC_SMPR1_SMP_AN10(ADC_SAMPLE_28P5), // Feed_voltsense (IGN)
+            ADC_SMPR2_SMP_AN8(ADC_SAMPLE_28P5) // PWR_voltsense (Bat)
+
         },
         // SQRx register initialization data
         { // is a [3] array, SQR1, SQR2, SQR3
-            ADC_SQR1_NUM_CH(ADC_BRIDGE_NUM_CHANNELS), // number of channels in this conversion
-            0, // SQR2, ch 7-12 not used
-            ADC_SQR3_SQ1_N(ADC_CHANNEL_IN0) | // LeftRear_CS
-            ADC_SQR3_SQ2_N(ADC_CHANNEL_IN1)   // RightRear_CS
+//            ADC_SQR1_NUM_CH(ADC_BRIDGE_NUM_CHANNELS), // number of channels in this conversion
+//            0, // SQR2, ch 7-12 not used
+//            ADC_SQR3_SQ1_N(ADC_CHANNEL_IN0) | // LeftRear_CS
+//            ADC_SQR3_SQ2_N(ADC_CHANNEL_IN1)   // RightRear_CS
+            ADC_SQR1_NUM_CH(ADC_BACKGROUND_NUM_CHANNELS), // number of channels in this conversion
+            0, // SQR2, conversion nr 7-12 not used, we only use 2
+            ADC_SQR3_SQ1_N(ADC_CHANNEL_IN8) | // PWR_voltsense (Bat)
+            ADC_SQR3_SQ2_N(ADC_CHANNEL_IN10)|  // Feed_voltsense (IGN)
+            ADC_SQR3_SQ3_N(ADC_CHANNEL_SENSOR) // internal temperature sensor
+
         }
     }} // end union struct adc
 };
@@ -192,7 +207,7 @@ static const ADCConversionGroup adcBackgroundCfg = {
         // CR1 initialization data (look in ST documentation)
         0,
         // CR2 initialization data (look in ST documentation)
-        ADC_CR2_SWSTART | ADC_CR2_TSVREFE, // start immediately, also start temperature check
+        ADC_CR2_SWSTART, //| ADC_CR2_TSVREFE, // start immediately, also start temperature check
         // LTR register initialization data
         // LTR = LowThreshold watchdog level
         0,
@@ -219,7 +234,6 @@ static const ADCConversionGroup adcBackgroundCfg = {
         }
     }} // end union struct adc
 };
-
 
 // external input interupts
 static const  EXTConfig extConfig = {
@@ -349,6 +363,12 @@ static void bridgeRearAdcCallback(ADCDriver *adcp, adcsample_t *buffer, size_t n
         // notify our subscribers
         chEvtBroadcastFlagsI(&sen_measuredEvts, AdcRearAxle); //EVENT_FLAG_ADC_REARAXLE);
     }
+}
+
+static void bridgeAdcErrorCallback(ADCDriver *adcp, adcerror_t err)
+{
+    if (err || adcp)
+      err = 0;
 }
 
 // checks for voltages and chip temp
@@ -523,14 +543,22 @@ static THD_FUNCTION(adcHandlerThd, arg)
     (void) arg;
     chRegSetThreadName("sensor_adcHandlerThd");
 
-    static event_listener_t evtMsg;
+    // listen to msgs to this thread to change action
+    static event_listener_t evtMsgStartAll,   evtMsgStopAll,
+                            evtMsgStartFront, evtMsgStopFront,
+                            evtMsgStartRear,  evtMsgStopRear;
+    chEvtRegisterMaskWithFlags(&sen_msgHandlerThdEvt, &evtMsgStartAll, MsgStartAll, MsgStartAll);
+    chEvtRegisterMaskWithFlags(&sen_msgHandlerThdEvt, &evtMsgStopAll, MsgStopAll, MsgStopAll);
+    chEvtRegisterMaskWithFlags(&sen_msgHandlerThdEvt, &evtMsgStartFront, MsgStartFront, MsgStartFront);
+    chEvtRegisterMaskWithFlags(&sen_msgHandlerThdEvt, &evtMsgStopFront, MsgStopFront, MsgStopFront);
+    chEvtRegisterMaskWithFlags(&sen_msgHandlerThdEvt, &evtMsgStartRear, MsgStartRear, MsgStartRear);
+    chEvtRegisterMaskWithFlags(&sen_msgHandlerThdEvt, &evtMsgStopRear, MsgStopRear, MsgStopRear);
 
     // listen to ADC events for currents
-    event_listener_t evtAdc;
-    chEvtRegisterMaskWithFlags(&sen_measuredEvts, &evtAdc, AdcAllEvents,
-                               AdcRearAxle | AdcFrontAxle); //EVENT_FLAG_ADC_REARAXLE | EVENT_FLAG_ADC_FRONTAXLE);
-    // listen to msgs to this thread to change action
-    chEvtRegisterMask(&msgHandlerThdEvt, &evtMsg, MsgAllEvents);
+    static event_listener_t evtAdcRearAxle,
+                            evtAdcFrontAxle;
+    chEvtRegisterMaskWithFlags(&sen_measuredEvts, &evtAdcRearAxle, AdcRearAxle, AdcRearAxle);
+    chEvtRegisterMaskWithFlags(&sen_measuredEvts, &evtAdcFrontAxle, AdcFrontAxle, AdcFrontAxle);
 
     eventmask_t evt;
     sen_measure_evt action = MsgStopAll;
@@ -539,8 +567,8 @@ static THD_FUNCTION(adcHandlerThd, arg)
     while (TRUE) {
         // wait for a event to occur, either a new action or ADC finished
         // or don't wait at all if a new action needs to be done
-        evt = chEvtWaitAnyTimeout(AdcAllEvents | MsgAllEvents, timeout);
-        if ((evt & AdcAllEvents) || evt == 0)
+        evt = chEvtWaitOneTimeout(AdcAllEvents | MsgAllEvents, timeout);
+        if ((evt & AdcAllEvents) || evt == 0 /*timeout*/)
         {
             // we get here each time ADC has finished OR when a new action needs to be done (timeout==0)
             switch (action) {
@@ -550,10 +578,12 @@ static THD_FUNCTION(adcHandlerThd, arg)
                         (void*)backgroundTimerCallback, NULL);
                 break;
             case MsgStartFront:
-                adcStartConversion(&ADCD1, &adcBridgeFrontCfg, bridgeAdcBuf, ADC_BRIDGE_BUF_DEPTH);
+                if (ADCD1.grpp != &adcBridgeFrontCfg)
+                  adcStartConversion(&ADCD1, &adcBridgeFrontCfg, bridgeAdcBuf, ADC_BRIDGE_BUF_DEPTH);
                 break;
             case MsgStartRear:
-                adcStartConversion(&ADCD1, &adcBridgeRearCfg, bridgeAdcBuf, ADC_BRIDGE_BUF_DEPTH);
+                if (ADCD1.grpp != &adcBridgeRearCfg)
+                  adcStartConversion(&ADCD1, &adcBridgeRearCfg, bridgeAdcBuf, ADC_BRIDGE_BUF_DEPTH);
                 break;
             case MsgStartAll: {
                 // rationale here is to alternate between each axle
@@ -574,7 +604,7 @@ static THD_FUNCTION(adcHandlerThd, arg)
             }
 
         } else if (evt & MsgAllEvents) {
-            sen_measure_evt newAction = msgEvtHandlerThdVlu;
+            sen_measure_evt newAction = evt;
             if (action == MsgStartFront && newAction == MsgStartRear) {
                 clearRearCurrents();
                 action = MsgStartAll;
@@ -589,18 +619,25 @@ static THD_FUNCTION(adcHandlerThd, arg)
                 clearRearCurrents();
                 clearFrontCurrents();
                 action = MsgStartAll;
+            } else if (action == MsgStopAll &&
+                      (newAction & (MsgStartFront | MsgStartRear)))
+            {
+              action = newAction;
             } else {
                 action = newAction;
             }
 
             // stop background timer if set
-            if (action != MsgStopAll && chVTIsArmed(&backgroundTimer))
+            if (action != MsgStopAll && chVTIsArmed(&backgroundTimer)) {
                 chVTReset(&backgroundTimer);
+                adcStopConversion(&ADCD1);
+            }
 
             // don't wait for a event to occur on next loop
             timeout = TIME_IMMEDIATE;
             continue;
         }
+
 
         // restore so we wait for next event to occur
         timeout = TIME_INFINITE;
@@ -674,12 +711,12 @@ static THD_FUNCTION(settingsHandler, arg)
     calculateWheelCircumference();
 
     event_listener_t evtListener;
-    eventflags_t flags = S_RimDiameter | S_TireThread | S_TireProfile;
+    static const eventmask_t mask = S_RimDiameter | S_TireThread | S_TireProfile;
 
-    chEvtRegisterMaskWithFlags(&ee_settingsChanged, &evtListener, EVENT_MASK(0), flags);
+    chEvtRegisterMask(&ee_settingsChanged, &evtListener, mask);
 
     while (TRUE) {
-        settings_e setting = (settings_e)chEvtWaitOne(flags);
+        settings_e setting = chEvtWaitAny(mask);
         switch (setting) {
         case S_RimDiameter: case S_TireThread: case S_TireProfile:
             calculateWheelCircumference();
@@ -714,7 +751,7 @@ void sen_initSensors(void)
 
     // initialize our event source
     chEvtObjectInit(&sen_measuredEvts);
-    chEvtObjectInit(&msgHandlerThdEvt);
+    chEvtObjectInit(&sen_msgHandlerThdEvt);
 
     // initialize and start handler thread
     adcHandlerp = chThdCreateStatic(&waAdcHandlerThd, sizeof(waAdcHandlerThd), NORMALPRIO +10, adcHandlerThd, NULL);
@@ -833,12 +870,5 @@ uint8_t sen_vehicleSpeed(void)
     speed /= 1000000;
 
     return speed < 256 ? speed : 255;
-}
-
-// post a event
-void sen_postEventToAdc(sen_measure_evt evt)
-{
-  msgEvtHandlerThdVlu = evt;
-  chEvtBroadcastFlags(&msgHandlerThdEvt, evt);
 }
 

@@ -305,10 +305,9 @@ static THD_FUNCTION(canPIDPeriodicSend, arg)
     (void)arg;
     chRegSetThreadName("canPIDPeriodicSend");
 
-    event_listener_t el;
-    chEvtRegisterMaskWithFlags(&sen_measuredEvts, &el, EVENT_MASK(0),
-                               AdcRearAxle | AdcFrontAxle);
-//                    EVENT_FLAG_ADC_REARAXLE | EVENT_FLAG_ADC_FRONTAXLE);
+    event_listener_t elFront, elRear;
+    chEvtRegisterMask(&sen_measuredEvts, &elFront, AdcFrontAxle);
+    chEvtRegisterMask(&sen_measuredEvts, &elRear, AdcRearAxle);
     static const uint16_t broadcastTime = 500; // ms
     systime_t pid2_timeout = 0;
 
@@ -327,8 +326,8 @@ static THD_FUNCTION(canPIDPeriodicSend, arg)
 }
 
 
-// operations in this thread blocks, so we dont process them in rxHandlerthd
-static THD_WORKING_AREA(waCanCmdSet, 320);
+// operations in this thread blocks, so we don't process them in rxHandlerthd
+static THD_WORKING_AREA(waCanCmdSet, 350);
 static THD_FUNCTION(canCmdSet, arg)
 {
     (void)arg;
@@ -349,7 +348,6 @@ static THD_FUNCTION(canCmdSet, arg)
       settingsIdx  = (msg & 0x007F0000) >> 16; // lowest bytes is idx
       action       = (msg & 0xFF800000) >> 20; // 2 highest bytes is action, parkbrakeCmds begin at 0x10 << 3
 
-
       switch (action) {
       case C_parkbrakeCmdSetConfig: {
         ee_changeSetting(settingsIdx, settingsVlu);
@@ -361,15 +359,21 @@ static THD_FUNCTION(canCmdSet, arg)
       case C_parkbrakeCmdServiceSet: {
         can_initTxFrame(&txf, CAN_MSG_TYPE_COMMAND, C_parkbrakeCmdServiceSet);
         txf.DLC = 1;
-        txf.data8[0] = ctrl_setStateAll(SetServiceState) > 0 ? 0xAA : 0;
+        if (sen_vehicleSpeed() ==0 )
+          txf.data8[0] = ctrl_setStateAll(SetServiceState) > 0 ? 0xAA : 0;
+        else
+          txf.data8[0] = 0;
       } break;
       case C_parkbrakeCmdServiceUnset: {
         can_initTxFrame(&txf, CAN_MSG_TYPE_COMMAND, C_parkbrakeCmdServiceUnset);
         txf.DLC = 1;
-        txf.data8[0] = ctrl_setStateAll(Tightening) > 0 ? 0xAA : 0;
+        if (sen_vehicleSpeed() ==0 )
+          txf.data8[0] = ctrl_setStateAll(Tightening) > 0 ? 0xAA : 0;
+        else
+          txf.data8[0] = 0;
       } break;
       default:
-        continue; // do nothing
+        continue; // do nothing, bust out to next msg in mailbox
       }
 
       // send response

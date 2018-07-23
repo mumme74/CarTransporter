@@ -151,8 +151,8 @@ typedef struct {
 static const uint8_t ADC_EVT = 0,
                      MSG_EVT = 4;
 
-
-extern event_source_t sen_measuredEvts;
+extern event_source_t sen_measuredEvts,
+                      sen_msgHandlerThdEvt;
 
 // shared sensor info, should only be readable everywhere except sensors.c
 extern sen_motor_currents_t sen_motorCurrents;
@@ -171,9 +171,6 @@ uint8_t sen_wheelAverage(void);
 
 // calculates vehicle speed from fastest spinning wheel, returns in kph
 uint8_t sen_vehicleSpeed(void);
-
-// send messages to ADC handler thd
-void sen_postEventToAdc(sen_measure_evt evt);
 
 
 #endif // SENSORS_H

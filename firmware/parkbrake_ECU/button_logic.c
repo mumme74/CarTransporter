@@ -37,8 +37,6 @@ static THD_FUNCTION(buttonLogic, arg)
     event_listener_t evtListener;
     chEvtRegisterMaskWithFlags(&sen_measuredEvts, &evtListener, EVENT_MASK(0),
                                 SigButton | SigButtonInv | SigLightsOn | SigIgnOn);
-//                               EVENT_FLAG_BUTTON_SIG | EVENT_FLAG_BUTTON_INV_SIG |
-//                               EVENT_FLAG_LIGHTS_ON_SIG | EVENT_FLAG_IGN_ON_SIG);
 
     while (TRUE) {
         // globally wait for a new event

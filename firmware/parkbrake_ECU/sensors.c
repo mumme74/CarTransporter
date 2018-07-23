@@ -74,9 +74,7 @@ int8_t               sen_chipTemperature = 0;
 sen_wheelspeeds_t    sen_wheelSpeeds = { 0, 0, 0, 0 };
 
 
-event_source_t sen_measuredEvts,
-               sen_MsgHandlerThd;
-
+event_source_t sen_measuredEvts;
 
 // -----------------------------------------------------------------
 // start private static objects declarations needed by this file
@@ -96,6 +94,9 @@ static adcsample_t bridgeAdcBuf[ADC_BRIDGE_NUM_CHANNELS * ADC_BRIDGE_BUF_DEPTH];
 // a buffer for bridge voltage sense
 static adcsample_t backgroundAdcBuf[ADC_BACKGROUND_NUM_CHANNELS * ADC_BACKGROUND_BUF_DEPTH];
 
+event_source_t msgHandlerThdEvt;
+// a event message exchange variable
+volatile uint32_t msgEvtHandlerThdVlu = 0;
 
 // ADC conversion group for bridge front motor currents
 // mode: 		LINEAR buffer, 4 samples of 4 channels, SW triggered
@@ -529,9 +530,8 @@ static THD_FUNCTION(adcHandlerThd, arg)
     chEvtRegisterMaskWithFlags(&sen_measuredEvts, &evtAdc, AdcAllEvents,
                                AdcRearAxle | AdcFrontAxle); //EVENT_FLAG_ADC_REARAXLE | EVENT_FLAG_ADC_FRONTAXLE);
     // listen to msgs to this thread to change action
-    chEvtRegisterMask(&sen_MsgHandlerThd, &evtMsg, MsgStartRear);
+    chEvtRegisterMask(&msgHandlerThdEvt, &evtMsg, MsgAllEvents);
 
-    msg_t msg = 0;
     eventmask_t evt;
     sen_measure_evt action = MsgStopAll;
     systime_t timeout = TIME_INFINITE;
@@ -557,11 +557,16 @@ static THD_FUNCTION(adcHandlerThd, arg)
                 break;
             case MsgStartAll: {
                 // rationale here is to alternate between each axle
-                eventflags_t wasFlg = chEvtGetAndClearFlags(&evtAdc);
-                if (wasFlg & AdcRearAxle)//EVENT_FLAG_ADC_REARAXLE)
-                    adcStartConversion(&ADCD1, &adcBridgeFrontCfg, bridgeAdcBuf, ADC_BRIDGE_BUF_DEPTH);
-                else if (wasFlg & AdcFrontAxle)//EVENT_FLAG_ADC_FRONTAXLE)
-                    adcStartConversion(&ADCD1, &adcBridgeRearCfg, bridgeAdcBuf, ADC_BRIDGE_BUF_DEPTH);
+                const ADCConversionGroup *grp = ADCD1.grpp;
+                if (grp == &adcBridgeRearCfg)
+                    grp = &adcBridgeFrontCfg;
+                else if (grp == &adcBridgeRearCfg)
+                    grp = &adcBridgeRearCfg;
+                else
+                    // else it was a background adc finished in which case we do nothing
+                    break; //bust out before new conversion
+
+                adcStartConversion(&ADCD1, grp, bridgeAdcBuf, ADC_BRIDGE_BUF_DEPTH);
                 // else it was a background adc finished in which case we do nothing
             }   break;
             default:
@@ -569,7 +574,7 @@ static THD_FUNCTION(adcHandlerThd, arg)
             }
 
         } else if (evt & MsgAllEvents) {
-          sen_measure_evt newAction = (sen_measure_evt)msg;
+            sen_measure_evt newAction = msgEvtHandlerThdVlu;
             if (action == MsgStartFront && newAction == MsgStartRear) {
                 clearRearCurrents();
                 action = MsgStartAll;
@@ -709,7 +714,7 @@ void sen_initSensors(void)
 
     // initialize our event source
     chEvtObjectInit(&sen_measuredEvts);
-    chEvtObjectInit(&sen_MsgHandlerThd);
+    chEvtObjectInit(&msgHandlerThdEvt);
 
     // initialize and start handler thread
     adcHandlerp = chThdCreateStatic(&waAdcHandlerThd, sizeof(waAdcHandlerThd), NORMALPRIO +10, adcHandlerThd, NULL);
@@ -828,5 +833,12 @@ uint8_t sen_vehicleSpeed(void)
     speed /= 1000000;
 
     return speed < 256 ? speed : 255;
+}
+
+// post a event
+void sen_postEventToAdc(sen_measure_evt evt)
+{
+  msgEvtHandlerThdVlu = evt;
+  chEvtBroadcastFlags(&msgHandlerThdEvt, evt);
 }
 

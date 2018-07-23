@@ -176,7 +176,7 @@ static THD_FUNCTION(wheelHandler, args)
         switch (action) {
         case Releasing:
             // tell sensor module to start measure currents
-            chEvtBroadcastFlags(&sen_MsgHandlerThd, info->adcMeasure);
+            sen_postEventToAdc(info->adcMeasure);
             // do the action
             res = releaseWheel(info);
             if (res != MSG_OK)
@@ -190,7 +190,7 @@ static THD_FUNCTION(wheelHandler, args)
             }
             break;
         case Tightening:
-            chEvtBroadcastFlags(&sen_MsgHandlerThd, MsgStartFront);
+            sen_postEventToAdc(info->adcMeasure);
             res = tightenWheel(info);
             if (res != MSG_OK)
             {
@@ -204,7 +204,7 @@ static THD_FUNCTION(wheelHandler, args)
 
             break;
         case SetServiceState:
-            chEvtBroadcastFlags(&sen_MsgHandlerThd, MsgStartFront);
+            sen_postEventToAdc(info->adcMeasure);
             res = serviceWheel(info);
             if (res != MSG_OK)
             {
@@ -491,7 +491,7 @@ static bool disableBridge(void)
     palClearPad(GPIOC, GPIOC_uC_SET_POWER);
 
     // stop current measurement, resume background checks
-    chEvtBroadcastFlags(&sen_MsgHandlerThd, MsgStopAll);
+    sen_postEventToAdc(MsgStopAll);
     return true;
 }
 

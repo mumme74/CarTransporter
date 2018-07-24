@@ -44,10 +44,12 @@
 
 
 #define START_ADC_BRIGDE(bridgeCfg) \
-    if (ADCD1.grpp == (bridgeCfg)) { \
+    if (ADCD1.state != ADC_READY) { \
       adcStopConversion(&ADCD1); \
-      adcStartConversion(&ADCD1, (bridgeCfg), bridgeAdcBuf, ADC_BRIDGE_BUF_DEPTH); \
     } \
+    chThdSleep(US2ST(500)); \
+    adcStartConversion(&ADCD1, (bridgeCfg), bridgeAdcBuf, ADC_BRIDGE_BUF_DEPTH); \
+
 
 
 
@@ -58,7 +60,6 @@
 static void bridgeFrontAdcCallback(ADCDriver *adcp, adcsample_t *buffer, size_t n);
 static void bridgeRearAdcCallback(ADCDriver *adcp, adcsample_t *buffer, size_t n);
 static void backgroundAdcCallback(ADCDriver *adcp, adcsample_t *buffer, size_t n);
-static void bridgeAdcErrorCallback(ADCDriver *adcp, adcerror_t err);
 
 // interupt callback for pad change interupts
 static void extCallback(EXTDriver *extp, expchannel_t channel);
@@ -107,7 +108,7 @@ event_source_t sen_msgHandlerThdEvt;
 // mode: 		LINEAR buffer, 4 samples of 4 channels, SW triggered
 // channels:
 static const ADCConversionGroup adcBridgeFrontCfg = {
-    FALSE, // circular
+    true, // circular
     ADC_BRIDGE_NUM_CHANNELS,
     bridgeFrontAdcCallback, // conversion callback
     NULL,              // error callback
@@ -116,7 +117,7 @@ static const ADCConversionGroup adcBridgeFrontCfg = {
         // CR1 initialization data (look in ST documentation)
         0,
         // CR2 initialization data (look in ST documentation)
-        ADC_CR2_JSWSTART | ADC_CR2_TSVREFE, // start immediately,
+        ADC_CR2_SWSTART | ADC_CR2_TSVREFE, // start immediately,
                                            // also start temperature check, more precisely don't turn it of
         // LTR register initialization data
         // LTR = LowThreshold watchdog level
@@ -147,16 +148,16 @@ static const ADCConversionGroup adcBridgeFrontCfg = {
 // mode:        LINEAR buffer, 4 samples of 4 channels, SW triggered
 // channels:
 static const ADCConversionGroup adcBridgeRearCfg = {
-    FALSE, // circular
+    true, // circular
     ADC_BRIDGE_NUM_CHANNELS,
     bridgeRearAdcCallback, // conversion callback
-    bridgeAdcErrorCallback,              // error callback
+    NULL,              // error callback
     //---------- stm32 specific from here on ---------------------
     {{ // begin union struct adc
         // CR1 initialization data (look in ST documentation)
         0,
         // CR2 initialization data (look in ST documentation)
-        ADC_CR2_JSWSTART | ADC_CR2_TSVREFE, // start immediately,
+        ADC_CR2_SWSTART | ADC_CR2_TSVREFE, // start immediately,
                                            // also start temperature check, more precisely don't turn it of
         // LTR register initialization data
         // LTR = LowThreshold watchdog level
@@ -324,10 +325,10 @@ static void bridgeFrontAdcCallback(ADCDriver *adcp, adcsample_t *buffer, size_t 
             sen_motorCurrents.maxLeftFront = left_ma;
         if (sen_motorCurrents.maxRightFront < right_ma)
             sen_motorCurrents.maxRightFront = right_ma;
-        chSysUnlockFromISR();
 
         // notify our subscribers
-        chEvtBroadcastFlagsI(&sen_measuredEvts, AdcFrontAxle); // EVENT_FLAG_ADC_FRONTAXLE);
+        chEvtBroadcastFlagsI(&sen_measuredEvts, AdcFrontAxle);
+        chSysUnlockFromISR();
     }
 }
 
@@ -349,17 +350,11 @@ static void bridgeRearAdcCallback(ADCDriver *adcp, adcsample_t *buffer, size_t n
             sen_motorCurrents.maxLeftRear = left_ma;
         if (sen_motorCurrents.maxRightRear < right_ma)
             sen_motorCurrents.maxRightRear = right_ma;
-        chSysUnlockFromISR();
 
         // notify our subscribers
-        chEvtBroadcastFlagsI(&sen_measuredEvts, AdcRearAxle); //EVENT_FLAG_ADC_REARAXLE);
+        chEvtBroadcastFlagsI(&sen_measuredEvts, AdcRearAxle);
+        chSysUnlockFromISR();
     }
-}
-
-static void bridgeAdcErrorCallback(ADCDriver *adcp, adcerror_t err)
-{
-    if (err || adcp)
-      err = 0;
 }
 
 // checks for voltages and chip temp
@@ -540,19 +535,20 @@ static THD_FUNCTION(adcHandlerThd, arg)
                                 MsgStopAll | MsgStartAll | MsgStopFront |
                                 MsgStartFront | MsgStopRear | MsgStartRear);
 
-    // listen to ADC events for currents
-    static event_listener_t evtAdc;
-    chEvtRegisterMaskWithFlags(&sen_measuredEvts, &evtAdc, AdcEvt, AdcRearAxle | FrontAxle);
+//    // listen to ADC events for currents
+//    static event_listener_t evtAdc;
+//    chEvtRegisterMaskWithFlags(&sen_measuredEvts, &evtAdc, AdcEvt, AdcRearAxle | FrontAxle);
 
     eventmask_t evt;
     sen_measure_flags_e action = MsgStopAll;
     systime_t timeout = TIME_INFINITE;
+    const ADCConversionGroup *curGroup = NULL;
 
     while (TRUE) {
         // wait for a event to occur, either a new action or ADC finished
         // or don't wait at all if a new action needs to be done
         evt = chEvtWaitAnyTimeout(ALL_EVENTS, timeout);
-        if ((evt & AdcEvt) || evt == 0 /*timeout*/)
+        if (/*(evt & AdcEvt) ||*/ evt == 0 /*timeout*/)
         {
             // we get here each time ADC has finished OR when a new action needs to be done (timeout==0)
             switch (action) {
@@ -560,25 +556,26 @@ static THD_FUNCTION(adcHandlerThd, arg)
                 // no current to measure, restart background timer
                 chVTSet(&backgroundTimer, MS2ST(BACKGROUND_TIMER_MS),
                         (void*)backgroundTimerCallback, NULL);
+                curGroup = NULL;
                 break;
             case MsgStartFront:
-                START_ADC_BRIGDE(&adcBridgeFrontCfg);
+                curGroup = &adcBridgeFrontCfg;
+                START_ADC_BRIGDE(curGroup);
                 break;
             case MsgStartRear:
-                START_ADC_BRIGDE(&adcBridgeRearCfg);
+                curGroup = &adcBridgeRearCfg;
+                START_ADC_BRIGDE(curGroup);
                 break;
             case MsgStartAll: {
                 // rationale here is to alternate between each axle
-                const ADCConversionGroup *grp = ADCD1.grpp;
-                if (grp == &adcBridgeRearCfg)
-                    grp = &adcBridgeFrontCfg;
-                else if (grp == &adcBridgeRearCfg)
-                    grp = &adcBridgeRearCfg;
+                if (curGroup == &adcBridgeRearCfg)
+                  curGroup = &adcBridgeFrontCfg;
+                else if (curGroup == &adcBridgeRearCfg)
+                  curGroup = &adcBridgeRearCfg;
                 else
                     // else it was a background adc finished in which case we do nothing
                     break; //bust out before new conversion
-
-                START_ADC_BRIGDE(grp);
+                START_ADC_BRIGDE(curGroup);
 
                 // else it was a background adc finished in which case we do nothing
             }   break;
@@ -625,7 +622,7 @@ static THD_FUNCTION(adcHandlerThd, arg)
             }
 
             // stop background timer if set
-            if (!(action & MsgStopAll) && chVTIsArmed(&backgroundTimer)) {
+            if ((action == MsgStopAll) && chVTIsArmed(&backgroundTimer)) {
                 chVTReset(&backgroundTimer);
                 adcStopConversion(&ADCD1);
             }

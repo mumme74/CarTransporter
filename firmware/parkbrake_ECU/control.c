@@ -28,7 +28,7 @@
 #define RF_STATE (stateFlags & 0x000000F0U >> 1)
 #define LF_STATE (stateFlags & 0x0000000FU)
 
-#define WHEEL_THD_STACK_SIZE 128
+#define WHEEL_THD_STACK_SIZE 256
 
 
 #define BRIDGE_ENABLE \

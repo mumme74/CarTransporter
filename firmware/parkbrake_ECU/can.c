@@ -283,16 +283,12 @@ static void sendCurrents(void)
 static THD_WORKING_AREA(waCanRxThd, 256);
 static THD_FUNCTION(canRxThd, arg)
 {
-    event_listener_t el;
     CANRxFrame rxmsg;
     (void)arg;
-    chEvtRegister(&CAND1.rxfull_event, &el, 0);
     chRegSetThreadName("canRxThd");
 
     while (TRUE) {
-//        if (chEvtWaitAnyTimeout(ALL_EVENTS, MS2ST(100)) == 0)
-//          continue;
-        while (canReceive(&CAND1, CAN_ANY_MAILBOX, &rxmsg, TIME_INFINITE) == MSG_OK) {
+        if (canReceive(&CAND1, CAN_ANY_MAILBOX, &rxmsg, TIME_INFINITE) == MSG_OK) {
             /* Process message.*/
             processRx(&rxmsg);
         }
@@ -305,16 +301,15 @@ static THD_FUNCTION(canPIDPeriodicSend, arg)
     (void)arg;
     chRegSetThreadName("canPIDPeriodicSend");
 
-    event_listener_t elFront, elRear;
-    chEvtRegisterMask(&sen_measuredEvts, &elFront, AdcFrontAxle);
-    chEvtRegisterMask(&sen_measuredEvts, &elRear, AdcRearAxle);
+    static event_listener_t evtListener;
+    chEvtRegisterMaskWithFlags(&sen_measuredEvts, &evtListener, AdcEvt, AdcFrontAxle | AdcRearAxle);
+
     static const uint16_t broadcastTime = 500; // ms
-    systime_t pid2_timeout = 0;
+    static systime_t pid2_timeout = 0;
 
     while (TRUE) {
-        eventflags_t flg = chEvtWaitAnyTimeout(AdcRearAxle | AdcFrontAxle,  //EVENT_FLAG_ADC_REARAXLE | EVENT_FLAG_ADC_FRONTAXLE,
-                                            MS2ST(broadcastTime));
-        if (flg == 0) {
+        eventmask_t msk = chEvtWaitAnyTimeout(AdcEvt, MS2ST(broadcastTime));
+        if (msk == 0) {
             // timeout, try periodic send
             broadcastOnCan(C_NoUpdateFrame);
         } else if (pid2_timeout < chVTGetSystemTime()) {

@@ -62,7 +62,8 @@ typedef struct {
     const char *threadName;
     mailbox_t *mb;
     uint32_t evtReceiveFlag;
-    sen_measure_evt adcMeasure;
+    sen_measure_flags_e adcMeasure;
+    event_listener_t adcEvtListener;
     volatile const uint16_t *motorcurrent;
     volatile const uint8_t *wheelSpeed;
     const char *abbreviation;
@@ -130,22 +131,22 @@ void saveStateTimerCallback(void *arg)
 // some thread local info
 wheelthreadinfo_t lfInfo = {
     "leftFrontThread", &mbLF, AdcFrontAxle, //EVENT_FLAG_ADC_FRONTAXLE,
-    MsgStartFront, &sen_motorCurrents.leftFront, &sen_wheelSpeeds.leftFront_rps,
+    MsgStartFront, {}, &sen_motorCurrents.leftFront, &sen_wheelSpeeds.leftFront_rps,
     "LF", LeftFront, GPIOC_LeftFront_Loosen, GPIOC_LeftFront_Tighten
 };
 wheelthreadinfo_t rfInfo = {
     "rightFrontThread", &mbRF, AdcFrontAxle, //EVENT_FLAG_ADC_FRONTAXLE,
-    MsgStartFront, &sen_motorCurrents.rightFront, &sen_wheelSpeeds.rightFront_rps,
+    MsgStartFront, {}, &sen_motorCurrents.rightFront, &sen_wheelSpeeds.rightFront_rps,
     "RF", RightFront, GPIOC_RightFront_Loosen, GPIOC_RightFront_Tighten
 };
 wheelthreadinfo_t lrInfo = {
     "leftRearThread", &mbLR, AdcRearAxle, //EVENT_FLAG_ADC_REARAXLE,
-    MsgStartRear, &sen_motorCurrents.leftRear, &sen_wheelSpeeds.leftRear_rps,
+    MsgStartRear, {}, &sen_motorCurrents.leftRear, &sen_wheelSpeeds.leftRear_rps,
     "LR", LeftRear, GPIOC_LeftRear_Loosen, GPIOC_LeftRear_Tighten
 };
 wheelthreadinfo_t rrInfo = {
     "rightRearThread", &mbRR, AdcRearAxle, //EVENT_FLAG_ADC_REARAXLE,
-    MsgStartRear, &sen_motorCurrents.rightRear, &sen_wheelSpeeds.rightRear_rps,
+    MsgStartRear, {}, &sen_motorCurrents.rightRear, &sen_wheelSpeeds.rightRear_rps,
     "RR", RightRear, GPIOC_RightRear_Loosen, GPIOC_RightRear_Tighten
 };
 
@@ -160,15 +161,13 @@ static THD_FUNCTION(wheelHandler, args)
 
     chRegSetThreadName(info->threadName);
 
-    event_listener_t adcEvt;
-
     while(TRUE) {
         ctrl_states action;
         if (chMBFetch(info->mb, (msg_t*)&action, TIME_INFINITE) != MSG_OK)
             continue;
 
         // listen to currents to perform this action
-        chEvtRegisterMask(&sen_measuredEvts, &adcEvt, info->evtReceiveFlag);
+        chEvtRegisterMaskWithFlags(&sen_measuredEvts, &info->adcEvtListener, AdcEvt, info->evtReceiveFlag);
 
         msg_t res;
         switch (action) {
@@ -221,11 +220,11 @@ static THD_FUNCTION(wheelHandler, args)
         }
 
         // unregister so we don't fill up queue by other old measurements
-        chEvtUnregister(&sen_measuredEvts, &adcEvt);
+        chEvtUnregister(&sen_measuredEvts, &info->adcEvtListener);
 
         // when done we start a timer which eventually disables the bridge
         // if all the other bridgehandlers is also off
-        disableBridge();
+        disableBridge(); // and restart background ADC
     }
 }
 
@@ -265,17 +264,19 @@ static msg_t releaseWheel(wheelthreadinfo_t *info)
 
     while (maxTime > chVTGetSystemTime()) {
         // measure current
-        eventflags_t flg = chEvtWaitOneTimeout(info->evtReceiveFlag | BrgAllDiags, // EVENT_FLAG_BRIDGE_DIAG_PINS,
-                                               US2ST(700));
-        if (flg == 0) { // timeout check
+        eventmask_t msk = chEvtWaitAnyTimeout(info->evtReceiveFlag | BridgeEvt, US2ST(700));
+        if (msk == 0) { // timeout check
             DEBUG_OUT("ADC error releasing");
             success = C_dtc_ADC_error_LF_release | info->wheel; // LSB:4 is the wheel, LF =0
-            break;
-        } else if (flg & BrgAllDiags) // EVENT_FLAG_BRIDGE_DIAG_PINS)
+            break; // bust out to caller thread
+        }
+
+        if ((msk & BridgeEvt) &&
+            (chEvtGetAndClearFlags(&info->adcEvtListener) & BrgAllDiags))
         {
             DEBUG_OUT("Hardware current limit tripped");
             success = C_dtc_OverCurrent_LF_release | info->wheel; // LSB:4 is the wheel, LF =0
-            break;
+            break; // bust out to calling thread
         }
 
         uint16_t maxCurrent;
@@ -330,17 +331,19 @@ static msg_t tightenWheel(wheelthreadinfo_t *info)
 
     while (maxTime > chVTGetSystemTime()) {
         // measure current
-        eventflags_t flg = chEvtWaitOneTimeout(info->evtReceiveFlag | BrgAllDiags, //EVENT_FLAG_BRIDGE_DIAG_PINS,
-                                               US2ST(700));
-        if (flg == 0) { // timeout check
+        eventmask_t msk = chEvtWaitOneTimeout(info->evtReceiveFlag | BridgeEvt, US2ST(700));
+        if (msk == 0) { // timeout check
             DEBUG_OUT("ADC error tighten");
             success = C_dtc_ADC_error_LF_tighten | info->wheel; // LSB:4 is the wheel, LF =0
-            break;
-        } else if (flg & BrgAllDiags) //EVENT_FLAG_BRIDGE_DIAG_PINS)
+            break; // bust out to calling thread
+        }
+
+        if ((msk & BridgeEvt) &&
+            (chEvtGetAndClearFlags(&info->adcEvtListener) & BrgAllDiags))
         {
             DEBUG_OUT("Hardware current limit tripped");
             success = C_dtc_OverCurrent_LF_tighten | info->wheel; // LSB:4 is the wheel, LF =0
-            break;
+            break; // bust out to calling thread
         }
 
         uint16_t maxCurrent;
@@ -486,7 +489,8 @@ static bool disableBridge(void)
     palClearPad(GPIOC, GPIOC_uC_SET_POWER);
 
     // stop current measurement, resume background checks
-    chEvtBroadcastFlags(&sen_msgHandlerThdEvt, MsgStopAll);
+    // FIXME debug comment
+//    chEvtBroadcastFlags(&sen_msgHandlerThdEvt, MsgStopAll);
     return true;
 }
 

@@ -219,7 +219,7 @@ int ee_saveSetting(settings_e settingsIdx)
     msg_t pos = settingsIdx * sizeof(settings[0]);
     if (fileStreamSeek(settingsFile, pos) == pos) {
         if (EepromWriteHalfword(settingsFile, settings[settingsIdx]) == 2) {
-            chEvtBroadcastFlags(&ee_settingsChanged, (eventflags_t)settingsIdx);
+            chEvtBroadcastFlags(&ee_settingsChanged, settingsIdx);
             return 1;
         }
     }

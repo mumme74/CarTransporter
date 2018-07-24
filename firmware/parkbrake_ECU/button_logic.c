@@ -34,21 +34,18 @@ static THD_FUNCTION(buttonLogic, arg)
     chRegSetThreadName("buttonLogic");
 
     // set up this thread so it only listens to these events
-    static event_listener_t elButton, elButtonInv, elLightsOn, elIgnOn;
-    chEvtRegisterMask(&sen_measuredEvts, &elButton, SigButton);
-    chEvtRegisterMask(&sen_measuredEvts, &elButtonInv, SigButtonInv);
-    chEvtRegisterMask(&sen_measuredEvts, &elLightsOn, SigLightsOn);
-    chEvtRegisterMask(&sen_measuredEvts, &elIgnOn, SigIgnOn);
+    static event_listener_t evtListener;
+    chEvtRegisterMaskWithFlags(&sen_measuredEvts, &evtListener, SignalEvt,
+                                SigButton | SigButtonInv | SigLightsOn | SigIgnOn);
 
     while (TRUE) {
         // globally wait for a new event
-        eventmask_t mask = chEvtWaitAny(ALL_EVENTS);
-
-
+        chEvtWaitAny(SignalEvt);
 
         // we must hold button in 500ms else its not a valid request
-        if (chEvtWaitAnyTimeout(mask, MS2ST(500)) != 0)
+        if (chEvtWaitAnyTimeout(SignalEvt, MS2ST(500)) != 0) {
             continue; // was not a timeout request, user has released button or brake
+        }
 
         /* Hardware error prevents this from working, we can't get power to uC when IGN off
         // auto tighten

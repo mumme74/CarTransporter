@@ -49,6 +49,7 @@
 #define SEN_PWR_ENABLED_SIG  palReadPad(GPIOA, GPIOA_PWR_ENABLED_SIG) /*when power to bridge is let through (hardware limited for safety reasons) */
 
 // external to ECU signals
+// FIXME ! is for debug, should be removed in release code
 #define SEN_IGN_ON_SIG       !palReadPad(GPIOD, GPIOD_IGN_ON_SIG) /* ignition is on */
 #define SEN_LIGHTS_ON_SIG    !palReadPad(GPIOD, GPIOD_LIGHTS_ON_SIG) /* brake lights */
 #define SEN_BUTTON_SIG       palReadPad(GPIOE, GPIOE_BUTTON_SIG)  /* activate button input */
@@ -79,8 +80,17 @@
 #define MAX(a,b) ((a) > (b) ? a : b)
 #define MIN(a,b) ((a) < (b) ? a : b)
 
+// types of events
+typedef enum {
+  MsgEvt    = EVENT_MASK(1),
+  AdcEvt    = EVENT_MASK(2),
+  SignalEvt = EVENT_MASK(3),
+  BridgeEvt = EVENT_MASK(4),
+} sen_eventtypes_e;
 
 typedef enum {
+    // these is eventsflags, not sure if they must bit bitmasks,
+    // but better safe than sorry
     // msg events
     MsgStopAll      = 0x00000001U,
     MsgStartAll     = 0x00000002U,
@@ -89,14 +99,14 @@ typedef enum {
     MsgStopRear     = 0x00000010U,
     MsgStartRear    = 0x00000020U,
     MsgEventEnd     = 0x00000080U,
-    MsgAllEvents    = 0x000000FFU,
+//    MsgAllEvents    = 0x000000FFU,
 
     // ADC events
     AdcBackground   = 0x00000100U,
     AdcRearAxle     = 0x00000200U,
     AdcFrontAxle    = 0x00000400U,
     AdcEventEnd     = 0x00008000U,
-    AdcAllEvents    = 0x0000FF00U,
+//    AdcAllEvents    = 0x0000FF00U,
 
     // Signals
     SigPwrEnabled   = 0x00010000U,
@@ -107,7 +117,7 @@ typedef enum {
     SigIgnOn        = 0x00200000U,
     SigLightsOn     = 0x00400000U,
     SigEventEnd     = 0x00800000U,
-    SigAllEvents    = 0x00FF0000U,
+//    SigAllEvents    = 0x00FF0000U,
 
     // Bridge
     BrgLFDiag       = 0x01000000U,
@@ -116,9 +126,9 @@ typedef enum {
     BrgRRDiag       = 0x08000000U,
     BrgAllDiags     = 0x0F000000U,
     BrgEventEnd     = 0x80000000U,
-    BrgAllEvents    = 0xFF000000U,
+//    BrgAllEvents    = 0xFF000000U,
 
-} sen_measure_evt;
+} sen_measure_flags_e;
 
 typedef struct {
     // motorcurrents i milliamps

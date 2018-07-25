@@ -10,9 +10,20 @@
 
 
 #ifdef DEBUG_MODE
+#ifdef CANSERIAL
+
+#include "canserial.h"
+#define DEBUG_OUT(msg) chMBPost(&canserialMBSend, (msg_t)msg, TIME_IMMEDIATE);
+
+#else // not CANSERIAL
+
+#define DEBUG_OUT(msg) sdAsynchronousWrite(&SD1, (uint8_t*)msg, strlen(msg))
+
+#endif // CANSERIAL
+
 #include <string.h>
 #include "chprintf.h"
-#define DEBUG_OUT(msg) sdAsynchronousWrite(&SD1, (uint8_t*)msg, strlen(msg))
+
 #define DEBUG_OUT_PRINTF(msg, str) {\
     char buf[50];                   \
     chsnprintf(buf, 49, msg, str);  \

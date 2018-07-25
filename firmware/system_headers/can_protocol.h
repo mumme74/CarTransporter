@@ -194,6 +194,13 @@ typedef enum {
     C_parkbrakeDiagActuatorTest     = 0x0A << 3, // request: t= tighten
                                                  //  [0  -  1  -  2  -  3  -  4  -  5  -  6  -  7]
                                                  //  t-LF t-RF   t-LR  t-RR  r-LF  r-RF  r-LR  r-RR
+
+    C_parkbrakeDiagSerial           = 0x0B << 3, // implements a serial out through CAN
+                                                 // currently only 1 way traffic out from Node  (debug printf), string ending \0 is'nt send
+                                                 // output:
+                                                 // [0]             [1:7]       [0:8-56] variable length, read frame DLC to determine
+                                                 // 1=1st frame     strlen
+                                                 // 0=2-> frame     sendnr of this string, a string might be chopped up in many frames
     C_parkbrakeDiag_LAST            = 0x0F << 3,
 
     C_suspensionDiag_FIRST          = 0x10 << 3,

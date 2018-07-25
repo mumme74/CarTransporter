@@ -87,6 +87,7 @@ PROJECT = parkbrake
 # comment out when release mode 
 C_EXTRAFLAGS += -DDEBUG_MODE=yes
 C_EXTRAFLAGS += -DTRACE_MODE=yes
+C_EXTRAFLAGS += -DCANSERIAL=yes
 
 # Imported source files and paths
 #CHIBIOS = $(HOME)/workspace/ChibiOS_17.6.0 # env variable sent by eclipse
@@ -130,6 +131,7 @@ CSRC = $(STARTUPSRC) \
        tmr_capture.c \
        can.c \
        diag.c \
+       canserial.c \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global

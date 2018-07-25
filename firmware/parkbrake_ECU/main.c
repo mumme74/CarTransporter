@@ -28,6 +28,7 @@
 #include "can.h"
 #include "diag.h"
 #include "debug.h"
+#include "canserial.h"
 
 
 /*
@@ -46,8 +47,10 @@ int main(void) {
   chSysInit();
 
 #ifdef DEBUG_MODE
+#ifndef CANSERIAL
   // set up debug channel on serial out
   sdStart(&SD1, NULL);
+#endif
 #endif
   // eeprom should be first as other modules depend on its settings
   ee_initEeprom();
@@ -57,8 +60,12 @@ int main(void) {
   sen_initSensors();
   btn_initButtonLogic();
 
+#ifdef CANSERIAL
+  canserial_init();
+#endif
+
   while (TRUE) {
     chThdSleepMilliseconds(500); // do nothing loop, let the kernel handle it for us
-    DEBUG_OUT_PRINTF("beat\r\n", ST2MS(chVTGetSystemTime()));
+    DEBUG_OUT_PRINTF("Beat%d\n", ST2MS(chVTGetSystemTime()));
   }
 }

@@ -195,8 +195,7 @@ int main(int argc, char **argv)
     int count = 0;
     int rcvbuf_size = 0;
     int opt, ret;
-    int currmax, numfilter;
-    int join_filter;
+    int currmax;
     unsigned int canIdx;
     char *ptr, *nptr;
     struct sockaddr_can addr;
@@ -204,8 +203,6 @@ int main(int argc, char **argv)
     struct iovec iov;
     struct msghdr msg;
     struct cmsghdr *cmsg;
-    struct can_filter *rfilter;
-    can_err_mask_t err_mask;
     struct canfd_frame frame;
     int nbytes, i, maxdlen;
     struct ifreq ifr;
@@ -333,7 +330,7 @@ int main(int argc, char **argv)
 #ifdef DEBUG
         printf("using interface name '%s'.\n", ifr.ifr_name);
 #endif
-
+        // set can interface
         if (strcmp(ANYDEV, ifr.ifr_name)) {
             if (ioctl(s[i], SIOCGIFINDEX, &ifr) < 0) {
                 perror("SIOCGIFINDEX");
@@ -343,73 +340,7 @@ int main(int argc, char **argv)
         } else
             addr.can_ifindex = 0; /* any can interface */
 
-#if 0
-        if (nptr) {
-
-            /* found a ',' after the interface name => check for filters */
-
-            /* determine number of filters to alloc the filter space */
-            numfilter = 0;
-            ptr = nptr;
-            while (ptr) {
-                numfilter++;
-                ptr++; /* hop behind the ',' */
-                ptr = strchr(ptr, ','); /* exit condition */
-            }
-
-            rfilter = malloc(sizeof(struct can_filter) * numfilter);
-            if (!rfilter) {
-                fprintf(stderr, "Failed to create filter space!\n");
-                return 1;
-            }
-
-            numfilter = 0;
-            err_mask = 0;
-            join_filter = 0;
-
-            while (nptr) {
-
-                ptr = nptr+1; /* hop behind the ',' */
-                nptr = strchr(ptr, ','); /* update exit condition */
-
-                if (sscanf(ptr, "%x:%x",
-                       &rfilter[numfilter].can_id,
-                       &rfilter[numfilter].can_mask) == 2) {
-                    rfilter[numfilter].can_mask &= ~CAN_ERR_FLAG;
-                    numfilter++;
-                } else if (sscanf(ptr, "%x~%x",
-                          &rfilter[numfilter].can_id,
-                          &rfilter[numfilter].can_mask) == 2) {
-                    rfilter[numfilter].can_id |= CAN_INV_FILTER;
-                    rfilter[numfilter].can_mask &= ~CAN_ERR_FLAG;
-                    numfilter++;
-                } else if (*ptr == 'j' || *ptr == 'J') {
-                    join_filter = 1;
-                } else if (sscanf(ptr, "#%x", &err_mask) != 1) {
-                    fprintf(stderr, "Error in filter option parsing: '%s'\n", ptr);
-                    return 1;
-                }
-            }
-
-            if (err_mask)
-                setsockopt(s[i], SOL_CAN_RAW, CAN_RAW_ERR_FILTER,
-                       &err_mask, sizeof(err_mask));
-
-            if (join_filter && setsockopt(s[i], SOL_CAN_RAW, CAN_RAW_JOIN_FILTERS,
-                              &join_filter, sizeof(join_filter)) < 0) {
-                perror("setsockopt CAN_RAW_JOIN_FILTERS not supported by your Linux Kernel");
-                return 1;
-            }
-
-            if (numfilter)
-                setsockopt(s[i], SOL_CAN_RAW, CAN_RAW_FILTER,
-                       rfilter, numfilter * sizeof(struct can_filter));
-
-            free(rfilter);
-
-        } /* if (nptr) */
-#else
-
+        // filter out all other messages
         struct can_filter rcvfilter;
         if (canIdx < 0x800) {
             // 11 bit id
@@ -420,7 +351,6 @@ int main(int argc, char **argv)
         }
         rcvfilter.can_id = canIdx;
         setsockopt(s[i], SOL_CAN_RAW, CAN_RAW_FILTER, &rcvfilter, sizeof (struct can_filter));
-#endif
 
         /* try to switch the socket into CAN FD mode */
         setsockopt(s[i], SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &canfd_on, sizeof(canfd_on));

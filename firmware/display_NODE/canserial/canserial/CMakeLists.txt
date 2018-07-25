@@ -12,4 +12,6 @@ add_executable(${PROJECT_NAME} "main.c")
 
 set(CMAKE_BUILD_TYPE Debug)
 
-include_directories(/Volumes/qt5pi/usr/include/arm-rpi3-linux-gnueabihf )
+include_directories(
+    /Volumes/qt5pi/usr/include/arm-rpi3-linux-gnueabihf
+    ../../../system_headers/)

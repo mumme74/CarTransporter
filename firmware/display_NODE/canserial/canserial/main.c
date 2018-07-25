@@ -63,6 +63,7 @@
 #include <linux/can/raw.h>
 
 #include "terminal.h"
+#include "can_protocol.h"
 
 /* for hardware timestamps - since Linux 2.6.30 */
 #ifndef SO_TIMESTAMPING
@@ -74,7 +75,7 @@
 #define SOF_TIMESTAMPING_RX_SOFTWARE (1<<3)
 #define SOF_TIMESTAMPING_RAW_HARDWARE (1<<6)
 
-#define MAXSOCK 16    /* max. number of CAN interfaces given on the cmdline */
+#define MAXSOCK 1     /* max. number of CAN interfaces given on the cmdline */
 #define MAXIFNAMES 30 /* size of receive name index to omit ioctls */
 #define MAXCOL 6      /* number of different colors for colorized output */
 #define ANYDEV "any"  /* name of interface to receive from any CAN interface */
@@ -85,16 +86,8 @@
 #define SILENT_ANI 1  /* silent mode with animation */
 #define SILENT_ON  2  /* silent mode (completely silent) */
 
-#define BOLD    ATTBOLD
-#define RED     ATTBOLD FGRED
-#define GREEN   ATTBOLD FGGREEN
-#define YELLOW  ATTBOLD FGYELLOW
-#define BLUE    ATTBOLD FGBLUE
-#define MAGENTA ATTBOLD FGMAGENTA
-#define CYAN    ATTBOLD FGCYAN
+#define MAX_NODENR 2
 
-const char col_on [MAXCOL][19] = {BLUE, RED, GREEN, BOLD, MAGENTA, CYAN};
-const char col_off [] = ATTRESET;
 
 static char *cmdlinename[MAXSOCK];
 static __u32 dropcnt[MAXSOCK];
@@ -102,11 +95,7 @@ static __u32 last_dropcnt[MAXSOCK];
 static char devname[MAXIFNAMES][IFNAMSIZ+1];
 static int  dindex[MAXIFNAMES];
 static int  max_devname_len; /* to prevent frazzled device name output */
-const int canfd_on = 1;
-
-#define MAXANI 4
-const char anichar[MAXANI] = {'|', '/', '-', '\\'};
-const char extra_m_info[4][4] = {"- -", "B -", "- E", "B E"};
+static const int canfd_on = 1;
 
 extern int optind, opterr, optopt;
 
@@ -116,40 +105,34 @@ static volatile int running = 1;
 typedef struct {
     uint8_t len;
     uint8_t written;
-    union {
-        char bufAll[7 * 0x7F + 1]; // +1 for \0 char
-        char bufFr[18][7];
-    };
+    char bufAll[7 * 0x7F + 1]; // +1 for \0 char
 } complete_t;
 
 void print_usage(char *prg)
 {
     fprintf(stderr, "\nUsage: %s [options] <CAN interface>+\n", prg);
     fprintf(stderr, "  (use CTRL-C to terminate %s)\n\n", prg);
+    fprintf(stderr, "Options: -n <nodeNr>  nodenr [0-7] ie: 0=parkbrakeNode\n");
+    fprintf(stderr, "                                       1=suspensionNode\n");
+    fprintf(stderr, "                                       2=displayNode <currently inactive>\n");
+    fprintf(stderr, "                                       3-7=currently not used nodes\n");
+    fprintf(stderr, "         -N <node>    nodename: parkbrakeNode | suspensionNode\n");
+    fprintf(stderr, "         -i <ID>      CAN frameid to listen to in HEX\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "A CAN interface with optional filter sets can be specified\n");
-    fprintf(stderr, "on the commandline in the form: <ifname>[,filter]*\n");
-    fprintf(stderr, "\nComma separated filters can be specified for each given CAN interface:\n");
-    fprintf(stderr, " <can_id>:<can_mask> (matches when <received_can_id> & mask == can_id & mask)\n");
-    fprintf(stderr, " <can_id>~<can_mask> (matches when <received_can_id> & mask != can_id & mask)\n");
-    fprintf(stderr, " #<error_mask>       (set error frame filter, see include/linux/can/error.h)\n");
-    fprintf(stderr, " [j|J]               (join the given CAN filters - logical AND semantic)\n");
-    fprintf(stderr, "\nCAN IDs, masks and data content are given and expected in hexadecimal values.\n");
-    fprintf(stderr, "When can_id and can_mask are both 8 digits, they are assumed to be 29 bit EFF.\n");
-    fprintf(stderr, "Without any given filter all data frames are received ('0:0' default filter).\n");
+    fprintf(stderr, "A CAN interface must be specified\n");
+    fprintf(stderr, "on the commandline in the form: <ifname>\n");
+    fprintf(stderr, "\nCAN ID in hexadecimal values, or nodename  must be given.\n");
     fprintf(stderr, "\nUse interface name '%s' to receive from all CAN interfaces.\n", ANYDEV);
     fprintf(stderr, "\nExamples:\n");
-    fprintf(stderr, "%s -c -c -ta can0,123:7FF,400:700,#000000FF can2,400~7F0 can3 can8\n", prg);
-    fprintf(stderr, "%s -l any,0~0,#FFFFFFFF    (log only error frames but no(!) data frames)\n", prg);
-    fprintf(stderr, "%s -l any,0:0,#FFFFFFFF    (log error frames and also all data frames)\n", prg);
-    fprintf(stderr, "%s vcan2,92345678:DFFFFFFF (match only for extended CAN ID 12345678)\n", prg);
-    fprintf(stderr, "%s vcan2,123:7FF (matches CAN ID 123 - including EFF and RTR frames)\n", prg);
-    fprintf(stderr, "%s vcan2,123:C00007FF (matches CAN ID 123 - only SFF and non-RTR frames)\n", prg);
+    fprintf(stderr, "%s -N parkbrakeNode can0\n", prg);
+    fprintf(stderr, "%s -n 0 can0\n", prg);
+    fprintf(stderr, "%s -i 6a0 can0 for can serial on CANid 6a0\n", prg);
     fprintf(stderr, "\n");
 }
 
 void sigterm(int signo)
 {
+    (void)signo;
     running = 0;
 }
 
@@ -211,9 +194,10 @@ int main(int argc, char **argv)
     unsigned char down_causes_exit = 1;
     int count = 0;
     int rcvbuf_size = 0;
-    int ret;
+    int opt, ret;
     int currmax, numfilter;
     int join_filter;
+    unsigned int canIdx;
     char *ptr, *nptr;
     struct sockaddr_can addr;
     char ctrlmsg[CMSG_SPACE(sizeof(struct timeval) + 3*sizeof(struct timespec) + sizeof(__u32))];
@@ -234,13 +218,77 @@ int main(int argc, char **argv)
 
     last_tv.tv_sec  = 0;
     last_tv.tv_usec = 0;
+    canIdx = 0;
 
-    if (optind == argc) {
+    while ((opt = getopt(argc, argv, "i:n:N:h?")) != -1) {
+        switch (opt) {
+        case 'i': {
+            long idx = strtol(optarg, NULL, 16);
+            if (idx < 0 || idx > 0x7FFF) {
+                print_usage(basename(argv[0]));
+                exit(1);
+            }
+            canIdx = (unsigned int)idx;
+        }   break;
+        case 'n': {
+            int idx = atoi(optarg);
+            if (idx < 0 || idx > MAX_NODENR || !isdigit(optarg[0])) {
+                print_usage(basename(argv[0]));
+                exit(1);
+            }
+            switch (idx) {
+            case 0:
+                canIdx = CAN_MSG_TYPE_DIAG | C_parkbrakeDiagSerial | C_parkbrakeNode;
+                break;
+            case 1:
+                canIdx = CAN_MSG_TYPE_DIAG | C_suspensionDiagSerial | C_suspensionNode;
+                break;
+            case 2:
+                canIdx = CAN_MSG_TYPE_DIAG | C_displayDiag_LAST | C_displayNode;
+                break;
+            case 3:
+                canIdx = CAN_MSG_TYPE_DIAG;
+                break;
+            case 4:
+                canIdx = CAN_MSG_TYPE_DIAG;
+                break;
+            case 5:
+                canIdx = CAN_MSG_TYPE_DIAG;
+                break;
+            case 6:
+                canIdx = CAN_MSG_TYPE_DIAG;
+                break;
+            case 7:
+                canIdx = CAN_MSG_TYPE_DIAG;
+                break;
+            default:
+                break;
+            }
+        }   break;
+        case 'N':
+            if (strcmp(optarg, "parkbrakeNode") == 0)
+                canIdx = CAN_MSG_TYPE_DIAG | C_parkbrakeDiagSerial | C_parkbrakeNode;
+            else if (strcmp(optarg, "suspensionNode") == 0)
+                canIdx = CAN_MSG_TYPE_DIAG | C_suspensionDiagSerial | C_suspensionNode;
+            break;
+        case '?':
+            fprintf(stderr, "unknown option char at index:%d", optind);
+            exit(1);
+        case 'h':
+        default:
+            print_usage(basename(argv[0]));
+            exit(1);
+        }
+    }
+
+    if (optind == argc || canIdx <= 0) {
         print_usage(basename(argv[0]));
         exit(0);
     }
 
     currmax = argc - optind; /* find real number of CAN devices */
+
+    fprintf(stdout, "using CANid:%x\r\n", canIdx);
 
     if (currmax > MAXSOCK) {
         fprintf(stderr, "More than %d CAN devices given on commandline!\n", MAXSOCK);
@@ -295,6 +343,7 @@ int main(int argc, char **argv)
         } else
             addr.can_ifindex = 0; /* any can interface */
 
+#if 0
         if (nptr) {
 
             /* found a ',' after the interface name => check for filters */
@@ -359,6 +408,19 @@ int main(int argc, char **argv)
             free(rfilter);
 
         } /* if (nptr) */
+#else
+
+        struct can_filter rcvfilter;
+        if (canIdx < 0x800) {
+            // 11 bit id
+            rcvfilter.can_mask = 0x7FF; // filter in only this id
+        } else {
+            // 29 bit (extended frame)
+            rcvfilter.can_mask = 0x7FFF;
+        }
+        rcvfilter.can_id = canIdx;
+        setsockopt(s[i], SOL_CAN_RAW, CAN_RAW_FILTER, &rcvfilter, sizeof (struct can_filter));
+#endif
 
         /* try to switch the socket into CAN FD mode */
         setsockopt(s[i], SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &canfd_on, sizeof(canfd_on));
@@ -427,8 +489,7 @@ int main(int argc, char **argv)
             continue;
         }
 
-//        for (i=0; i<currmax; i++) {  /* check all CAN RAW sockets */
-            i = 0;
+        for (i=0; i<currmax; i++) {  /* check all CAN RAW sockets */
             if (FD_ISSET(s[i], &rdfs)) {
 
                 int idx;
@@ -547,6 +608,7 @@ int main(int argc, char **argv)
                     lineBuf.written = lineBuf.len = 0;
                 }
             }
+        }
 
     } // running loop
 

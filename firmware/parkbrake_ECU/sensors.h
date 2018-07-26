@@ -132,12 +132,14 @@ typedef enum {
 
 typedef struct {
     // motorcurrents i milliamps
-    uint16_t leftRear,
+    volatile uint16_t
+             leftRear,
              leftFront,
              rightRear,
              rightFront;
 
-    uint16_t maxLeftRear,
+    volatile uint16_t
+             maxLeftRear,
              maxLeftFront,
              maxRightRear,
              maxRightFront;

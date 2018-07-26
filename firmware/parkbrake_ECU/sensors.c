@@ -108,7 +108,7 @@ event_source_t sen_msgHandlerThdEvt;
 // mode: 		LINEAR buffer, 4 samples of 4 channels, SW triggered
 // channels:
 static const ADCConversionGroup adcBridgeFrontCfg = {
-    true, // circular
+    false, // circular
     ADC_BRIDGE_NUM_CHANNELS,
     bridgeFrontAdcCallback, // conversion callback
     NULL,              // error callback
@@ -148,7 +148,7 @@ static const ADCConversionGroup adcBridgeFrontCfg = {
 // mode:        LINEAR buffer, 4 samples of 4 channels, SW triggered
 // channels:
 static const ADCConversionGroup adcBridgeRearCfg = {
-    true, // circular
+    false, // circular
     ADC_BRIDGE_NUM_CHANNELS,
     bridgeRearAdcCallback, // conversion callback
     NULL,              // error callback
@@ -312,7 +312,7 @@ static void bridgeFrontAdcCallback(ADCDriver *adcp, adcsample_t *buffer, size_t 
 {
     (void) buffer; (void) n; // squelsh compiler
 
-    if (adcp->state == ADC_COMPLETE) {
+    if (adcp->state == ADC_ACTIVE) {
         // calculate currents
         uint16_t left_ma, right_ma;
         bridgeCurrents(&left_ma, &right_ma);
@@ -327,7 +327,7 @@ static void bridgeFrontAdcCallback(ADCDriver *adcp, adcsample_t *buffer, size_t 
             sen_motorCurrents.maxRightFront = right_ma;
 
         // notify our subscribers
-        chEvtBroadcastFlagsI(&sen_measuredEvts, AdcFrontAxle);
+//        chEvtBroadcastFlagsI(&sen_measuredEvts, AdcFrontAxle);
         chSysUnlockFromISR();
     }
 }
@@ -337,7 +337,7 @@ static void bridgeRearAdcCallback(ADCDriver *adcp, adcsample_t *buffer, size_t n
 {
     (void) buffer; (void) n; // squelsh compiler
 
-    if (adcp->state == ADC_COMPLETE) {
+    if (adcp->state == ADC_ACTIVE) {
         // calculate currents
         uint16_t left_ma, right_ma;
         bridgeCurrents(&left_ma, &right_ma);
@@ -352,7 +352,7 @@ static void bridgeRearAdcCallback(ADCDriver *adcp, adcsample_t *buffer, size_t n
             sen_motorCurrents.maxRightRear = right_ma;
 
         // notify our subscribers
-        chEvtBroadcastFlagsI(&sen_measuredEvts, AdcRearAxle);
+//        chEvtBroadcastFlagsI(&sen_measuredEvts, AdcRearAxle);
         chSysUnlockFromISR();
     }
 }
@@ -628,7 +628,7 @@ static THD_FUNCTION(adcHandlerThd, arg)
             }
 
             // don't wait for a event to occur on next loop
-            timeout = TIME_IMMEDIATE;
+            timeout = action == MsgStartAll ? ST2US(900) : TIME_IMMEDIATE;
             continue;
         }
 

@@ -11,27 +11,153 @@
  */
 
 #include <hal.h>
+#include <ch.h>
 #include "canserial.h"
 #include "can_protocol.h"
 #include "can.h"
 
 
+#define STREAM_SIZE 0x7F
 #define CANSERIAL_MB_SIZE 64
 #define CANTRANSMIT_TIMEOUT MS2ST(1)
 
 // ---------------------------------------------------------------------------------
 // begin public exported variables
-mailbox_t canserialMBSend;
-char canserialMBSendBuf[CANSERIAL_MB_SIZE];
 
 
 // ---------------------------------------------------------------------------------
 // begin private function prototypes for this module
-
+void objectInit(CanSerialStream *csp, uint8_t *buffer,
+                          size_t size, size_t eos);
 
 
 // ----------------------------------------------------------------------------------
 // begin private functions and variables to this module
+
+event_source_t evtHasContent;
+
+
+
+// copy data, dont use string.h memcpy to avoid bloat
+void memcopy(uint8_t *cdest, const uint8_t *csrc, int n) {
+  for (int i = 0; i < n; ++i)
+      cdest[i] = csrc[i];
+}
+
+
+
+/* Methods implementations.*/
+static size_t writes(void *ip, const uint8_t *bp, size_t n) {
+  CanSerialStream *csp = ip;
+  size_t nw = n, nf = 0;
+  chSysLock();
+
+  if (csp->size - csp->eos < nw)
+    nw = csp->size - csp->eos;
+
+  memcopy(csp->buffer + csp->eos, bp, nw);
+  csp->eos += nw;
+
+  // should we flip over?
+  if (n > nw) {
+    nf = n - nw; // flipped over
+    if (nf > csp->offset)
+      nf = csp->offset;
+    memcopy(csp->buffer, bp + nw, nf);
+    csp->eos = nf;
+  }
+  chSysUnlock();
+
+  chEvtBroadcast(&evtHasContent);
+  return nw + nf;
+}
+
+static size_t reads(void *ip, uint8_t *bp, size_t n) {
+  CanSerialStream *csp = ip;
+  chSysLock();
+  size_t nr = (n <= csp->size ? n : csp->size),
+         nf = 0;
+
+  if (csp->eos >= csp->offset) {
+    // we have not flipped around
+    if (csp->eos - csp->offset < nr)
+      nr = csp->eos - csp->offset;
+    memcopy(bp, csp->buffer + csp->offset, nr);
+    csp->offset += nr;
+  } else {
+    //  we have flipped around
+    // first copy from eos to end
+    if (csp->size - csp->offset < nr)
+      nr = csp->size - csp->offset;
+    memcopy(bp, csp->buffer + csp->offset, nr);
+    csp->offset += nr;
+
+    // should we copy from 0 to eos?
+    if (nr < n) {
+      nf = n - nr;
+      if (nf > csp->eos)
+        nf = csp->eos;
+      memcopy(bp + nr, csp->buffer, nf);
+      csp->offset = nf;
+    }
+
+  }
+  chSysUnlock();
+
+  return nr + nf;
+}
+
+static msg_t put(void *ip, uint8_t b) {
+  CanSerialStream *csp = ip;
+
+  if (csp->size - csp->eos <= 0) {
+    // flip around
+    if (csp->eos - csp->offset == csp->size)
+      return MSG_RESET; // full, not yet cleared
+    csp->eos = 0;
+  }
+
+  *(csp->buffer + csp->eos) = b;
+  csp->eos += 1;
+  return MSG_OK;
+}
+
+static msg_t get(void *ip) {
+  uint8_t b;
+  CanSerialStream *csp = ip;
+
+  if (csp->size - csp->offset <= 0) {
+    // flip around
+    if (csp->eos == csp->offset)
+      return MSG_RESET;
+    csp->offset = 0;
+  }
+
+  b = *(csp->buffer + csp->offset);
+  csp->offset += 1;
+  return b;
+}
+
+static void flush(void *ip) {
+  CanSerialStream *csp = ip;
+
+  if (csp->offset < csp->eos || csp->offset > csp->eos)
+    chEvtBroadcast(&evtHasContent);
+}
+
+
+
+static const struct CanSerialStreamVMT vmt = { writes, reads, put, get, flush };
+
+uint8_t CANSerialBuffer[STREAM_SIZE+1];
+
+CanSerialStream CANSerial0 = {
+    &vmt,
+    (uint8_t*)&CANSerialBuffer,
+    STREAM_SIZE,
+    0,
+    0
+};
 
 
 
@@ -45,24 +171,18 @@ static THD_FUNCTION(canSerialSend, arg)
   (void)arg;
 
   chRegSetThreadName("canSerialSend");
+  static event_listener_t evtListener;
+  chEvtRegister(&evtHasContent, &evtListener, EVENT_MASK(0));
 
   while(TRUE) {
-    static msg_t msg;
-    if (chMBFetch(&canserialMBSend, &msg, TIME_INFINITE) != MSG_OK)
-        continue;
 
-    if (msg == 0)
-      continue;
+    chEvtWaitAny(ALL_EVENTS);
 
-    static char *cp = (char*)&msg;
+    static uint8_t readBuf[STREAM_SIZE +1];
     static uint8_t nFrames;
     static uint8_t strlen;
     nFrames = 0;
-    strlen = 0;
-
-    // get strlen
-    for (cp = (char*)msg; *cp != '\0' && strlen < 0x7F; ++cp)
-      ++strlen;
+    strlen = CANSerial0.vmt->read(&CANSerial0, (void*)&readBuf, STREAM_SIZE);
 
     static CANTxFrame txf;
     can_initTxFrame(&txf, CAN_MSG_TYPE_DIAG, C_parkbrakeDiagSerial);
@@ -70,10 +190,8 @@ static THD_FUNCTION(canSerialSend, arg)
     txf.DLC = 1;
     txf.data8[0] = 0x80 | strlen; // 1st frame
 
-    cp = (char*)msg;
-
     for (int i = 0; i < strlen; ++i) {
-      txf.data8[txf.DLC++] = cp[i];
+      txf.data8[txf.DLC++] = readBuf[i];
       if (txf.DLC > 7) {
         canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, CANTRANSMIT_TIMEOUT);
         txf.DLC = 1;
@@ -88,6 +206,23 @@ static THD_FUNCTION(canSerialSend, arg)
 }
 
 
+/*
+ * CanSerial stream object initialization.
+ *
+ * csp       pointer to the CanSerialStream object to be initialized
+ * buffer    pointer to the memory buffer for the memory stream
+ * size      total size of the memory stream buffer
+ * eos       initial End Of Stream offset
+ */
+void objectInit(CanSerialStream *csp, uint8_t *buffer,
+                          size_t size, size_t eos) {
+
+  csp->vmt    = &vmt;
+  csp->buffer = buffer;
+  csp->size   = size;
+  csp->eos    = eos;
+  csp->offset = 0;
+}
 
 
 // ---------------------------------------------------------------------------------
@@ -95,11 +230,17 @@ static THD_FUNCTION(canSerialSend, arg)
 
 void canserial_init(void)
 {
-  // init mailbox for printchars
-  chMBObjectInit(&canserialMBSend, (msg_t*)canserialMBSendBuf,
-                  CANSERIAL_MB_SIZE);
+  chEvtObjectInit(&evtHasContent);
+
+  //objectInit(&CANSerial0, (uint8_t*)&CANSerialBuffer, STREAM_SIZE, 0);
 
   chThdCreateStatic(&waCanSerialSend, sizeof(waCanSerialSend),
                     NORMALPRIO-10, canSerialSend, NULL);
 
+}
+
+
+size_t canserialAsynchronousWrite(uint8_t *msg, uint8_t len)
+{
+  return CANSerial0.vmt->write(&CANSerial0, msg, len);
 }

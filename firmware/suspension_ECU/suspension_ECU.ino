@@ -9,8 +9,12 @@
 #include "AirFeed.h"
 #include "IOController.h"
 #include "Height.h"
+#include "CanSerial.h"
 #include <DTC.h>
 #include <Arduino.h>
+#ifdef DEBUG_CAN_SERIAL
+#include "CanSerial.h"
+#endif
 
 
 // PIDS (datastores) in this ECU
@@ -78,6 +82,10 @@ HeightController heightStateMachine(&leftFillDrv,  &leftDumpDrv,  &leftSuckDrv,
 // communication controller
 CAN::IOController canIO;
 
+#ifdef DEBUG_CAN_SERIAL
+CAN::Serial1 CanSerial(&canIO, C_suspensionDiagSerial);
+#endif
+
 
 
 //The setup function is called once at startup of the sketch
@@ -140,6 +148,7 @@ void setup()
 #ifdef DEBUG_UART_ON
     Serial.println("boot:");
 #endif
+
 }
 
 #ifdef DEBUG_BLINK_ON
@@ -175,6 +184,9 @@ void loop()
     Serial.print(" in ");Serial.print( millis() - lastErrCheck,DEC);
     Serial.println("ms");
     loopCounts = 0;
+#endif
+#ifdef DEBUG_CAN_SERIAL
+    CanSerial.printf("loops:%u in %ums\n", loopCounts, millis() - lastErrCheck);
 #endif
 
     lastErrCheck = millis();

@@ -507,6 +507,8 @@ int main(int argc, char **argv)
                     // new message
                     // first send old
                     if (lineBuf.len) {
+                        if (lineBuf.written < 0x80)
+                            lineBuf.bufAll[lineBuf.written] = '\0';
                         printf("%s", lineBuf.bufAll);
                         fflush(stdout);
                     }
@@ -531,6 +533,8 @@ int main(int argc, char **argv)
 
                 // print this string
                 if (lineBuf.written >= lineBuf.len) {
+                    if (lineBuf.written < 0x80)
+                        lineBuf.bufAll[lineBuf.written] = '\0';
                     printf("%s", lineBuf.bufAll);
                     //for(int n = 0; n < lineBuf.len;++n)
                     //    printf("%x,", lineBuf.bufAll[n]);

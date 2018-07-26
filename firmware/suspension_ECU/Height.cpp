@@ -9,6 +9,7 @@
 #include <PID.h>
 #include <storage.h>
 #include <EEPROM.h>
+#include "CanSerial.h"
 
 static const float
   defaultP = 2.0,
@@ -154,21 +155,20 @@ void HeightController::loop()
 	  b2.uint16 = m_statePid->rawValue();
       switch (m_statePid->state()) {
         case PID::States::ToLowState:
-          Serial.printf("at low lsp:%f lvu:%f \r\n", m_leftSetpointVar, m_leftInputVar);
+          CanSerial.printf("at low lsp:%f lvu:%f \r\n", m_leftSetpointVar, m_leftInputVar);
           m_statePid->setState(PID::States::LowState);
           m_statePid->setUpdated(true);
           store::write2_to_eeprom(store::Suspension::HEIGHT_WANTED_STATE_ADR, b2);
           break;
         case PID::States::ToNormalState:
-          Serial.printf("at normal lsp:%f lvu:%f \r\n", m_leftSetpointVar, m_leftInputVar);
+          CanSerial.printf("at normal lsp:%f lvu:%f \r\n", m_leftSetpointVar, m_leftInputVar);
           m_statePid->setState(PID::States::NormalState);
           m_statePid->setUpdated(true);
           store::write2_to_eeprom(store::Suspension::HEIGHT_WANTED_STATE_ADR, b2);
           m_slowSample = true; // slow heightsensor samples and use averaging (don't respond to fast changes)
           break;
         case PID::States::ToHighState:
-
-          Serial.printf("at high lsp:%f lvu:%f \r\n", m_leftSetpointVar, m_leftInputVar);
+          CanSerial.printf("at high lsp:%f lvu:%f \r\n", m_leftSetpointVar, m_leftInputVar);
           m_statePid->setState(PID::States::HighState);
           m_statePid->setUpdated(true);
           store::write2_to_eeprom(store::Suspension::HEIGHT_WANTED_STATE_ADR, b2);
@@ -185,18 +185,21 @@ can_userError_e HeightController::setState(PID::States state)
     m_slowSample = false; // dont average height sensors (needed in normal height)
     switch(state){
       case PID::States::ToLowState:
+        CanSerial.printf("ToLow\n");
         m_leftSetpointVar = m_leftLowSetpoint;
         m_rightSetpointVar = m_rightLowSetpoint;
         m_statePid->setState(PID::States::ToLowState);
         m_statePid->setUpdated(true);
         break;
       case PID::States::ToNormalState:
+        CanSerial.printf("ToNormal\n");
         m_leftSetpointVar = m_leftNormalSetpoint;
         m_rightSetpointVar = m_rightNormalSetpoint;
         m_statePid->setState(PID::States::ToNormalState);
         m_statePid->setUpdated(true);
         break;
       case PID::States::ToHighState:
+        CanSerial.printf("ToHigh\n");
         m_leftSetpointVar = m_leftHighSetpoint;
         m_rightSetpointVar = m_rightHighSetpoint;
         m_statePid->setState(PID::States::ToHighState);

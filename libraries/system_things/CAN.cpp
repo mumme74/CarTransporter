@@ -275,7 +275,7 @@ void ControllerBase::_recievedDiagnose(CAN_message_t *msg,
 #ifdef DEBUG_UART_ON
         Serial.printf("can DTCLength\n");
 #endif
-        _init_CAN_message_t(msg, 40); // 40ms timeout to make sure it reaches our destination
+        init_CAN_message_t(msg, 40); // 40ms timeout to make sure it reaches our destination
         msg->buf[msg->len++] = static_cast<uint8_t>(DTCs.store.length());
         ++action;
         msg->id = CAN_MSG_TYPE_DIAG | C_suspensionDiagDTCLength | m_senderId;
@@ -355,7 +355,7 @@ void ControllerBase::_recievedDiagnose(CAN_message_t *msg,
 
           if (dtcCnt == DTCs.store.length())
               retCnt = DTCs.clear();
-          _init_CAN_message_t(msg, 40);
+          init_CAN_message_t(msg, 40);
           msg->id = CAN_MSG_TYPE_DIAG | C_suspensionDiagClearDTC | m_senderId;
           msg->buf[0] = retCnt;
           msg->len = 1;
@@ -381,7 +381,7 @@ void ControllerBase::_parseID(uint16_t id, uint16_t &targetNode, uint16_t &actio
 CAN_message_t ControllerBase::_buildDTC_Msg(DTC *dtc, uint8_t idx) const
 {
   CAN_message_t msg;
-  _init_CAN_message_t(&msg, 10);
+  init_CAN_message_t(&msg, 10);
 
   msg.id = 0;
   // request [0:7] the DTC index in stored memory
@@ -477,7 +477,7 @@ CAN_message_t ControllerBase::_buildDTC_Msg(DTC *dtc, uint8_t idx) const
 
 CAN_message_t &ControllerBase::_buildUpdateFrame(PIDs::IDs id, CAN_message_t &msg) const
 {
-  this->_init_CAN_message_t(&msg);
+  this->init_CAN_message_t(&msg);
 
   // find which frame this pid belongs to
   const Frame_t *frame = frame_from_id(id);
@@ -549,7 +549,7 @@ CAN_message_t &ControllerBase::_buildUpdateFrame(Frame_t *frame, CAN_message_t &
   return msg;
 }
 
-void ControllerBase::_init_CAN_message_t(CAN_message_t *msg, uint16_t timeout /*= 0*/) const
+void ControllerBase::init_CAN_message_t(CAN_message_t *msg, uint16_t timeout /*= 0*/) const
 {
   msg->ext = msg->len = msg->id = msg->rtr = 0;
   msg->timeout = timeout;
@@ -650,7 +650,7 @@ bool ControllerBase::sendDiagnoseCommand(can_msgIdsDiag_e msgId,
   uint16_t action = msgId & CAN_MSG_ID_MASK;
 
   CAN_message_t msg;
-  this->_init_CAN_message_t(&msg, 1000);// don't abort if line is busy, 1sec timeout
+  this->init_CAN_message_t(&msg, 1000);// don't abort if line is busy, 1sec timeout
 
   uint16_t mID = static_cast<uint16_t>(id);
 

@@ -44,7 +44,6 @@ protected:
   CAN_message_t _buildDTC_Msg(DTC *dtc, uint8_t idx) const;
   CAN_message_t &_buildUpdateFrame(PIDs::IDs id, CAN_message_t &msg) const;
   CAN_message_t &_buildUpdateFrame(Frame_t *frame, CAN_message_t &msg) const;
-  void          _init_CAN_message_t(CAN_message_t *msg, uint16_t timeout = 0) const;
   void          _parseID(uint16_t id, uint16_t &targetNode, uint16_t &action) const;
   uint16_t      _normalizeAction(uint16_t action) const;
 
@@ -57,6 +56,7 @@ public:
   bool sendNewDTC(DTC *dtc, can_msgIdsException_e msgId);
   bool sendDiagnoseCommand(can_msgIdsDiag_e msgId, PIDs::IDs id = PIDs::IDs::Nothing,
                            uint8_t vlu = 0);
+  void init_CAN_message_t(CAN_message_t *msg, uint16_t timeout = 0) const;
 
   void loop(); // called from Main event loop, checks for new msg
 };

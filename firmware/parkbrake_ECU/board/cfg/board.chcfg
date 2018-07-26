@@ -295,17 +295,17 @@
         Alternate="0" />
       <pin2
         ID="LeftFront_Tighten"
-        Type="OpenDrain"
+        Type="PushPull"
         Speed="Maximum"
-        Resistor="Floating"
+        Resistor="PullDown"
         Level="Low"
         Mode="Output"
         Alternate="0" />
       <pin3
         ID="LeftFront_Loosen"
-        Type="OpenDrain"
+        Type="PushPull"
         Speed="Maximum"
-        Resistor="Floating"
+        Resistor="PullDown"
         Level="Low"
         Mode="Output"
         Alternate="0" ></pin3>
@@ -313,7 +313,7 @@
         ID="RightFront_Tighten"
         Type="PushPull"
         Speed="Maximum"
-        Resistor="PullUp"
+        Resistor="PullDown"
         Level="Low"
         Mode="Output"
         Alternate="0" />
@@ -321,7 +321,7 @@
         ID="RightFront_Loosen"
         Type="PushPull"
         Speed="Maximum"
-        Resistor="Floating"
+        Resistor="PullDown"
         Level="Low"
         Mode="Output"
         Alternate="0" />
@@ -329,7 +329,7 @@
         ID="SPI_CS"
         Type="PushPull"
         Speed="Maximum"
-        Resistor="Floating"
+        Resistor="PullUp"
         Level="High"
         Mode="Output"
         Alternate="0" />
@@ -361,15 +361,15 @@
         ID="LeftRear_Tighten"
         Type="PushPull"
         Speed="Maximum"
-        Resistor="Floating"
+        Resistor="PullDown"
         Level="Low"
         Mode="Output"
-        Alternate="0" />
+        Alternate="0" ></pin10>
       <pin11
         ID="LeftRear_Loosen"
         Type="PushPull"
         Speed="Maximum"
-        Resistor="Floating"
+        Resistor="PullDown"
         Level="Low"
         Mode="Output"
         Alternate="0" />
@@ -377,7 +377,7 @@
         ID="RightRear_Tighten"
         Type="PushPull"
         Speed="Maximum"
-        Resistor="Floating"
+        Resistor="PullDown"
         Level="Low"
         Mode="Output"
         Alternate="0" />
@@ -385,7 +385,7 @@
         ID="RightRear_Loosen"
         Type="PushPull"
         Speed="Maximum"
-        Resistor="Floating"
+        Resistor="PullDown"
         Level="Low"
         Mode="Output"
         Alternate="0" />
@@ -393,7 +393,7 @@
         ID="uC_SET_POWER"
         Type="PushPull"
         Speed="Maximum"
-        Resistor="Floating"
+        Resistor="PullDown"
         Level="Low"
         Mode="Output"
         Alternate="0" />
@@ -401,7 +401,7 @@
         ID="VR_diag_test"
         Type="PushPull"
         Speed="Minimum"
-        Resistor="Floating"
+        Resistor="PullDown"
         Level="Low"
         Mode="Output"
         Alternate="0" />

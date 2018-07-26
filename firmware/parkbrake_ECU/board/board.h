@@ -546,8 +546,8 @@
                                      PIN_MODE_OUTPUT(GPIOC_VR_diag_test))
 #define VAL_GPIOC_OTYPER            (PIN_OTYPE_OPENDRAIN(GPIOC_Feed_voltsense) |\
                                      PIN_OTYPE_OPENDRAIN(GPIOC_INDICATOR_ON) |\
-                                     PIN_OTYPE_OPENDRAIN(GPIOC_LeftFront_Tighten) |\
-                                     PIN_OTYPE_OPENDRAIN(GPIOC_LeftFront_Loosen) |\
+                                     PIN_OTYPE_PUSHPULL(GPIOC_LeftFront_Tighten) |\
+                                     PIN_OTYPE_PUSHPULL(GPIOC_LeftFront_Loosen) |\
                                      PIN_OTYPE_PUSHPULL(GPIOC_RightFront_Tighten) |\
                                      PIN_OTYPE_PUSHPULL(GPIOC_RightFront_Loosen) |\
                                      PIN_OTYPE_PUSHPULL(GPIOC_SPI_CS) |     \
@@ -578,20 +578,20 @@
                                      PIN_OSPEED_VERYLOW(GPIOC_VR_diag_test))
 #define VAL_GPIOC_PUPDR             (PIN_PUPDR_FLOATING(GPIOC_Feed_voltsense) |\
                                      PIN_PUPDR_FLOATING(GPIOC_INDICATOR_ON) |\
-                                     PIN_PUPDR_FLOATING(GPIOC_LeftFront_Tighten) |\
-                                     PIN_PUPDR_FLOATING(GPIOC_LeftFront_Loosen) |\
-                                     PIN_PUPDR_PULLUP(GPIOC_RightFront_Tighten) |\
+                                     PIN_PUPDR_PULLDOWN(GPIOC_LeftFront_Tighten) |\
+                                     PIN_PUPDR_PULLDOWN(GPIOC_LeftFront_Loosen) |\
+                                     PIN_PUPDR_PULLDOWN(GPIOC_RightFront_Tighten) |\
                                      PIN_PUPDR_FLOATING(GPIOC_RightFront_Loosen) |\
                                      PIN_PUPDR_PULLUP(GPIOC_SPI_CS) |     \
                                      PIN_PUPDR_PULLUP(GPIOC_SPI_SCK) |    \
                                      PIN_PUPDR_PULLUP(GPIOC_SPI_MISO) |     \
                                      PIN_PUPDR_PULLUP(GPIOC_SPI_MOSI) |     \
-                                     PIN_PUPDR_FLOATING(GPIOC_LeftRear_Tighten) |\
-                                     PIN_PUPDR_FLOATING(GPIOC_LeftRear_Loosen) |\
-                                     PIN_PUPDR_FLOATING(GPIOC_RightRear_Tighten) |\
-                                     PIN_PUPDR_FLOATING(GPIOC_RightRear_Loosen) |\
-                                     PIN_PUPDR_FLOATING(GPIOC_uC_SET_POWER) |\
-                                     PIN_PUPDR_FLOATING(GPIOC_VR_diag_test))
+                                     PIN_PUPDR_PULLDOWN(GPIOC_LeftRear_Tighten) |\
+                                     PIN_PUPDR_PULLDOWN(GPIOC_LeftRear_Loosen) |\
+                                     PIN_PUPDR_PULLDOWN(GPIOC_RightRear_Tighten) |\
+                                     PIN_PUPDR_PULLDOWN(GPIOC_RightRear_Loosen) |\
+                                     PIN_PUPDR_PULLDOWN(GPIOC_uC_SET_POWER) |\
+                                     PIN_PUPDR_PULLDOWN(GPIOC_VR_diag_test))
 #define VAL_GPIOC_ODR               (PIN_ODR_HIGH(GPIOC_Feed_voltsense) |   \
                                      PIN_ODR_LOW(GPIOC_INDICATOR_ON) |      \
                                      PIN_ODR_LOW(GPIOC_LeftFront_Tighten) | \

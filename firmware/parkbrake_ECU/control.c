@@ -32,7 +32,7 @@
 
 
 #define BRIDGE_ENABLE \
-    palClearPad(GPIOB, GPIOB_Bridge_Disable); \
+    BRIDGE_RESET \
     palSetPad(GPIOC, GPIOC_uC_SET_POWER); \
 
 
@@ -226,7 +226,7 @@ static THD_FUNCTION(wheelHandler, args)
 
         // when done we start a timer which eventually disables the bridge
         // if all the other bridgehandlers is also off
-        //disableBridge(); // and restart background ADC
+        disableBridge(); // and restart background ADC
     }
 }
 
@@ -255,6 +255,7 @@ static void saveState(uint32_t state, ctrl_wheels wheel)
 static msg_t releaseWheel(wheelthreadinfo_t *info)
 {
     BRIDGE_ENABLE;
+    palClearPad(GPIOC, info->tightenPin); // make sure opposing side is clear
     palSetPad(GPIOC, info->releasePin);
     msg_t success = MSG_OK;
 
@@ -321,6 +322,7 @@ static msg_t releaseWheel(wheelthreadinfo_t *info)
 static msg_t tightenWheel(wheelthreadinfo_t *info)
 {
     BRIDGE_ENABLE;
+    palClearPad(GPIOC, info->releasePin); // make sure opposing side is inactive
     palSetPad(GPIOC, info->tightenPin);
     msg_t success = MSG_OK;
 
@@ -410,6 +412,7 @@ static msg_t tightenWheel(wheelthreadinfo_t *info)
 static msg_t serviceWheel(wheelthreadinfo_t *info)
 {
     BRIDGE_ENABLE;
+    palSetPad(GPIOC, info->tightenPin); // make sure opposing side is clear
     palSetPad(GPIOC, info->releasePin);
     msg_t success = MSG_OK;
 
@@ -487,7 +490,7 @@ static bool disableBridge(void)
     }
 
     // all drivers are in off state
-    palSetPad(GPIOB, GPIOB_Bridge_Disable);
+    BRIDGE_CL_ON; // enables hardware CL, we should have current here but better safe....
     palClearPad(GPIOC, GPIOC_uC_SET_POWER);
 
     // stop current measurement, resume background checks

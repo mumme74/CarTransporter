@@ -16,6 +16,47 @@
  * Its basically a state machine
  */
 
+/**
+ * @brief Must be high to arm Currentlimit
+ */
+#define BRIDGE_RESET \
+  BRIDGE_CL_OFF \
+  BRIDGE_CL_ON
+
+#define BRIDGE_CL_ON { palSetPad(GPIOB, GPIOB_Bridge_Reset_INV); }
+
+#define BRIDGE_CL_OFF { \
+  /* potentially dangerus if CL is triggered */ \
+  if (palReadPad(GPIOB, GPIOB_LeftFront_DIAG)) { \
+      palClearPad(GPIOC, GPIOC_LeftFront_Tighten); \
+      palClearPad(GPIOC, GPIOC_LeftFront_Loosen); \
+  } \
+  if (palReadPad(GPIOB, GPIOB_RightFront_DIAG)) { \
+      palClearPad(GPIOC, GPIOC_RightFront_Tighten); \
+      palClearPad(GPIOC, GPIOC_RightFront_Loosen); \
+  } \
+  if (palReadPad(GPIOA, GPIOA_LeftRear_DIAG)) { \
+      palClearPad(GPIOC, GPIOC_LeftRear_Tighten); \
+      palClearPad(GPIOC, GPIOC_LeftRear_Loosen); \
+  } \
+  if (palReadPad(GPIOB, GPIOA_RightRear_DIAG)) { \
+      palClearPad(GPIOC, GPIOC_RightRear_Tighten); \
+      palClearPad(GPIOC, GPIOC_RightRear_Loosen); \
+  } \
+  palClearPad(GPIOB, GPIOB_Bridge_Reset_INV); \
+}
+
+#define BRIDGE_ALL_OUTPUTS_OFF { \
+  palClearPad(GPIOC, GPIOC_LeftFront_Tighten); \
+  palClearPad(GPIOC, GPIOC_LeftFront_Loosen); \
+  palClearPad(GPIOC, GPIOC_RightFront_Tighten); \
+  palClearPad(GPIOC, GPIOC_RightFront_Loosen); \
+  palClearPad(GPIOC, GPIOC_LeftRear_Tighten); \
+  palClearPad(GPIOC, GPIOC_LeftRear_Loosen); \
+  palClearPad(GPIOC, GPIOC_RightRear_Tighten); \
+  palClearPad(GPIOC, GPIOC_RightRear_Loosen); \
+}
+
 typedef enum {
     Tightened = 0,
     Released = 1,

@@ -75,7 +75,7 @@
 #define GPIOB_RightFront_DIAG       2U
 #define GPIOB_JTDO                  3U
 #define GPIOB_JTNRST                4U
-#define GPIOB_Bridge_Disable        5U
+#define GPIOB_Bridge_Reset_INV      5U
 #define GPIOB_USART_TX              6U
 #define GPIOB_USART_RX              7U
 #define GPIOB_L_speed_out           8U
@@ -214,7 +214,7 @@
 #define LINE_RightFront_DIAG        PAL_LINE(GPIOB, 2U)
 #define LINE_JTDO                   PAL_LINE(GPIOB, 3U)
 #define LINE_JTNRST                 PAL_LINE(GPIOB, 4U)
-#define LINE_Bridge_Disable         PAL_LINE(GPIOB, 5U)
+#define LINE_Bridge_Reset_INV       PAL_LINE(GPIOB, 5U)
 #define LINE_USART_TX               PAL_LINE(GPIOB, 6U)
 #define LINE_USART_RX               PAL_LINE(GPIOB, 7U)
 #define LINE_L_speed_out            PAL_LINE(GPIOB, 8U)
@@ -399,7 +399,7 @@
  * PB2  - RightFront_DIAG           (input pullup).
  * PB3  - JTDO                      (alternate 0).
  * PB4  - JTNRST                    (alternate 0).
- * PB5  - Bridge_Disable            (output pushpull maximum).
+ * PB5  - Bridge_Reset_INV          (output pushpull maximum).
  * PB6  - USART_TX                  (alternate 7).
  * PB7  - USART_RX                  (alternate 7).
  * PB8  - L_speed_out               (output pushpull maximum).
@@ -416,7 +416,7 @@
                                      PIN_MODE_INPUT(GPIOB_RightFront_DIAG) |\
                                      PIN_MODE_ALTERNATE(GPIOB_JTDO) |       \
                                      PIN_MODE_ALTERNATE(GPIOB_JTNRST) |     \
-                                     PIN_MODE_OUTPUT(GPIOB_Bridge_Disable) |\
+                                     PIN_MODE_OUTPUT(GPIOB_Bridge_Reset_INV) |\
                                      PIN_MODE_ALTERNATE(GPIOB_USART_TX) |   \
                                      PIN_MODE_ALTERNATE(GPIOB_USART_RX) |   \
                                      PIN_MODE_OUTPUT(GPIOB_L_speed_out) |   \
@@ -432,7 +432,7 @@
                                      PIN_OTYPE_PUSHPULL(GPIOB_RightFront_DIAG) |\
                                      PIN_OTYPE_PUSHPULL(GPIOB_JTDO) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOB_JTNRST) |     \
-                                     PIN_OTYPE_PUSHPULL(GPIOB_Bridge_Disable) |\
+                                     PIN_OTYPE_PUSHPULL(GPIOB_Bridge_Reset_INV) |\
                                      PIN_OTYPE_PUSHPULL(GPIOB_USART_TX) |  \
                                      PIN_OTYPE_PUSHPULL(GPIOB_USART_RX) |  \
                                      PIN_OTYPE_PUSHPULL(GPIOB_L_speed_out) |\
@@ -448,7 +448,7 @@
                                      PIN_OSPEED_HIGH(GPIOB_RightFront_DIAG) |\
                                      PIN_OSPEED_HIGH(GPIOB_JTDO) |          \
                                      PIN_OSPEED_HIGH(GPIOB_JTNRST) |        \
-                                     PIN_OSPEED_HIGH(GPIOB_Bridge_Disable) |\
+                                     PIN_OSPEED_HIGH(GPIOB_Bridge_Reset_INV) |\
                                      PIN_OSPEED_VERYLOW(GPIOB_USART_TX) |      \
                                      PIN_OSPEED_VERYLOW(GPIOB_USART_RX) |      \
                                      PIN_OSPEED_HIGH(GPIOB_L_speed_out) |   \
@@ -464,7 +464,7 @@
                                      PIN_PUPDR_PULLUP(GPIOB_RightFront_DIAG) |\
                                      PIN_PUPDR_FLOATING(GPIOB_JTDO) |       \
                                      PIN_PUPDR_FLOATING(GPIOB_JTNRST) |     \
-                                     PIN_PUPDR_PULLUP(GPIOB_Bridge_Disable) |\
+                                     PIN_PUPDR_PULLUP(GPIOB_Bridge_Reset_INV) |\
                                      PIN_PUPDR_PULLUP(GPIOB_USART_TX) |   \
                                      PIN_PUPDR_PULLUP(GPIOB_USART_RX) |     \
                                      PIN_PUPDR_PULLUP(GPIOB_L_speed_out) |  \
@@ -480,7 +480,7 @@
                                      PIN_ODR_HIGH(GPIOB_RightFront_DIAG) |  \
                                      PIN_ODR_HIGH(GPIOB_JTDO) |             \
                                      PIN_ODR_HIGH(GPIOB_JTNRST) |           \
-                                     PIN_ODR_HIGH(GPIOB_Bridge_Disable) |   \
+                                     PIN_ODR_HIGH(GPIOB_Bridge_Reset_INV) |   \
                                      PIN_ODR_HIGH(GPIOB_USART_TX) |         \
                                      PIN_ODR_HIGH(GPIOB_USART_RX) |         \
                                      PIN_ODR_HIGH(GPIOB_L_speed_out) |      \
@@ -496,7 +496,7 @@
                                      PIN_AFIO_AF(GPIOB_RightFront_DIAG, 0U) |\
                                      PIN_AFIO_AF(GPIOB_JTDO, 0U) |          \
                                      PIN_AFIO_AF(GPIOB_JTNRST, 0U) |        \
-                                     PIN_AFIO_AF(GPIOB_Bridge_Disable, 0U) |\
+                                     PIN_AFIO_AF(GPIOB_Bridge_Reset_INV, 0U) |\
                                      PIN_AFIO_AF(GPIOB_USART_TX, 7U) |      \
                                      PIN_AFIO_AF(GPIOB_USART_RX, 7U))
 #define VAL_GPIOB_AFRH              (PIN_AFIO_AF(GPIOB_L_speed_out, 0U) |   \

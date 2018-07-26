@@ -188,7 +188,7 @@
         Mode="Alternate"
         Alternate="0" />
       <pin5
-        ID="Bridge_Disable"
+        ID="Bridge_Reset_INV"
         Type="PushPull"
         Speed="Maximum"
         Resistor="PullUp"

@@ -594,7 +594,7 @@ RightRear_Tighten
 Text GLabel 1375 4400 0    60   Input ~ 0
 RightRear_Loosen
 Text GLabel 10375 4100 2    60   Input ~ 0
-Bridge_Disable
+~Bridge_Reset
 Text GLabel 10375 2300 2    60   Input ~ 0
 LR_speed_in
 Text GLabel 10375 2400 2    60   Input ~ 0

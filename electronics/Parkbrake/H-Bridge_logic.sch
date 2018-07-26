@@ -413,7 +413,7 @@ F 3 "" H 2300 5950 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 Text GLabel 1375 5525 0    60   Input ~ 0
-Bridge_Disable
+~Bridge_Reset
 Text Notes 7900 4225 0    60   ~ 0
 ~SR~ latch tripped by overcurrent, must be reset by software\nCurrentLimit triggers the SR latch, the xx_DIAG is the output \nof this latch, is high when the latch has triggered.
 $Comp
@@ -550,7 +550,7 @@ Wire Wire Line
 	6125 4525 6125 4375
 Connection ~ 5175 5075
 Text GLabel 6500 5500 2    60   Input ~ 0
-Bridge_Disable
+~Bridge_Reset
 $Comp
 L 74LS08 U4
 U 1 1 5713F73F
@@ -673,7 +673,7 @@ Connection ~ 6725 2600
 Connection ~ 6875 2950
 Connection ~ 6875 1650
 Text GLabel 5400 2700 0    60   Input ~ 0
-Bridge_Disable
+~Bridge_Reset
 Wire Wire Line
 	9175 2025 9175 2350
 Wire Wire Line
@@ -701,7 +701,7 @@ Connection ~ 9100 2600
 Connection ~ 9000 2950
 Connection ~ 9000 1650
 Text GLabel 10375 2700 2    60   Input ~ 0
-Bridge_Disable
+~Bridge_Reset
 Text GLabel 1375 5175 0    60   Input ~ 0
 LeftFront_DIAG
 Text GLabel 6500 5175 2    60   Input ~ 0

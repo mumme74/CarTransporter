@@ -46,10 +46,16 @@ int main(void) {
   halInit();
   chSysInit();
 
+  // enable hardware Current limit
+  BRIDGE_CL_ON;
+  BRIDGE_ALL_OUTPUTS_OFF
+
 #ifdef DEBUG_MODE
 #ifndef CANSERIAL
   // set up debug channel on serial out
   sdStart(&SD1, NULL);
+#else
+  canserial_init();
 #endif
 #endif
   // eeprom should be first as other modules depend on its settings
@@ -60,12 +66,8 @@ int main(void) {
   sen_initSensors();
   btn_initButtonLogic();
 
-#ifdef CANSERIAL
-  canserial_init();
-#endif
-
   while (TRUE) {
     chThdSleepMilliseconds(500); // do nothing loop, let the kernel handle it for us
-    DEBUG_OUT_PRINTF("Beat%d\n", ST2MS(chVTGetSystemTime()));
+    DEBUG_OUT_PRINTF("Beat%u\n", 12345); //ST2MS(chVTGetSystemTime()));
   }
 }

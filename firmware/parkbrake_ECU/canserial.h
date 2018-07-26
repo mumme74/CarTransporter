@@ -53,6 +53,8 @@ extern CanSerialStream CANSerial0;
 //extern mailbox_t canserialMBSend;
 
 void canserial_init(void);
+void canserial_thdsTerminate(void);
+void canserial_doShutdown(void);
 
 size_t canserialAsynchronousWrite(uint8_t *msg, uint8_t len);
 

@@ -173,7 +173,8 @@ extern int8_t               sen_chipTemperature;
 extern sen_wheelspeeds_t    sen_wheelSpeeds;
 
 void sen_initSensors(void);
-// clears previous measurement (should be called when starting a Tighten or Loosen sequence)
+void sen_thdsTerminate(void);
+void sen_doShutdown(void);
 
 // diagnose wheelsensor circuits
 int sen_diagWheelSensors(void);

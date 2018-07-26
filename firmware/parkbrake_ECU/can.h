@@ -15,9 +15,12 @@
  */
 
 extern mailbox_t dtcMB;
+extern bool can_rebootReq;
 
 
 void can_init(void);
+void can_thdsTerminate(void);
+void can_doShutdown(void);
 
 void can_buildPid1Data(uint8_t data8[]);
 void can_buildPid2Data(uint8_t data8[]);

@@ -204,6 +204,12 @@ static void processRx(CANRxFrame *rxf)
             // do the state change
             chMBPost(&cmdSet_MB, (msg_t)C_parkbrakeCmdServiceUnset, TIME_IMMEDIATE);
             return;
+        case C_parkbrakeCmdReboot:
+            if (rxf->DLC > 0 && rxf->data8[0] > 0x7F) {
+              //http://wiki.chibios.org/dokuwiki/doku.php?id=chibios:howtos:stop_os
+              can_rebootReq = true;
+            }
+            return;
         default:
             DEBUG_OUT_PRINTF("Non allowed CAN cmd: %x", rxf->SID);
             return;
@@ -287,8 +293,9 @@ static THD_FUNCTION(canRxThd, arg)
     (void)arg;
     chRegSetThreadName("canRxThd");
 
-    while (TRUE) {
-        if (canReceive(&CAND1, CAN_ANY_MAILBOX, &rxmsg, TIME_INFINITE) == MSG_OK) {
+    while (!chThdShouldTerminateX()) {
+        // must periodically wakup to check if we should reboot
+        if (canReceive(&CAND1, CAN_ANY_MAILBOX, &rxmsg, MS2ST(1000)) == MSG_OK) {
             /* Process message.*/
             processRx(&rxmsg);
         }
@@ -303,7 +310,7 @@ static THD_FUNCTION(canPIDPeriodicSend, arg)
 
     static const uint16_t broadcastTime = 500; // ms
 
-    while (TRUE) {
+    while (!chThdShouldTerminateX()) {
         if (ADCD1.state == ADC_READY) {
             // backgroundADC runs
             // timeout, try periodic send
@@ -327,9 +334,10 @@ static THD_FUNCTION(canCmdSet, arg)
 
     static CANTxFrame txf;
 
-    while(TRUE) {
+    while(!chThdShouldTerminateX()) {
       static msg_t msg;
-      if (chMBFetch(&cmdSet_MB, &msg, TIME_INFINITE) != MSG_OK)
+      // must be polled periodically to check for terminate
+      if (chMBFetch(&cmdSet_MB, &msg, MS2ST(1000)) != MSG_OK)
           continue;
 
       static uint16_t settingsVlu;
@@ -376,9 +384,13 @@ static THD_FUNCTION(canCmdSet, arg)
 // ----------------------------------------------------------------------------------------
 // begin public API for this module
 
+// when this goes to true, a reboot is triggered in main loop
+bool can_rebootReq = false;
+
 void can_init(void)
 {
     canStart(&CAND1, &canCfg);
+    can_rebootReq = false;
 
     // start rx thread listener
     canRxThdp = chThdCreateStatic(&waCanRxThd, sizeof(waCanRxThd), NORMALPRIO -1, canRxThd, NULL);
@@ -391,6 +403,23 @@ void can_init(void)
     chMBObjectInit(&cmdSet_MB, cmdSetMBqueue, MAILBOX_SIZE);
     canCmdSetThdp = chThdCreateStatic(&waCanCmdSet, sizeof(waCanCmdSet),
                                       NORMALPRIO -2, canCmdSet, NULL);
+}
+
+void can_thdsTerminate(void)
+{
+  // terminates all threads, dont block until there done
+  chThdTerminate(canRxThdp);
+  chThdTerminate(canPIDPeriodicSendThdp);
+  chThdTerminate(canCmdSetThdp);
+}
+
+void can_doShutdown(void)
+{
+  // wait for all threads to shutdown, returns when done
+  chThdWait(canRxThdp);
+  chThdWait(canPIDPeriodicSendThdp);
+  chThdWait(canCmdSetThdp);
+  canStop(&CAND1);
 }
 
 // requires a uint8_t[8] buffer

@@ -159,13 +159,14 @@ static THD_FUNCTION(wheelHandler, args)
 
     chRegSetThreadName(((wheelthreadinfo_t*)(args))->threadName);
 
-    while(TRUE) {
+    while(!chThdShouldTerminateX()) {
         // variables must be within this context?
         // can't be outside thdloop?
         wheelthreadinfo_t *info  = (wheelthreadinfo_t*)args;
 
         ctrl_states action;
-        if (chMBFetch(info->mb, (msg_t*)&action, TIME_INFINITE) != MSG_OK)
+        // must be polled to allow clean shutdown
+        if (chMBFetch(info->mb, (msg_t*)&action, MS2ST(1000)) != MSG_OK)
             continue;
 
         // listen to currents to perform this action
@@ -228,6 +229,10 @@ static THD_FUNCTION(wheelHandler, args)
         // if all the other bridgehandlers is also off
         disableBridge(); // and restart background ADC
     }
+
+    // thread terminated, turn off all dangerous pins
+    BRIDGE_ALL_OUTPUTS_OFF;
+    BRIDGE_RESET;
 }
 
 // -------------------------------------------------------------------------------------
@@ -490,8 +495,8 @@ static bool disableBridge(void)
     }
 
     // all drivers are in off state
-    BRIDGE_CL_ON; // enables hardware CL, we should have current here but better safe....
-    palClearPad(GPIOC, GPIOC_uC_SET_POWER);
+    BRIDGE_ALL_OUTPUTS_OFF;
+    BRIDGE_RESET;
 
     // stop current measurement, resume background checks
     // FIXME debug comment
@@ -531,8 +536,25 @@ void ctrl_init(void)
                                NORMALPRIO, wheelHandler, &lrInfo);
     rrThdp = chThdCreateStatic(&waRightRearHandler, sizeof(waRightRearHandler),
                                NORMALPRIO, wheelHandler, &rrInfo);
-
 }
+
+void ctrl_thdsTerminate(void)
+{
+  chThdTerminate(lfThdp);
+  chThdTerminate(rfThdp);
+  chThdTerminate(lrThdp);
+  chThdTerminate(rrThdp);
+}
+
+
+void ctrl_doShutdown(void)
+{
+  chThdWait(lfThdp);
+  chThdWait(rfThdp);
+  chThdWait(lrThdp);
+  chThdWait(rrThdp);
+}
+
 
 int ctrl_setStateAll(ctrl_states state)
 {

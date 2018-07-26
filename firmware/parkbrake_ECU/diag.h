@@ -16,6 +16,8 @@ extern mailbox_t dtc_MB,
                  diag_CanMB;
 
 void diag_init(void);
+void diag_thdsTerminate(void);
+void diag_doShutdown(void);
 
 uint8_t dtc_length(void);
 

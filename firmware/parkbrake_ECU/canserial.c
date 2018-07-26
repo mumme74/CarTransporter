@@ -35,6 +35,7 @@ void objectInit(CanSerialStream *csp, uint8_t *buffer,
 // begin private functions and variables to this module
 
 event_source_t evtHasContent;
+thread_t *canSerialSendp = NULL;
 
 
 
@@ -43,8 +44,6 @@ void memcopy(uint8_t *cdest, const uint8_t *csrc, int n) {
   for (int i = 0; i < n; ++i)
       cdest[i] = csrc[i];
 }
-
-
 
 /* Methods implementations.*/
 static size_t writes(void *ip, const uint8_t *bp, size_t n) {
@@ -174,9 +173,10 @@ static THD_FUNCTION(canSerialSend, arg)
   static event_listener_t evtListener;
   chEvtRegister(&evtHasContent, &evtListener, EVENT_MASK(0));
 
-  while(TRUE) {
-
-    chEvtWaitAny(ALL_EVENTS);
+  while(!chThdShouldTerminateX()) {
+    // must be polled to allow clean shutdown
+    if (chEvtWaitAnyTimeout(ALL_EVENTS, MS2ST(1000)) != MSG_OK)
+      continue;
 
     static uint8_t readBuf[STREAM_SIZE +1];
     static uint8_t nFrames;
@@ -234,11 +234,20 @@ void canserial_init(void)
 
   //objectInit(&CANSerial0, (uint8_t*)&CANSerialBuffer, STREAM_SIZE, 0);
 
-  chThdCreateStatic(&waCanSerialSend, sizeof(waCanSerialSend),
-                    NORMALPRIO-10, canSerialSend, NULL);
+  canSerialSendp = chThdCreateStatic(&waCanSerialSend, sizeof(waCanSerialSend),
+                                     NORMALPRIO-10, canSerialSend, NULL);
 
 }
 
+void canserial_thdsTerminate(void)
+{
+  chThdTerminate(canSerialSendp);
+}
+
+void canserial_doShutdown(void)
+{
+  chThdWait(canSerialSendp);
+}
 
 size_t canserialAsynchronousWrite(uint8_t *msg, uint8_t len)
 {

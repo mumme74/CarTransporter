@@ -75,6 +75,11 @@ typedef enum  {
                                                   //  LF     RF     LR     RR  State = ctrl_states 0=tightened, 1Released, 8 error etc
                                                   // [0:7]  [0:7]  [0:7]  [0:7]
                                                   // State = ctrl_states 0=tightened, 1Released, 8 error etc
+    C_parkbrakeCmdReboot             = 0x15 << 3, // request reboot of node
+                                                  // [0:7]
+                                                  // if above 0x7F node software should reset
+                                                  // bootloader will eventually pickup a reflash command (when implemented)
+                                                  // Also used by bootloader
     C_parkbrakeCmd_last              = 0x19 << 3,
 
     C_suspensionCmd_first            = 0x1A << 3,

@@ -12,6 +12,8 @@
 
 
 void btn_initButtonLogic(void);
+void btn_thdsTerminate(void);
+void btn_doShutdown(void);
 
 
 #endif /* BUTTON_LOGIC_H_ */

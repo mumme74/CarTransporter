@@ -46,6 +46,8 @@ extern event_source_t ee_settingsChanged;
 
 // initializes this module
 void ee_initEeprom(void);
+void ee_thdsTerminate(void);
+void ee_doShutdown(void);
 
 // save current setting for idx in eeprom
 int ee_saveSetting(settings_e settingIdx);

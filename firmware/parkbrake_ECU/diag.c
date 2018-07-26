@@ -100,9 +100,10 @@ static THD_FUNCTION(setDtc, arg)
     startupTime = chVTGetSystemTime();
 
 
-    while (TRUE) {
+    while (!chThdShouldTerminateX()) {
         can_DTCs_e dtc;
-        if (chMBFetch(&dtc_MB, (msg_t*)&dtc, TIME_INFINITE) != MSG_OK)
+        // must be polled to cleanly terminate
+        if (chMBFetch(&dtc_MB, (msg_t*)&dtc, MS2ST(1000)) != MSG_OK)
             continue;
 
         msg_t i;
@@ -205,9 +206,10 @@ static THD_FUNCTION(diagCanThd, arg)
     (void)arg;
     chRegSetThreadName("diagCanThd");
 
-    while (TRUE) {
+    while (!chThdShouldTerminateX()) {
         static msg_t msg;
-        if (chMBFetch(&diag_CanMB, &msg, TIME_INFINITE) != MSG_OK)
+        // must be polled to cleanly terminate
+        if (chMBFetch(&diag_CanMB, &msg, MS2ST(1000)) != MSG_OK)
             continue;
 
         static uint8_t idx;
@@ -384,6 +386,18 @@ void diag_init(void)
 
     // check sensorcircuits during startup
     sen_diagWheelSensors();
+}
+
+void diag_thdsTerminate(void)
+{
+    chThdTerminate(setDtcp);
+    chThdTerminate(diagCanThdp);
+}
+
+void diag_doShutdown(void)
+{
+    chThdWait(setDtcp);
+    chThdWait(diagCanThdp);
 }
 
 uint8_t dtc_length(void)

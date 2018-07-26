@@ -48,7 +48,7 @@ int main(void) {
 
   // enable hardware Current limit
   BRIDGE_CL_ON;
-  BRIDGE_ALL_OUTPUTS_OFF
+  BRIDGE_ALL_OUTPUTS_OFF;
 
 #ifdef DEBUG_MODE
 #ifndef CANSERIAL
@@ -67,7 +67,34 @@ int main(void) {
   btn_initButtonLogic();
 
   while (TRUE) {
-    chThdSleepMilliseconds(500); // do nothing loop, let the kernel handle it for us
-    DEBUG_OUT_PRINTF("Beat%u\n", 12345); //ST2MS(chVTGetSystemTime()));
+    while (!can_rebootReq) {
+      chThdSleepMilliseconds(500); // do nothing loop, let the kernel handle it for us
+      DEBUG_OUT_PRINTF("Beat%u\n", 12345); //ST2MS(chVTGetSystemTime()));
+    }
+
+    // terminate thds
+    btn_thdsTerminate();
+    canserial_thdsTerminate();
+    ctrl_thdsTerminate();
+    diag_thdsTerminate();
+    sen_thdsTerminate();
+    can_thdsTerminate();
+    ee_thdsTerminate();
+
+    // wait for theads to terminate and deinit drivers
+    btn_doShutdown();
+    canserial_doShutdown();
+    ctrl_doShutdown();
+    diag_doShutdown();
+    // those with hardware driver *Start should be last
+    sen_doShutdown();
+    can_doShutdown();
+    ee_doShutdown();
+
+    // turn off remaining stuff
+    chSysDisable();
+
+    // reset
+    NVIC_SystemReset();
   }
 }

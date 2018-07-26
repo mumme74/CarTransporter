@@ -21,7 +21,8 @@
  */
 #define BRIDGE_RESET \
   BRIDGE_CL_OFF \
-  BRIDGE_CL_ON
+  BRIDGE_CL_ON \
+  palClearPad(GPIOC, GPIOC_uC_SET_POWER);
 
 #define BRIDGE_CL_ON { palSetPad(GPIOB, GPIOB_Bridge_Reset_INV); }
 
@@ -81,6 +82,8 @@ typedef enum  {
 
 
 void ctrl_init(void);
+void ctrl_thdsTerminate(void);
+void ctrl_doShutdown(void);
 
 // on all axles
 int ctrl_setStateAll(ctrl_states state);

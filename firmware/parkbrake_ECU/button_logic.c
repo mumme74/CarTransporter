@@ -38,9 +38,10 @@ static THD_FUNCTION(buttonLogic, arg)
     chEvtRegisterMaskWithFlags(&sen_measuredEvts, &evtListener, SignalEvt,
                                 SigButton | SigButtonInv | SigLightsOn | SigIgnOn);
 
-    while (TRUE) {
+    while (!chThdShouldTerminateX()) {
         // globally wait for a new event
-        chEvtWaitAny(SignalEvt);
+        if (chEvtWaitAnyTimeout(SignalEvt, ST2MS(1000)) != MSG_OK)
+          continue;
 
         // we must hold button in 500ms else its not a valid request
         if (chEvtWaitAnyTimeout(SignalEvt, MS2ST(500)) != 0) {
@@ -87,3 +88,14 @@ void btn_initButtonLogic(void)
 {
     btnLogicp = chThdCreateStatic(&waButtonLogic, sizeof(waButtonLogic), NORMALPRIO, buttonLogic, NULL);
 }
+
+void btn_thdsTerminate(void)
+{
+    chThdTerminate(btnLogicp);
+}
+
+void btn_doShutdown(void)
+{
+    chThdWait(btnLogicp);
+}
+

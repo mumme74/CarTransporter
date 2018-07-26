@@ -541,10 +541,11 @@ static THD_FUNCTION(adcHandlerThd, arg)
 
     eventmask_t evt;
     sen_measure_flags_e action = MsgStopAll;
-    systime_t timeout = TIME_INFINITE;
+    const systime_t TerminatePollTime = 1000;
+    systime_t timeout = MS2ST(TerminatePollTime); // must allow thd to terminate
     const ADCConversionGroup *curGroup = NULL;
 
-    while (TRUE) {
+    while (!chThdShouldTerminateX()) {
         // wait for a event to occur, either a new action or ADC finished
         // or don't wait at all if a new action needs to be done
         evt = chEvtWaitAnyTimeout(ALL_EVENTS, timeout);
@@ -634,7 +635,7 @@ static THD_FUNCTION(adcHandlerThd, arg)
 
 
         // restore so we wait for next event to occur
-        timeout = TIME_INFINITE;
+        timeout = MS2ST(TerminatePollTime);
 
     } // thread loop
 }
@@ -661,7 +662,7 @@ static THD_FUNCTION(inputPoll, arg)
              offBounceBtn = 0,
              offBounceBtnInv = 0;
 
-    while (TRUE) {
+    while (!chThdShouldTerminateX()) {
         // when inactive a stream of 1 circulate, on clears bit0 and it propagates eventually
         // to the 4 MSB bits, at that point, an event is triggered
         debounceIgn    = (debounceIgn << 1)    | !SEN_IGN_ON_SIG     | 0xE000;
@@ -709,8 +710,9 @@ static THD_FUNCTION(settingsHandler, arg)
 
     chEvtRegisterMaskWithFlags(&ee_settingsChanged, &evtListener, ALL_EVENTS, flgs);
 
-    while (TRUE) {
-        chEvtWaitAny(ALL_EVENTS);
+    while (!chThdShouldTerminateX()) {
+        // must be polled to allow clean shutdown
+        chEvtWaitAnyTimeout(ALL_EVENTS, MS2ST(1000));
         calculateWheelCircumference();
     }
 }
@@ -750,6 +752,25 @@ void sen_initSensors(void)
     // initialize factors from settings
     settingsHandlerp = chThdCreateStatic(&waSettingsHandler, sizeof(waSettingsHandler), LOWPRIO,
                                          settingsHandler, NULL);
+}
+
+
+void sen_thdsTerminate(void)
+{
+  chThdTerminate(adcHandlerp);
+  chThdTerminate(pollInputsp);
+  chThdTerminate(settingsHandlerp);
+  chVTReset(&backgroundTimer);
+}
+
+void sen_doShutdown(void)
+{
+  chThdWait(adcHandlerp);
+  chThdWait(pollInputsp);
+  chThdWait(settingsHandlerp);
+  adcStopConversion(&ADCD1);
+  adcStop(&ADCD1);
+  extStop(&EXTD1);
 }
 
 // diagnose wheelsensor circuits

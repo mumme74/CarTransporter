@@ -214,6 +214,18 @@ void ee_initEeprom(void)
     initSettings();
 }
 
+void ee_thdsTerminate(void)
+{
+  //SPIEepromFileClose(&dtcFileStream);
+  //SPIEepromFileClose(&stateFileStream);
+  //SPIEepromFileClose(&settingsFileStream);
+}
+
+void ee_doShutdown(void)
+{
+  spiStop(&SPID1);
+}
+
 int ee_saveSetting(settings_e settingsIdx)
 {
     msg_t pos = settingsIdx * sizeof(settings[0]);

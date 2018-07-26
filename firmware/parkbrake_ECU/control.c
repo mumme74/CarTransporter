@@ -32,9 +32,8 @@
 
 
 #define BRIDGE_ENABLE \
-    /*chVTReset(&bridgeDisableTimer);*/ \
     palClearPad(GPIOB, GPIOB_Bridge_Disable); \
-    palSetPad(GPIOC, GPIOC_uC_SET_POWER);
+    palSetPad(GPIOC, GPIOC_uC_SET_POWER); \
 
 
 #define MAILBOX_SIZE 2
@@ -157,11 +156,14 @@ static THD_WORKING_AREA(waLeftRearHandler, WHEEL_THD_STACK_SIZE);
 static THD_WORKING_AREA(waRightRearHandler, WHEEL_THD_STACK_SIZE);
 static THD_FUNCTION(wheelHandler, args)
 {
-    wheelthreadinfo_t *info  = (wheelthreadinfo_t*)args;
 
-    chRegSetThreadName(info->threadName);
+    chRegSetThreadName(((wheelthreadinfo_t*)(args))->threadName);
 
     while(TRUE) {
+        // variables must be within this context?
+        // can't be outside thdloop?
+        wheelthreadinfo_t *info  = (wheelthreadinfo_t*)args;
+
         ctrl_states action;
         if (chMBFetch(info->mb, (msg_t*)&action, TIME_INFINITE) != MSG_OK)
             continue;
@@ -224,7 +226,7 @@ static THD_FUNCTION(wheelHandler, args)
 
         // when done we start a timer which eventually disables the bridge
         // if all the other bridgehandlers is also off
-        disableBridge(); // and restart background ADC
+        //disableBridge(); // and restart background ADC
     }
 }
 
@@ -264,12 +266,12 @@ static msg_t releaseWheel(wheelthreadinfo_t *info)
 
     while (maxTime > chVTGetSystemTime()) {
         // measure current
-        eventmask_t msk = chEvtWaitAnyTimeout(info->evtReceiveFlag | BridgeEvt, US2ST(700));
-        if (msk == 0) { // timeout check
-            DEBUG_OUT("ADC error releasing");
-            success = C_dtc_ADC_error_LF_release | info->wheel; // LSB:4 is the wheel, LF =0
-            break; // bust out to caller thread
-        }
+        eventmask_t msk = chEvtWaitAnyTimeout(info->evtReceiveFlag | BridgeEvt, TIME_IMMEDIATE);//US2ST(700));
+//        if (msk == 0) { // timeout check
+//            DEBUG_OUT("ADC error releasing");
+//            success = C_dtc_ADC_error_LF_release | info->wheel; // LSB:4 is the wheel, LF =0
+//            break; // bust out to caller thread
+//        }
 
         if ((msk & BridgeEvt) &&
             (chEvtGetAndClearFlags(&info->adcEvtListener) & BrgAllDiags))
@@ -586,19 +588,19 @@ int ctrl_checkForErrors(void)
 {
     int errorCnt = 0;
     if (LF_STATE & ErrorState) {
-        DEBUG_OUT("Left front errstate");
+        DEBUG_OUT("Left front errstate\n");
         ++errorCnt;
     }
     if (RF_STATE & ErrorState) {
-        DEBUG_OUT("Right front errstate");
+        DEBUG_OUT("Right front errstate\n");
         ++errorCnt;
     }
     if (LR_STATE & ErrorState) {
-        DEBUG_OUT("Left rear errstate");
+        DEBUG_OUT("Left rear errstate\n");
         ++errorCnt;
     }
     if (RR_STATE & ErrorState) {
-        DEBUG_OUT("Right rear errstate");
+        DEBUG_OUT("Right rear errstate\n");
         ++errorCnt;
     }
     return errorCnt;

@@ -301,21 +301,18 @@ static THD_FUNCTION(canPIDPeriodicSend, arg)
     (void)arg;
     chRegSetThreadName("canPIDPeriodicSend");
 
-    static event_listener_t evtListener;
-    chEvtRegisterMaskWithFlags(&sen_measuredEvts, &evtListener, AdcEvt, AdcFrontAxle | AdcRearAxle);
-
     static const uint16_t broadcastTime = 500; // ms
-    static systime_t pid2_timeout = 0;
 
     while (TRUE) {
-        eventmask_t msk = chEvtWaitAnyTimeout(AdcEvt, MS2ST(broadcastTime));
-        if (msk == 0) {
+        if (ADCD1.state == ADC_READY) {
+            // backgroundADC runs
             // timeout, try periodic send
             broadcastOnCan(C_NoUpdateFrame);
-        } else if (pid2_timeout < chVTGetSystemTime()) {
+            chThdSleep(MS2ST(broadcastTime));
+        } else {
             // send currents each 100ms
-            pid2_timeout = MS2ST(100);
             sendCurrents();
+            chThdSleep(MS2ST(100));
         }
     }
 }

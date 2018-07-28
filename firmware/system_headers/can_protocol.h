@@ -8,11 +8,15 @@
 #ifndef CAN_PROTOCOL_H_
 #define CAN_PROTOCOL_H_
 
+#define CAN_PARKBRAKE_NODE 0x00
+#define CAN_SUSPENSION_NODE 0x01
+#define CAN_DISPLAY_NODE 0x02
+
 typedef enum  {
   // eight possible Nodes in network
-  C_parkbrakeNode  = 0x00,
-  C_suspensionNode = 0x01,
-  C_displayNode    = 0x02,
+  C_parkbrakeNode  = CAN_PARKBRAKE_NODE,
+  C_suspensionNode = CAN_SUSPENSION_NODE,
+  C_displayNode    = CAN_DISPLAY_NODE,
   C_node4          = 0x03,
   C_node5          = 0x04,
   C_node6          = 0x05,
@@ -20,6 +24,7 @@ typedef enum  {
   C_nodeInValid    = 0x07,
   //maxNodeId      = 0x07,
 } can_senderIds_e;
+
 
 #define CAN_MSG_SENDER_ID_MASK          0x0007  /* xxxxxxxx111 */
 #define CAN_MSG_ID_MASK                 0x01F8  /* xx111111xxx */
@@ -80,6 +85,7 @@ typedef enum  {
                                                   // if above 0x7F node software should reset
                                                   // bootloader will eventually pickup a reflash command (when implemented)
                                                   // Also used by bootloader
+    C_parkbrakeCmdBootloader         = C_parkbrakeCmdReboot,
     C_parkbrakeCmd_last              = 0x19 << 3,
 
     C_suspensionCmd_first            = 0x1A << 3,
@@ -107,8 +113,12 @@ typedef enum  {
                                                    //  [0:7]            [0:15 or 0:31]
                                                    // Configs id        data (as float or uint)
 
-    //C_suspensionCmdSaveConfig        = 0x22 << 3,  // Save config to suspensionECU EEPROM
-
+    C_suspensionCmdReboot            = 0x22 << 3,  // request reboot of node
+                                                   // [0:7]
+                                                   // if above 0x7F node software should reset
+                                                   // bootloader will eventually pickup a reflash command (when implemented)
+                                                   // Also used by bootloader
+    C_suspensionCmdBootloader        = C_suspensionCmdReboot,
     C_suspensionCmd_last             = 0x29 << 3,
 
     C_displayCmd_first               = 0x2A << 3,
@@ -500,7 +510,120 @@ typedef enum {
 
 
 // -----------------------------------------------------------------------------
-// CAN pids
+// CAN bootloader
+// cmds allways have a 1 in bit7 at first datapos [1xxxxxxx]
+typedef enum {
+  C_bootloaderWait          = 0xA5, // node is ready for starting bootloader commands
+  C_bootloaderReadFlash     = 0x80, // first request
+                                    // [0:7]        [0:31]         [0:23]
+                                    // cmd 0x80   startaddress     length in bytes
+                                    //  response:
+                                    //  [0:7]           [0:7]
+                                    //  cmd 0x80    c_bootoaderErr
+                                    // if not C_bootloaderErrOK
+                                    //   bail out here
+
+                                  // page:
+                                    // response may be divided into many pages
+                                    // header for page: (each page might be 127 frames)
+                                    // [0:7]     [0:31]   [0:7]                  [0:16]
+                                    // cmd 0x80    crc    nr of frames in page   pageid
+                                    //
+                                    // payload frame:
+                                    // [0:7]      [0 <------     :     ------> 56]
+                                    // frameNr                payload
+                                    //
+                                    // node waits for initiator to respond with a resend or Ok
+                                    // request continued:
+                                    // [0:7]          [0:7]
+                                    // cmdId 0x80    can_bootloaderErrs_e
+
+                                    // then goto page
+
+  C_bootloaderChecksum      = 0x81, // request
+                                    // [0:7]        [0:31]         [0:23]
+                                    // cmd 0x81   startaddress     length in bytes
+
+                                    // responds with CRC32 of application rom
+                                    // [0:7]     [0:31]
+                                    // cmd 0x81   crc uint32_t little endian
+
+  C_bootloaderStartAddress  = 0x83, // request single byte with command
+                                    // [0:7]
+                                    // cmd 0x83
+
+                                    // responds:
+                                    // [0:7]        [0:32]
+                                    // cmd 0x83     app startadress
+
+  C_bootloaderMemPageInfo   = 0x84, // request single byte with command
+                                    // [0:7]
+                                    // cmd 0x83
+
+                                    // responds:
+                                    // [0:7]        [0:15]              [0:15]
+                                    // cmd 0x84     pageSize i bytes    nr of pages
+
+  C_bootloaderWriteFlash    = 0xF2, // write (a new bin file) to memory region
+                                    // [0:7]        [0:31]         [0:23]
+                                    // cmd 0xF2   startaddress     length in bytes
+
+                                    //  response:
+                                    //  [0:7]           [0:7]
+                                    //  cmd 0x80    c_bootoaderErrs_e
+                                    // if not C_bootloaderErrOK
+                                    //   bail out here
+                                    // else
+                                    //   invoker node starts process below
+                                  // page:
+                                    // request may be divided into many pages
+                                    // header for page: (each page might be 127 frames)
+                                    // [0:7]     [0:31]   [0:7]                  [0:16]
+                                    // cmd 0x80    crc    nr of frames in page   pageid
+                                    //
+                                    // payload frame:
+                                    // [0:7]      [0 <------     :     ------> 56]
+                                    // frameNr                payload
+                                    //
+                                    // invoker waits for node to respond with a resend or Ok
+                                    // request continued:
+                                    // [0:7]          [0:7]
+                                    // cmdId 0x80    can_bootloaderErrs_e
+
+                                    // then goto page
+
+
+  C_bootloaderEraseFlash    = 0xF3, // erase flash memory region
+                                    // request
+                                    // [0:7]      [0 : 15]         [0 : 15]
+                                    // cmd 0xF3   startPage     nr pages to erase
+
+                                    // response:
+                                    // [0:7]        [0:7]
+                                    // cmd 0xF3     can_bootloaderErrs_e
+
+  C_bootloaderReset         = 0xC3, // request:
+                                    // [0:7]
+                                    // cmd 0xC3
+} can_bootloaderCmds_e;
+
+typedef enum {
+  C_bootloaderErr                      = 0x00,
+  C_bootloaderErrResend                = 0x01,
+  C_bootloaderErrStartAdressOutOfRange = 0x01,
+  C_bootloaderErrEndAdressOutOfRange   = 0x02,
+  C_bootloaderErrStartPageOutOfRange   = 0x03,
+  C_bootloaderErrPageLenOutOfRange     = 0x04,
+  C_bootloaderErrPageWriteFailed       = 0x05,
+  C_bootloaderErrPageEraseFailed       = 0x06,
+  C_bootloaderErrCanPageOutOfOrder     = 0x07,
+
+  C_bootloaderErrOK                    = 0xAA,
+} can_bootloaderErrs_e;
+
+
+#define BOOTLOADER_CRC32_POLYNOMIAL 0xEDB88320  // bit reversed 0x04C11DB7
+#define BOOTLOADER_PAGE_SIZE 0x7F
 
 
 #endif /* CAN_PROTOCOL_H_ */

@@ -610,8 +610,8 @@ typedef enum {
 typedef enum {
   C_bootloaderErr                      = 0x00,
   C_bootloaderErrResend                = 0x01,
-  C_bootloaderErrStartAdressOutOfRange = 0x02,
-  C_bootloaderErrEndAdressOutOfRange   = 0x03,
+  C_bootloaderErrStartAddressOutOfRange = 0x02,
+  C_bootloaderErrEndAddressOutOfRange   = 0x03,
   C_bootloaderErrStartPageOutOfRange   = 0x04,
   C_bootloaderErrPageLenOutOfRange     = 0x05,
   C_bootloaderErrPageWriteFailed       = 0x06,

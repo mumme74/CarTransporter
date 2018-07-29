@@ -21,7 +21,7 @@ typedef enum  {
   C_node5          = 0x04,
   C_node6          = 0x05,
   C_node7          = 0x06,
-  C_nodeInValid    = 0x07,
+  C_nodeInvalid    = 0x07,
   //maxNodeId      = 0x07,
 } can_senderIds_e;
 
@@ -610,19 +610,21 @@ typedef enum {
 typedef enum {
   C_bootloaderErr                      = 0x00,
   C_bootloaderErrResend                = 0x01,
-  C_bootloaderErrStartAdressOutOfRange = 0x01,
-  C_bootloaderErrEndAdressOutOfRange   = 0x02,
-  C_bootloaderErrStartPageOutOfRange   = 0x03,
-  C_bootloaderErrPageLenOutOfRange     = 0x04,
-  C_bootloaderErrPageWriteFailed       = 0x05,
-  C_bootloaderErrPageEraseFailed       = 0x06,
-  C_bootloaderErrCanPageOutOfOrder     = 0x07,
+  C_bootloaderErrStartAdressOutOfRange = 0x02,
+  C_bootloaderErrEndAdressOutOfRange   = 0x03,
+  C_bootloaderErrStartPageOutOfRange   = 0x04,
+  C_bootloaderErrPageLenOutOfRange     = 0x05,
+  C_bootloaderErrPageWriteFailed       = 0x06,
+  C_bootloaderErrPageEraseFailed       = 0x07,
+  C_bootloaderErrCanPageOutOfOrder     = 0x08,
+  C_bootloaderErrNoResponse            = 0x20,
+  C_bootloaderErrSendFailed            = 0x21,
 
   C_bootloaderErrOK                    = 0xAA,
+  C_bootloaderErrUnknown               = 0xFF,
 } can_bootloaderErrs_e;
 
 
-#define BOOTLOADER_CRC32_POLYNOMIAL 0xEDB88320  // bit reversed 0x04C11DB7
 #define BOOTLOADER_PAGE_SIZE 0x7F
 
 

@@ -7,6 +7,7 @@
 
 #include "commands.h"
 #include "system.h"
+#include "crc32.h"
 #include <can_protocol.h>
 
 #define CAN_NEXT_MSG  while ((msg = canGet()) == NULL)  // blocks until rcv
@@ -19,36 +20,11 @@
 // _appRomXXX from linkscript
 extern const uint8_t *_appRomStart, *_appRomEnd, *_bootRom;
 
-extern uint32t *sys_tick_handler;
-
 static void sendErr(canframe_t *msg, can_bootloaderErrs_e err)
 {
   msg->DLC = 2;
   msg->data8[1] = err;
   CAN_POST_MSG;
-}
-
-
-// this function is grabbed from https://github.com/cvra/CRC/blob/56cc8e841085bc3cca5b0f608c85841a2b135677/crc32.c
-static uint32_t crc32(uint32_t init, const void *data, size_t length)
-{
-    // static to save some stackspace,
-    // not sure if its needed due to non recursive, but bss (better save space)...
-    static uint8_t *p;
-    static uint32_t i, crc, bit;
-
-    p = (uint8_t *)data;
-    crc = ~init;
-    for (i = 0; i < length; i++) {
-        for (bit = 0; bit < 8; bit++) {
-            if ((crc & 1) != ((p[i] >> bit) & 1)) {
-                crc = (crc >> 1) ^ BOOTLOADER_CRC32_POLYNOMIAL;
-            } else {
-                crc = crc >> 1;
-            }
-        }
-    }
-    return ~crc;
 }
 
 // used by both readflash and writeflash
@@ -156,7 +132,6 @@ writeMemPageLoop:
 
 writeCanPageLoop:
     frameNr = frames = 0;
-    ++canPageNr;
 
     // loop to receive a complete canPage
     do {
@@ -175,7 +150,7 @@ writeCanPageLoop:
         for (uint8_t i = 1; i < 8; ++i) {
           if (msg->DLC == i)
             break; // frameNr == frames should be true now
-          buf[canPageNr + (msg->data8[0] & 0x7F) + i] = msg->data8[i];
+          buf[(canPageNr * 0x7F) + (msg->data8[0] & 0x7F) + i] = msg->data8[i];
         }
       }
 
@@ -185,18 +160,24 @@ writeCanPageLoop:
     // check canPage
     // pointer buf[0] advance to start of canPage.
     // last frame might be less than 7 bytes
-    if (!crc32(0, buf + canPageNr, (frames * 7) - (7 + msg->DLC))) {
+    if (!crc32(0, buf + (canPageNr * 0x7F), (frames * 7) - (7 + msg->DLC))) {
       sendErr(msg, C_bootloaderErrResend);
-      --canPageNr;
-      goto writeCanPageLoop;
+      goto writeCanPageLoop;// resend this canPage
+    } else {
+      ++canPageNr;
     }
 
+    // notify invoker that we are ready for next frame
+    sendErr(msg, C_bootloaderErrOK);
 
     // if we haven't received a complete pageSize yet
     // and we are not at end of bin
     // (last memPage sent from invoker might be less than pageSize)
-    if ((canPageNr + frames) < pageSize)
+    if ((canPageNr + frames) < pageSize &&
+        memPagesWritten + 1 < memPages)
+    {
       goto writeCanPageLoop;
+    }
 
     // here we are at the last canPage of this memPage
     // if we're also at the last memPage we should also reset bytes
@@ -204,7 +185,7 @@ writeCanPageLoop:
 
     // setup a pointer to our buffer with offset to end of just received +1
     //  (msg->DLC is +1 due to data8[0] is frameid)
-    uint8_t *pbuf = buf + canPageNr + (msg->data8[0] & 0x7F) + msg->DLC;
+    uint8_t *pbuf = buf + (((canPageNr -1) * 0x7F) * 7) + (frames * 7) -  (7 - msg->DLC) +1;
     while (pbuf++ < (buf + pageSize))
       *pbuf = 0xFF;
 

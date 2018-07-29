@@ -21,24 +21,25 @@
 
 BINARY = can_bootloader
 
-DEVICE = stm32f373rB
-#LDSCRIPT = stm32f373xRB.ld
+#DEVICE = stm32f373rB
+LDSCRIPT = stm32f373xRB.ld
 
 NODE_ID = 0 #parkbrakeNode
 #NODE_NAME = 1 # suspensionNode
 
-CAR_TRANSPORTER_ROOT = /Users/jof/elektronik/CarTransporter
+CAR_TRANSPORTER_ROOT = ../../../
 
 
 SRCS = can_stm32f373.c \
 	   system_stm32f373.c \
 	   commands.c \
+	   crc32/crc32.c \
 	   main.c
 
 
 CSTD = -std=gnu11
 DEFS += -DNODE_ID=$(NODE_ID)
-DEFS += -I$(CAR_TRANSPORTER_ROOT)/firmware/system_headers/
+DEFS += -Icrc32/ -I$(CAR_TRANSPORTER_ROOT)/firmware/system_headers/
 
 ifeq ($(DEVICE),)
 ARCH_FLAGS = -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16

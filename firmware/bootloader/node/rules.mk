@@ -184,6 +184,7 @@ $(LDSCRIPT):
 else
 include $(OPENCM3_DIR)/mk/genlink-rules.mk	
 endif
+OBJS_O = $(notdir $(OBJS))
 
 # Define a helper macro for debugging make errors online
 # you can type "make print-OPENCM3_DIR" and it will show you
@@ -197,39 +198,39 @@ print-%:
 
 %.bin: %.elf
 	@#printf "  OBJCOPY $(*).bin\n"
-	$(Q)$(OBJCOPY) -Obinary $(OUTDIR)/$(*).elf $(OUTDIR)/$(*).bin
+	$(Q)$(OBJCOPY) -Obinary $(OUTDIR)/$(*).elf $(OUTDIR)/$(notdir /$(*)).bin
 
 %.hex: %.elf
 	@#printf "  OBJCOPY $(*).hex\n"
-	$(Q)$(OBJCOPY) -Oihex $(OUTDIR)/$(*).elf $(OUTDIR)/$(*).hex
+	$(Q)$(OBJCOPY) -Oihex $(OUTDIR)/$(*).elf $(OUTDIR)/$(notdir /$(*)).hex
 
 %.srec: %.elf
 	@#printf "  OBJCOPY $(*).srec\n"
-	$(Q)$(OBJCOPY) -Osrec $(OUTDIR)/$(*).elf $(OUTDIR)/$(*).srec
+	$(Q)$(OBJCOPY) -Osrec $(OUTDIR)/$(*).elf $(OUTDIR)/$(notdir /$(*)).srec
 
 %.list: %.elf
 	@#printf "  OBJDUMP $(*).list\n"
-	$(Q)$(OBJDUMP) -S $(OUTDIR)/$(*).elf > $(OUTDIR)/$(*).list
+	$(Q)$(OBJDUMP) -S $(OUTDIR)/$(*).elf > $(OUTDIR)/$(notdir /$(*)).list
 
 %.elf %.map: $(OBJS) $(LDSCRIPT)
 	@printf "  LD      $(*).elf\n"
-	$(Q)$(LD) $(TGT_LDFLAGS) $(LDFLAGS) $(OBJS:%.o=$(OUTDIR)/%.o) $(LDLIBS) -o $(OUTDIR)/$(*).elf
+	$(Q)$(LD) $(TGT_LDFLAGS) $(LDFLAGS) $(OBJS_O:%.o=$(OUTDIR)/%.o) $(LDLIBS) -o $(OUTDIR)/$(notdir /$(*)).elf
 
 %.o: %.c
 	@printf "  CC      $(*).c\n"
-	$(Q)$(CC) $(TGT_CFLAGS) $(CFLAGS) $(TGT_CPPFLAGS) $(CPPFLAGS) -o $(OUTDIR)/$(*).o -c $(*).c
+	$(Q)$(CC) $(TGT_CFLAGS) $(CFLAGS) $(TGT_CPPFLAGS) $(CPPFLAGS) -o $(OUTDIR)/$(notdir /$(*)).o -c $(*).c
 
 %.o: %.cxx
 	@#printf "  CXX     $(*).cxx\n"
-	$(Q)$(CXX) $(TGT_CXXFLAGS) $(CXXFLAGS) $(TGT_CPPFLAGS) $(CPPFLAGS) -o $(OUTDIR)/$(*).o -c $(*).cxx
+	$(Q)$(CXX) $(TGT_CXXFLAGS) $(CXXFLAGS) $(TGT_CPPFLAGS) $(CPPFLAGS) -o $(OUTDIR)/$(notdir /$(*)).o -c $(*).cxx
 
 %.o: %.cpp
 	@#printf "  CXX     $(*).cpp\n"
-	$(Q)$(CXX) $(TGT_CXXFLAGS) $(CXXFLAGS) $(TGT_CPPFLAGS) $(CPPFLAGS) -o $(OUTDIR)/$(*).o -c $(*).cpp
+	$(Q)$(CXX) $(TGT_CXXFLAGS) $(CXXFLAGS) $(TGT_CPPFLAGS) $(CPPFLAGS) -o $(OUTDIR)/$(notdir /$(*)).o -c $(*).cpp
 
 clean:
 	@#printf "  CLEAN\n"
-	$(Q)$(RM) $(GENERATED_BINARIES) generated.* $(OBJS) $(OBJS:%.o=%.d)
+	$(Q)$(RM) $(GENERATED_BINARIES) generated.* $(OBJS_O:%.o=$(OUTDIR)/%.o) $(OBJS_O:%.o=$(OUTDIR)/%.d) 
 
 stylecheck: $(STYLECHECKFILES:=.stylecheck)
 styleclean: $(STYLECHECKFILES:=.styleclean)

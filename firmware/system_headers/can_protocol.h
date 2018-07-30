@@ -624,7 +624,7 @@ typedef enum {
   C_bootloaderErrUnknown               = 0xFF,
 } can_bootloaderErrs_e;
 
-
+// maximimum nr frames in each canpage
 #define BOOTLOADER_PAGE_SIZE 0x7F
 
 

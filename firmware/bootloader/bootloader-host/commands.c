@@ -24,6 +24,8 @@
 #include "can_protocol.h"
 #include "commands.h"
 
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
 typedef struct can_frame canframe_t;
 
 // memory structure of uC
@@ -51,8 +53,8 @@ static char *bootloadErrToStr(can_bootloaderErrs_e err)
     switch (err) {
     case C_bootloaderErr:                       return "BootloaderErr";
     case C_bootloaderErrResend:                 return "BootloaderErrResend";
-    case C_bootloaderErrStartAdressOutOfRange:  return "BootloaderErrStartAdressOutOfRange";
-    case C_bootloaderErrEndAdressOutOfRange:    return "BootloaderErrEndAdressOutOfRange";
+    case C_bootloaderErrStartAddressOutOfRange:  return "BootloaderErrStartaddressOutOfRange";
+    case C_bootloaderErrEndAddressOutOfRange:    return "BootloaderErrEndaddressOutOfRange";
     case C_bootloaderErrStartPageOutOfRange:    return "BootloaderErrStartPageOutOfRange";
     case C_bootloaderErrPageLenOutOfRange:      return "BootloaderErrPageLenOutOfRange";
     case C_bootloaderErrPageWriteFailed:        return "BootloaderErrWriteFailed";
@@ -246,6 +248,8 @@ static can_bootloaderErrs_e resetNode(canframe_t *sendFrm, canframe_t *recvFrm)
 
     if (!filteredRecv(recvFrm, 2000, 0, C_bootloaderWait))
         return C_bootloaderErrNoResponse;
+
+    return C_bootloaderErrOK;
 }
 
 static can_bootloaderErrs_e getRemoteChecksum(memoptions_t *mopt,
@@ -254,7 +258,7 @@ static can_bootloaderErrs_e getRemoteChecksum(memoptions_t *mopt,
 {
     sendFrm->can_dlc = 8;
     sendFrm->data[sendFrm->can_dlc++] = C_bootloaderChecksum;
-    // start adress
+    // start address
     sendFrm->data[sendFrm->can_dlc++] = (mopt->lowerbound & 0x000000FF);
     sendFrm->data[sendFrm->can_dlc++] = (mopt->lowerbound & 0x0000FF00) >> 8;
     sendFrm->data[sendFrm->can_dlc++] = (mopt->lowerbound & 0x00FF0000) >> 16;
@@ -292,12 +296,12 @@ static void checkMemOptWithinBounds(memoptions_t *mopt)
     if (mopt->lowerbound == 0)
         mopt->lowerbound = memory.bootRomStart;
     else if (mopt->lowerbound < memory.bootRomStart)
-        errExit("Adress lower bound to low\n");
+        errExit("Address lower bound to low\n");
 
     if (mopt->upperbound == 0)
         mopt->upperbound = memory.bootRomEnd;
     else if (mopt->upperbound > memory.bootRomEnd)
-        errExit(("Adress upper bound to high\n"));
+        errExit(("Address upper bound to high\n"));
 }
 
 // reads a binfile into memory
@@ -345,18 +349,79 @@ static uint8_t *readLocalFile(const char *binName, long *sz)
     return fileBuf; // NOTE! caller must free this memory
 }
 
-static can_bootloaderErrs_e writeFileToNode(memoptions_t *mopt, uint8_t *fileCache)
+static can_bootloaderErrs_e writeFileToNode(memoptions_t *mopt, uint8_t *fileCache,
+                                            canframe_t *sendFrm, canframe_t *recvFrm)
 {
+    uint8_t frameNr = 0,
+            frames = 0,
+            *addr = fileCache,
+            *endAddr = fileCache + (mopt->upperbound - mopt->lowerbound);
 
+//    if (!getAndCheckAddress(msg, addr, endAddr))
+//      break;
+    uint16_t canPageNr = 0;
+    uint32_t crc;
+
+writePageLoop:
+    // begin header
+    // on top of the 889 bytes restriction in CAN pages, BOOTLOADER_PAGE_SIZE,
+    // it must also send in chunks divisible by mempage.pageSize (ie 2048)
+    frameNr = 0;
+    frames = MIN(endAddr - addr, BOOTLOADER_PAGE_SIZE) / 7 +
+             MIN(endAddr - addr, BOOTLOADER_PAGE_SIZE) % 7;
+    crc = crc32(0, addr, MIN(endAddr - addr, BOOTLOADER_PAGE_SIZE));
+    sendFrm->can_dlc = 8;
+    sendFrm->data[0] = C_bootloaderReadFlash;
+    sendFrm->data[1] = (crc & 0x000000FF);
+    sendFrm->data[2] = (crc & 0x0000FF00) >> 8;
+    sendFrm->data[3] = (crc & 0x00FF0000) >> 16;
+    sendFrm->data[4] = (crc & 0xFF000000) >> 24;
+    // len of page
+    sendFrm->data[5] = frames;
+    sendFrm->data[6] = (canPageNr & 0x0000FF00) >> 8;
+    sendFrm->data[7] = (canPageNr & 0x00FF0000) >> 16;
+    if (!cansend(sendFrm, 1000))
+        return C_bootloaderErrSendFailed;
+    ++canPageNr;
+
+    // begin payload frames
+    while (frameNr < frames) {
+      sendFrm->data[0] = frameNr++;
+      for (uint8_t i = 1; i < 8; ++i) {
+        sendFrm->data[i] = *addr;
+        if (addr++ >= endAddr)
+          break; // frameId should now be frameId == frames
+      }
+      if (!cansend(sendFrm, 1000))
+          return C_bootloaderErrSendFailed;;
+    }
+
+    // wait for remote to Ack this page
+    do {
+        if (!cansend(sendFrm, 1000))
+            return C_bootloaderErrSendFailed;
+        if (!running)
+            return C_bootloaderErrUnknown;
+    } while(recvFrm->can_dlc != 2 &&
+            recvFrm->data[0] != C_bootloaderReadFlash);
+
+    // check if we should resend
+    if (recvFrm->data[1] == 0xAA)
+      ++canPageNr;
+    if (addr >= endAddr)
+      return C_bootloaderErrOK;; // finished!
+
+    goto writePageLoop;
 }
 
 
 // handles reception of binfile, communicates with node, fills file in filecache
 static can_bootloaderErrs_e recvFileFromNode(uint8_t *fileCache, canframe_t *sendFrm,
-                             canframe_t *recvFrm, uint32_t startAddr, uint32_t endAddr)
+                                            canframe_t *recvFrm, uint32_t startAddr,
+                                            uint32_t endAddr)
 {
     uint16_t canPageNr;
-    uint8_t frames, frameNr; //, *adr, *endAdr;
+    uint8_t frames, frameNr; //, *addr, *endAddr;
     uint32_t crc = 0;
 
     uint32_t memPages = ((endAddr - startAddr) / memory.pageSize) +
@@ -365,10 +430,10 @@ static can_bootloaderErrs_e recvFileFromNode(uint8_t *fileCache, canframe_t *sen
     uint16_t memPagesWritten = 0;
 
 
-writeMemPageLoop:
+readMemPageLoop:
     canPageNr = 0;
 
-writeCanPageLoop:
+readCanPageLoop:
     frameNr = frames = 0;
 
     // loop to receive a complete canPage
@@ -410,9 +475,9 @@ writeCanPageLoop:
       sendFrm->data[0] = C_bootloaderReadFlash;
       sendFrm->data[1] = C_bootloaderErrResend;
       if (cansend(sendFrm, 1000))
-          return C_bootloaderErrNoResponse;
+          return C_bootloaderErrSendFailed;
 
-      goto writeCanPageLoop;
+      goto readCanPageLoop;
     }
 
     ++canPageNr;
@@ -427,14 +492,14 @@ writeCanPageLoop:
       sendFrm->data[0] = C_bootloaderReadFlash;
       sendFrm->data[1] = C_bootloaderErrOK;
       if (cansend(sendFrm, 1000))
-          return C_bootloaderErrNoResponse;
-      goto writeCanPageLoop;
+          return C_bootloaderErrSendFailed;
+      goto readCanPageLoop;
     }
 
     // here we are at the last canPage of this memPage
     // a *.bin might span over many memPages
     if (++memPagesWritten < memPages)
-      goto writeMemPageLoop;
+      goto readMemPageLoop;
 
     return C_bootloaderErrOK;
 }
@@ -503,7 +568,7 @@ void doReadCmd(memoptions_t *mopt, char *storeName)
     // now that we have successfully opened the file we retrive memory from node
     sendFrm.can_dlc = 0;
     sendFrm.data[sendFrm.can_dlc++] = C_bootloaderReadFlash;
-    // startadress
+    // startaddress
     sendFrm.data[sendFrm.can_dlc++] = (mopt->lowerbound & 0x000000FF) >> 0;
     sendFrm.data[sendFrm.can_dlc++] = (mopt->lowerbound & 0x0000FF00) >> 8;
     sendFrm.data[sendFrm.can_dlc++] = (mopt->lowerbound & 0x00FF0000) >> 16;
@@ -574,8 +639,8 @@ void doPrintMemorySetupCmd(void)
     // get memory setup from Node uC
     initMemoryInfo(&sendFrm, &recvFrm);
 
-    fprintf(stdout, "\nStartAdress:  %x\n"
-                      "Endadress:    %x"
+    fprintf(stdout, "\nStartAddress:  %x\n"
+                      "Endaddress:    %x"
                       "PageSize:     %u\n"
                       "Nr pages:     %u\n"
                       "Totalsize:    %u\n\n",
@@ -726,7 +791,8 @@ void doWriteCmd(memoptions_t *mopt, char *binName)
 
     fprintf(stdout, "\n--Writing binfile '%s' with crc32 = %u\n\n", binName, binCrc);
 
-    can_bootloaderErrs_e err = writeFileToNode(mopt, fileCache);
+    can_bootloaderErrs_e err = writeFileToNode(mopt, fileCache,
+                                               &sendFrm, &recvFrm);
     if (err == C_bootloaderErrOK) {
         fprintf(stdout, "Write process completed successfully!\nChecking checksum...\n");
 

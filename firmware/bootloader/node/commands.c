@@ -30,7 +30,7 @@ static void sendErr(canframe_t *msg, can_bootloaderErrs_e err)
 // used by both readflash and writeflash
 static bool getAndCheckAddress(canframe_t *msg, uint8_t *addr, uint8_t *endAddr)
 {
-  addr  = (uint8_t*)((msg->data8[3] << 24) | (msg->data8[2] << 16) |
+  addr = (uint8_t*)((msg->data8[3] << 24) | (msg->data8[2] << 16) |
                     (msg->data8[1] << 8)  | (msg->data8[0])) ;
   endAddr = addr + ((msg->data8[2] << 16) | (msg->data8[1] << 8) |
                   (msg->data8[0]));
@@ -59,7 +59,7 @@ static bool runCommand(canframe_t *msg)
 readPageLoop:
     // begin header
     frameNr = 0;
-    // concept here is that addr advacnces in send loop with nr bytes written
+    // concept here is that addr advances in send loop with nr bytes written
     // we will eventually reach endAddr
     // also when reading memory we don't need that 2K memory page restriction that we need when writing to memory
     frames = MIN(endAddr - addr, BOOTLOADER_PAGE_SIZE) / 7 +
@@ -96,7 +96,7 @@ readPageLoop:
     } while(msg->DLC != 2 && msg->data8[0] != C_bootloaderReadFlash);
 
     // check if we should resend
-    if (msg->data8[1] == 0xAA)
+    if (msg->data8[1] == C_bootloaderErrOK)
       ++canPageNr;
     if (addr >= endAddr)
       return true; // finished!, to commands loop
@@ -229,7 +229,7 @@ writeCanPageLoop:
   }  break;
 
   case C_bootloaderStartAddress: {
-    msg->DLC = 2;
+    msg->DLC = 5;
     uint32_t stAdr = (uint32_t)(_appRomStart);
     msg->data8[1] = (stAdr & 0x000000FF);
     msg->data8[2] = (stAdr & 0x0000FF00) >> 8;
@@ -262,7 +262,8 @@ bool commandsStart(canframe_t *msg)
 {
   bool res =true;
   while(res){
-    if (msg->DLC < 1 || (msg->data8[0] & 0x80) == 0)
+    if (msg == NULL || msg->DLC < 1 ||
+        (msg->data8[0] & 0x80) == 0)
       return false;
     // TODO assure HSI is enabled?
     res = runCommand(msg);

@@ -7,6 +7,8 @@
 
 
 #include "system.h"
+#include "commands.h"
+#include "can.h"
 #include <stddef.h>
 #include <libopencm3/cm3/systick.h>
 #include <libopencm3/cm3/scb.h>
@@ -18,8 +20,8 @@
 
 const struct rcc_clock_scale clock_scale  = {
     .pllsrc = RCC_CFGR_PLLSRC_HSE_PREDIV,
-    .pllmul = RCC_CFGR_PLLMUL_MUL9,
-    .plldiv = RCC_CFGR2_PREDIV_DIV3, // a 24MHz chrystal
+    .pllmul = RCC_CFGR_PLLMUL_MUL3,
+    .plldiv = RCC_CFGR2_PREDIV_NODIV, // a 24MHz chrystal
     .usbdiv1 = false,
     .flash_waitstates = 2,
     .hpre = RCC_CFGR_HPRE_DIV_NONE,
@@ -55,18 +57,17 @@ void systemDeinit(void)
 void systickInit(void)
 {
     /* 72MHz / 8 => 9000000 counts per second */
-    //systick_set_clocksource(STK_CSR_CLKSOURCE_AHB_DIV8);
+    systick_set_clocksource(STK_CSR_CLKSOURCE_AHB_DIV8);
 
     /* 9000000/9000 = 1000 overflows per second - every 1ms one interrupt */
     /* SysTick interrupt every N clock pulses: set reload to N-1 */
-    //systick_set_reload(8999);
+    systick_set_reload(8999);
 
-    systick_set_frequency(1000, clock_scale.ahb_frequency);
+    //systick_set_frequency(1000, clock_scale.ahb_frequency);
 
     systick_interrupt_enable();
 
     /* Start counting. */
-    systick_clear();
     systick_counter_enable();
 }
 
@@ -89,12 +90,27 @@ void sys_tick_handler(void)
 
 void systemToApplication(void)
 {
-  extern const size_t _appRomStart;
+  extern const size_t _appRomStart, _bootRom;
   typedef void (*funcptr_t)(void);
 
   /* variable that will be loaded with the start address of the application */
   size_t  *jumpAddress;
   const size_t* applicationAddress = &_appRomStart;
+
+  // safetycheck, if hang in bootloader mode if we dont have a valid start of vector table
+  if (applicationAddress[0] != _data) {
+    canframe_t msg;
+    canInitFrame(&msg, canId);
+    canInit(CAN1);// need to reactivate
+    while (1) {
+      msg.DLC = 2;
+      msg.data8[0] = C_bootloaderReset;
+      msg.data8[1] = C_bootloaderErrNonValidBin;
+      canPost(&msg);
+      msg.data8[0] = C_bootloaderWait;
+      commandsStart(&msg);
+    }
+  }
 
   /* get jump address from application vector table */
   jumpAddress = (size_t*) applicationAddress[1];
@@ -107,6 +123,9 @@ void systemToApplication(void)
     nvic_clear_pending_irq(i);
     nvic_disable_irq(i);
   }
+
+  // relocate vectortable to app offset vectortable is now offset to appRom
+  SCB_VTOR = SCB_VTOR_TBLOFF & ((_appRomStart - _bootRom) << SCB_VTOR_TBLOFF_LSB);
 
   /* set stack pointer as in application's vector table */
   // change both Mainstackpointer and PriorityStackpointer

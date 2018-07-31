@@ -98,8 +98,10 @@ static int wait_on_sock(int sock, long timeout, int r, int w)
     tv.tv_sec = timeout;
     tv.tv_usec = 0;
 
+#ifdef DEBUG
     fprintf(stdout, "wait in progress tv={%ld,%ld} ...\n",
             tv.tv_sec, tv.tv_usec);
+#endif
 
     if (r) rfds = &fdset; else rfds = NULL;
     if (w) wfds = &fdset; else wfds = NULL;
@@ -127,8 +129,8 @@ static int wait_on_sock(int sock, long timeout, int r, int w)
 
 static bool cansend(canframe_t *msg, int timeoutms)
 {
-    if (write(cansock, &msg, 0) != 0) {
-        perror("write");
+    if (write(cansock, msg, CAN_MTU) != CAN_MTU) {
+        perror("write to CAN");
         return false;
     }
     return wait_on_sock(cansock, timeoutms, 0, 1) == 0;
@@ -136,22 +138,22 @@ static bool cansend(canframe_t *msg, int timeoutms)
 
 static bool canrecv(canframe_t *frm, int timeoutms)
 {
-    fd_set rdfs;
     struct timeval tv;
 
     /* Watch stdin (fd 0) to see when it has input. */
+    fd_set rdfs;
     FD_ZERO(&rdfs);
-    FD_SET(0, &rdfs);
+    FD_SET(cansock, &rdfs);
 
     /* Wait up to five seconds. */
     tv.tv_sec = timeoutms / 1000;
     tv.tv_usec = (timeoutms - tv.tv_sec) * 1000;
 
-    int ret = select(cansock, &rdfs, NULL, NULL, &tv);
+    int ret;
+    TEMP_FAIL_RETRY (ret = select(cansock +1, &rdfs, NULL, NULL, &tv));
     /* Don't rely on the value of tv now! */
-
     if (ret == -1)
-        errExit("Failed to connect to CAN while send");
+        errExit("Failed to connect to CAN while receive");
     else if (ret) {
         int nbytes;
         // Data is available now.
@@ -174,8 +176,6 @@ static bool canrecv(canframe_t *frm, int timeoutms)
         }
 
         memcpy(frm, &bmsg.frame, sizeof(canframe_t));
-
-    /* FD_ISSET(0, &rfds) will be true. */
     }
     return false;
 }
@@ -243,7 +243,7 @@ static can_bootloaderErrs_e resetNode(canframe_t *sendFrm, canframe_t *recvFrm)
 {
     sendFrm->can_dlc = 1;
     sendFrm->data[0] = C_bootloaderReset;
-    if (cansend(sendFrm, 1000))
+    if (!cansend(sendFrm, 1000))
         return C_bootloaderErrSendFailed;
 
     if (!filteredRecv(recvFrm, 2000, 0, C_bootloaderWait))
@@ -359,13 +359,19 @@ static can_bootloaderErrs_e writeFileToNode(memoptions_t *mopt, uint8_t *fileCac
 
 //    if (!getAndCheckAddress(msg, addr, endAddr))
 //      break;
-    uint16_t canPageNr = 0;
+    uint16_t canPageNr = 0,
+             memPageGuard = 0;
     uint32_t crc;
 
 writePageLoop:
     // begin header
     // on top of the 889 bytes restriction in CAN pages, BOOTLOADER_PAGE_SIZE,
     // it must also send in chunks divisible by mempage.pageSize (ie 2048)
+
+
+    // concept here is that addr advances in send loop with nr bytes written
+    // we use memPageGuard to make sure we transmitt in pageSize chunks
+    // we will eventually reach endAddr
     frameNr = 0;
     frames = MIN(endAddr - addr, BOOTLOADER_PAGE_SIZE) / 7 +
              MIN(endAddr - addr, BOOTLOADER_PAGE_SIZE) % 7;
@@ -383,12 +389,19 @@ writePageLoop:
     if (!cansend(sendFrm, 1000))
         return C_bootloaderErrSendFailed;
     ++canPageNr;
+    memPageGuard += sendFrm->can_dlc;
 
     // begin payload frames
     while (frameNr < frames) {
       sendFrm->data[0] = frameNr++;
+      // we dont need to ++memPageGuard for frameNr byte as that doesn't land in flash
       for (uint8_t i = 1; i < 8; ++i) {
         sendFrm->data[i] = *addr;
+        if (++memPageGuard >= memory.pageSize) {
+          // break at 2048 bits for a stm32
+          memPageGuard = 0;
+          break;
+        }
         if (addr++ >= endAddr)
           break; // frameId should now be frameId == frames
       }
@@ -406,7 +419,7 @@ writePageLoop:
             recvFrm->data[0] != C_bootloaderReadFlash);
 
     // check if we should resend
-    if (recvFrm->data[1] == 0xAA)
+    if (recvFrm->data[1] == C_bootloaderErrOK)
       ++canPageNr;
     if (addr >= endAddr)
       return C_bootloaderErrOK;; // finished!
@@ -509,8 +522,10 @@ readCanPageLoop:
 
 void cleanup(void)
 {
-    close(cansock);
-    fclose(binFile);
+    if (cansock)
+        close(cansock);
+    if (binFile)
+        fclose(binFile);
 }
 
 void cleanExit(void)
@@ -522,10 +537,10 @@ void cleanExit(void)
 
 void errExit(char *errStr)
 {
-    char *warnChrs = "";
-    if (errStr != 0)
-        warnChrs = "**";
-    fprintf(stderr, "%s%s", warnChrs, errStr);
+    if (errStr != 0) {
+        fprintf(stderr, "%s%s", "**", errStr);
+        fflush(stderr);
+    }
     cleanup();
     exit(EXIT_FAILURE);
 }
@@ -833,4 +848,20 @@ writeCleanup:
     free(fileCache);
     if (errorOccured)
         errExit(0);
+}
+
+
+void doBootloaderModeCmd(void)
+{
+    canframe_t sendFrm, recvFrm;
+    initFrame(&sendFrm);
+    initFrame(&recvFrm);
+    resetNode(&sendFrm, &recvFrm);
+
+    if (!canrecv(&recvFrm, 5000))
+        errExit("Failed to reset to bootloadermode\n");
+
+    // trigger a cmd so we set node in cammand mode
+    fprintf(stdout, "Successfully set in bootloadermode\n");
+    doPrintMemorySetupCmd();
 }

@@ -78,7 +78,7 @@
 // global vars
 int running = 0;
 int cansock = 0;
-uint32_t canIdx;
+uint32_t canIdx = 0;
 struct sockaddr_can addr;
 
 // file specific vars
@@ -95,7 +95,7 @@ void setup_can_iface(char *name)
 {
     cansock = socket(PF_CAN, SOCK_RAW, CAN_RAW);
     if (cansock < 0)
-        errExit("socket");
+        errExit("CAN socket failed to open");
 
 
 
@@ -104,13 +104,12 @@ void setup_can_iface(char *name)
     memset(&ifr.ifr_name, 0, sizeof(ifr.ifr_name));
     strncpy(ifr.ifr_name, name, strlen(name));
 
-#ifdef DEBUG
-    printf("using interface name '%s'.\n", ifr.ifr_name);
-#endif
+    printf("Using interface name '%s'.\n", ifr.ifr_name);
+
     // set can interface
     ifr.ifr_ifindex = (int)if_nametoindex(ifr.ifr_name);
     if (!ifr.ifr_ifindex)
-        errExit("if_nametoindex");
+        errExit("Failed to open interface\n");
 
     memset(&addr, 0, sizeof(addr));
     addr.can_family = AF_CAN;
@@ -120,10 +119,10 @@ void setup_can_iface(char *name)
     struct can_filter rcvfilter;
     if (canIdx < 0x800) {
         // 11 bit id
-        rcvfilter.can_mask = 0x7FF; // filter in only this id
+        rcvfilter.can_mask = 0x7F8; // filter in only this id
     } else {
         // 29 bit (extended frame)
-        rcvfilter.can_mask = 0x7FFF;
+        rcvfilter.can_mask = 0x7FF8;
     }
     rcvfilter.can_id = canIdx;
     setsockopt(cansock, SOL_CAN_RAW, CAN_RAW_FILTER, &rcvfilter, sizeof (struct can_filter));
@@ -161,7 +160,7 @@ bool parse_memoptions(memoptions_t *mopt, char *argoption)
 
 void print_usage(char *prg)
 {
-    fprintf(stderr, "\nUsage: %s [options] <CAN interface>+\n", prg);
+    fprintf(stderr, "\nUsage: %s [options] <CAN interface> <action> [arguments]\n", prg);
     fprintf(stderr, "  (use CTRL-C to terminate %s)\n\n", prg);
     fprintf(stderr, "Options: -n <nodeNr>  nodenr [0-7] ie: 0=parkbrakeNode\n");
     fprintf(stderr, "                                       1=suspensionNode\n");
@@ -172,12 +171,44 @@ void print_usage(char *prg)
     fprintf(stderr, "\n");
     fprintf(stderr, "A CAN interface must be specified\n");
     fprintf(stderr, "on the commandline in the form: <ifname>\n");
-    fprintf(stderr, "\nCAN ID in hexadecimal values, or nodename  must be given.\n");
-    fprintf(stderr, "\nUse interface name '%s' to receive from all CAN interfaces.\n", ANYDEV);
-    fprintf(stderr, "\nExamples:\n");
-    fprintf(stderr, "%s -N parkbrakeNode can0\n", prg);
-    fprintf(stderr, "%s -n 0 can0\n", prg);
-    fprintf(stderr, "%s -i 6a0 can0 for can serial on CANid 6a0\n", prg);
+    fprintf(stderr, "CAN ID in hexadecimal values, or nodename  must be given.\n\n");
+    fprintf(stderr, "Use interface name '%s' to receive from all CAN interfaces.\n", ANYDEV);
+    fprintf(stderr, "\nActions:      arguments:   optional arguments:\n");
+    fprintf(stderr, "   bootmode            Sets node i bootloader mode.\n\n");
+    fprintf(stderr, "   read         backup.bin   <optional memory region in hex>\n");
+    fprintf(stderr, "                       Reads Node flash memory to backup.bin\n");
+    fprintf(stderr, "                       If no memory region given, read complete flash\n\n");
+    fprintf(stderr, "   write        new.bin      <optional memory region in hex>\n");
+    fprintf(stderr, "                       Flashes new.bin to memory region\n");
+    fprintf(stderr, "                       If no memory region given, use standard place\n\n");
+    fprintf(stderr, "                       Erases flash memory in node.\n");
+    fprintf(stderr, "                       If no memory region given, erase complete memory\n\n");
+    fprintf(stderr, "   compare      file.bin      <optional memory region in hex>\n");
+    fprintf(stderr, "                       Compares memory in node with file.bin.\n");
+    fprintf(stderr, "                       If no memory region given, compare from standard startadress\n");
+    fprintf(stderr, "                       up to filesize of file.bin\n\n");
+    fprintf(stderr, "   checksum                   <optional memory region in hex>\n");
+    fprintf(stderr, "                       Checksum node flash memory\n");
+    fprintf(stderr, "                       If no memory region given, use complete memory\n");
+    fprintf(stderr, "                       Note as it then reads complete flash CRC is different\n\n");
+    fprintf(stderr, "   checksumfile file.bin\n");
+    fprintf(stderr, "                       Checksum local file given by argument\n\n");
+    fprintf(stderr, "   memoryinfo\n");
+    fprintf(stderr, "                       Prints node memory regions\n\n");
+    fprintf(stderr, "   reset\n");
+    fprintf(stderr, "                  T    Trigger a reset in node\n\n");
+    fprintf(stderr, " explanation memoryregion:\n");
+    fprintf(stderr, "   if given if should be in the <form startaddress>:<endaddress>\n");
+    fprintf(stderr, "   Startaddress is where action begins in node memory\n");
+    fprintf(stderr, "   Endaddress is where action ends in node memory\n");
+    fprintf(stderr, "   example:  0x801800:0x80FFFF\n");
+    fprintf(stderr, "   See memoryinfo for the bounds of memory regions\n\n");
+    fprintf(stderr, "Examples:\n");
+    fprintf(stderr, "%s -N parkbrakeNode can0 checksum\n", prg);
+    fprintf(stderr, "%s -n 0 can0 read /path/to/backup.bin\n", prg);
+    fprintf(stderr, "%s -n 0 can0 write /path/to/new.bin 0x8003050:0x800FFFF\n", prg);
+    fprintf(stderr, "%s -i 6a0 can0 [action] <optional agument> uses canID 0x6A for communication\n", prg);
+    fprintf(stderr, "        usefull when we have a new node that isn't hard coded in %s\n", prg);
     fprintf(stderr, "\n");
 }
 
@@ -190,9 +221,7 @@ void sigterm(int signo)
 int main(int argc, char *argv[])
 {
     int opt;
-    unsigned int canIdx = 0;
     int ret = EXIT_SUCCESS;
-
 
     signal(SIGTERM, sigterm);
     signal(SIGHUP, sigterm);
@@ -205,23 +234,21 @@ int main(int argc, char *argv[])
         case 'i': {
             long idx = strtol(optarg, NULL, 16);
             if (idx < 0 || idx > 0x7FFF) {
-                print_usage(basename(argv[0]));
-                exit(1);
+                errExit("Wrong canID given\n");
             }
             canIdx = (unsigned int)idx;
         }   break;
         case 'n': {
             int idx = atoi(optarg);
             if (idx < 0 || idx > MAX_NODENR || !isdigit(optarg[0])) {
-                print_usage(basename(argv[0]));
-                exit(1);
+                errExit("Wrong nodeNr given\n");
             }
             switch (idx) {
             case 0:
-                canIdx = CAN_MSG_TYPE_DIAG | C_parkbrakeDiagSerial | C_parkbrakeNode;
+                canIdx = CAN_MSG_TYPE_DIAG | C_parkbrakeDiagSerial | C_displayNode;
                 break;
             case 1:
-                canIdx = CAN_MSG_TYPE_DIAG | C_suspensionDiagSerial | C_suspensionNode;
+                canIdx = CAN_MSG_TYPE_DIAG | C_suspensionDiagSerial | C_displayNode;
                 break;
             case 2:
                 canIdx = CAN_MSG_TYPE_DIAG | C_displayDiag_LAST | C_displayNode;
@@ -247,23 +274,27 @@ int main(int argc, char *argv[])
         }   break;
         case 'N':
             if (strcmp(optarg, "parkbrakeNode") == 0)
-                canIdx = CAN_MSG_TYPE_DIAG | C_parkbrakeDiagSerial | C_parkbrakeNode;
+                canIdx = CAN_MSG_TYPE_DIAG | C_parkbrakeDiagSerial | C_displayNode;
             else if (strcmp(optarg, "suspensionNode") == 0)
-                canIdx = CAN_MSG_TYPE_DIAG | C_suspensionDiagSerial | C_suspensionNode;
+                canIdx = CAN_MSG_TYPE_DIAG | C_suspensionDiagSerial | C_displayNode;
+            else {
+                fprintf(stderr, "Unknown node %s\n", optarg);
+                errExit(0);
+            }
             break;
         case '?':
-            fprintf(stderr, "unknown option char at index:%d", optind);
-            exit(1);
+            fprintf(stderr, "unknown option char at index:%d\n", optind);
+            errExit(0);
         case 'h':
         default:
             print_usage(basename(argv[0]));
-            exit(1);
+            errExit(0);
         }
     }
 
     // no options
     if (optind == argc || canIdx <= 0)
-        errExit("Must give interface after options, ie. can0 or can1 etc\n\n");
+        errExit("Must give interface after options, ie. can0 or can1 etc.\n\n");
     else {
         // parse arguments
         // first argument should be interface ie. can0
@@ -280,7 +311,7 @@ int main(int argc, char *argv[])
         enum {max_arg_options = 2};
         char *argoptions[max_arg_options];
 
-        int argoptionsc = MIN(argc - optind, max_arg_options);
+        int argoptionsc = MIN(argc - optind -1, max_arg_options);
         for (int i = 0; i < argoptionsc; ++i)
             argoptions[i] = argv[optind + 1 + i];
 
@@ -290,22 +321,22 @@ int main(int argc, char *argv[])
             // read memory from node
             // split memory regions ie 0x800000:0x8000400
             memoptions_t mopt = {0, 0};
-            if (argoptionsc > 1) { // more arguments given
+            if (argoptionsc > 2) { // more arguments given
                 if (!parse_memoptions(&mopt, argoptions[1])) {
-                    fprintf(stderr, "Wrong memory regions given %s", argoptions[0]);
+                    fprintf(stderr, "**Wrong memory regions given %s\n", argoptions[0]);
                     errExit(0);
                 }
             } else if (argoptionsc < 1)
                 errExit("Must give a filename to save to");
             doReadCmd(&mopt, argoptions[0]);
 
-        } else if (strcmp(cmd, "chksum") == 0) {
+        } else if (strcmp(cmd, "checksum") == 0) {
             // get memory checksum
             // split memory regions ie 0x800000:0x8000400
             memoptions_t mopt = {0, 0};
-            if (argoptionsc > 0) { // more arguments given
-                if (!parse_memoptions(&mopt, argoptions[0])) {
-                    fprintf(stderr, "Wrong memory regions given %s", argoptions[0]);
+            if (argoptionsc > 1) { // more arguments given
+                if (!parse_memoptions(&mopt, argoptions[1])) {
+                    fprintf(stderr, "**Wrong memory regions given %s\n", argoptions[0]);
                     errExit(0);
                 }
             }
@@ -314,9 +345,9 @@ int main(int argc, char *argv[])
         } else if (strcmp(cmd, "erase") == 0) {
             // split memory regions ie 0x800000:0x8000400
             memoptions_t mopt = {0, 0};
-            if (argoptionsc > 0) { // more arguments given
-                if (!parse_memoptions(&mopt, argoptions[0])) {
-                    fprintf(stderr, "Wrong memory regions given %s", argoptions[0]);
+            if (argoptionsc > 1) { // more arguments given
+                if (!parse_memoptions(&mopt, argoptions[1])) {
+                    fprintf(stderr, "**Wrong memory regions given %s\n", argoptions[0]);
                     errExit(0);
                 }
             }
@@ -328,7 +359,7 @@ int main(int argc, char *argv[])
             memoptions_t mopt = {0, 0};
             if (argoptionsc > 1) { // more arguments given
                 if (!parse_memoptions(&mopt, argoptions[1])) {
-                    fprintf(stderr, "Wrong memory regions given %s", argoptions[0]);
+                    fprintf(stderr, "**Wrong memory regions given %s\n", argoptions[0]);
                     errExit(0);
                 }
             } else if (argoptionsc < 1)
@@ -339,7 +370,7 @@ int main(int argc, char *argv[])
             // reset device
             doResetCmd();
 
-        } else if (strcmp(cmd, "chksumfile") == 0) {
+        } else if (strcmp(cmd, "checksumfile") == 0) {
             // get the checksum of local file
             if (argoptionsc < 1)
                 errExit("Must give a binary filepath as argument");
@@ -353,6 +384,10 @@ int main(int argc, char *argv[])
 
         } else if (strcmp(cmd, "memoryinfo") == 0) {
             doPrintMemorySetupCmd();
+
+        } else if (strcmp(cmd, "bootmode") == 0) {
+            // reset node and trigger a cmd set hang it in bootloader mode
+            doBootloaderModeCmd();
 
         } else {
             fprintf(stderr, "Unrecognized command '%s'\n\ntype %s -h for more info", cmd, argv[0]);

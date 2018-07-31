@@ -34,6 +34,7 @@ extern uint32_t canIdx;
 extern struct sockaddr_can addr;
 
 
+void cmdInit(void);
 void doReadCmd(memoptions_t *mopt, char *storeName);
 void doPrintMemorySetupCmd(void);
 void doChecksumCmd(memoptions_t *mopt);
@@ -42,6 +43,7 @@ void doCompareCmd(const char *binName);
 void doResetCmd(void);
 void doEraseCmd(memoptions_t *mopt);
 void doWriteCmd(memoptions_t *mopt, char *binName);
+void doBootloaderModeCmd(void);
 
 void errExit(char *errStr)  __attribute__ ((noreturn));
 void cleanExit(void) __attribute__ ((noreturn));

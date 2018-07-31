@@ -104,3 +104,4 @@ $*.sch
 #eclipse
 .dep
 build/
+*.user

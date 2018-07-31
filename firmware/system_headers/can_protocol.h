@@ -621,6 +621,7 @@ typedef enum {
   C_bootloaderErrSendFailed            = 0x21,
 
   C_bootloaderErrOK                    = 0xAA,
+  C_bootloaderErrNonValidBin           = 0xF0,
   C_bootloaderErrUnknown               = 0xFF,
 } can_bootloaderErrs_e;
 

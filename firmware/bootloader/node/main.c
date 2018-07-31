@@ -31,7 +31,7 @@ int main(void)
     msg.data8[msg.DLC++] = (C_bootloaderWait & 0xFF00) >> 8;
     canPost(&msg);
 
-    while (globalMsSinceStartup < WAIT_BEFORE_APPBOOT + 100000){
+    while (globalMsSinceStartup < WAIT_BEFORE_APPBOOT){
       pmsg = canGet();
       if (pmsg != NULL)
         commandsStart(pmsg); // resets from within

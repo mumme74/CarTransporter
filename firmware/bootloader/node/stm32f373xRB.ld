@@ -69,7 +69,7 @@ SECTIONS
  . = ALIGN(4);
  end = .;
 }
-PROVIDE(_stack = ORIGIN(ram) + LENGTH(ram));
+PROVIDE(_stack       = ORIGIN(ram) + LENGTH(ram));
 PROVIDE(_appRomStart = ORIGIN(rom));
 PROVIDE(_appRomEnd   = ORIGIN(rom) + LENGTH(rom));
 PROVIDE(_bootRom     = ORIGIN(bootrom));

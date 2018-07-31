@@ -38,8 +38,8 @@ static void init_filters(uint32_t id, uint32_t mask, bool enable)
                 filterId++,     /* Filter ID */
                 (uint16_t)(id & 0x7FF), /* CAN ID */
                 (uint16_t)(mask & 0x7FF),  /* CAN ID mask */
-                0,
-                0x7FF,
+                (uint16_t)(id & 0x7FF),
+                (uint16_t)(mask & 0x7FF),
                 fifo,     /* FIFO assignment (here: FIFO0) */
                 enable); /* Enable the filter. */
     // squeslh all 29bit IDs
@@ -51,16 +51,17 @@ static void init_filters(uint32_t id, uint32_t mask, bool enable)
 static void receive(uint8_t fifo)
 {
     // check if we are full
-    if (rxpos >= BUFFER_SIZE)
+    if (rxpos >= BUFFER_SIZE) {
+      can_fifo_release(CAN1, fifo); // discard
       return;
+    }
 
     uint8_t fmi;
     uint16_t timestamp;
-    canframe_t *msg = &rxbuf[++rxpos];
+    canframe_t *msg = &rxbuf[rxpos++];
     can_receive(CAN1, fifo, true, &msg->EID, &msg->ext,
                 &msg->rtr, &fmi, &msg->DLC, &msg->data8[0], &timestamp);
 
-    can_fifo_release(CAN1, fifo);
 }
 
 
@@ -82,7 +83,15 @@ void can1_rx1_isr(void)
 // tx box avalable
 void usb_hp_can1_tx_isr(void)
 {
-  if (txpos < 0)
+  // we clear this irq by writing a 1 to each transmit buffers RQCP
+  if (CAN_TSR(CAN1) & CAN_TSR_RQCP0)
+    CAN_TSR(CAN1) |= CAN_TSR_RQCP0;
+  if (CAN_TSR(CAN1) & CAN_TSR_RQCP1)
+    CAN_TSR(CAN1) |= CAN_TSR_RQCP1;
+  if (CAN_TSR(CAN1) & CAN_TSR_RQCP2)
+    CAN_TSR(CAN1) |= CAN_TSR_RQCP2;
+
+  if (txpos < 1)
     return; // nothing to send
   if (!can_available_mailbox(CAN1))
     return; // output registers full
@@ -98,7 +107,7 @@ void usb_hp_can1_tx_isr(void)
 void canInit(uint32_t filterId)
 {
     // init store variables
-    rxpos = txpos = -1;
+    rxpos = txpos = 0;
 
     /* Enable peripheral clocks. */
     rcc_periph_clock_enable(RCC_CAN1);
@@ -129,7 +138,7 @@ void canInit(uint32_t filterId)
              CAN_BTR_SJW_1TQ,
              CAN_BTR_TS1_9TQ,
              CAN_BTR_TS2_6TQ,
-             8-1,               /* BRP+1: Baud rate prescaler */
+             8+1,               /* BRP+1: Baud rate prescaler */
              false,
              false))
     {
@@ -141,18 +150,21 @@ void canInit(uint32_t filterId)
 
 
     /* CAN filter init.on all fifos */
-    init_filters(filterId, 0x7FF, true);
+    //init_filters(filterId, 0x7FF, true);
+    init_filters(0, 0, true);
 
     /* NVIC setup. for both rx FIFOs  */
     nvic_enable_irq(NVIC_USB_LP_CAN1_RX0_IRQ); // fifo 0
-    nvic_set_priority(NVIC_USB_LP_CAN1_RX0_IRQ, 1);
+ //   nvic_set_priority(NVIC_USB_LP_CAN1_RX0_IRQ, 1);
     nvic_enable_irq(NVIC_CAN1_RX1_IRQ);        // fifo 1
-    nvic_set_priority(NVIC_CAN1_RX1_IRQ, 1);
+ //   nvic_set_priority(NVIC_CAN1_RX1_IRQ, 2);
     nvic_enable_irq(NVIC_USB_HP_CAN1_TX_IRQ);
-    nvic_set_priority(NVIC_USB_HP_CAN1_TX_IRQ, 2);
+ //   nvic_set_priority(NVIC_USB_HP_CAN1_TX_IRQ, 3);
 
     /* Enable CAN RX interrupt. */
-    can_enable_irq(CAN1, CAN_IER_FMPIE0 | CAN_IER_FMPIE1 | CAN_IER_TMEIE);
+    can_enable_irq(CAN1, CAN_IER_FMPIE0 | CAN_IER_FFIE0 |
+                         CAN_IER_FMPIE1 | CAN_IER_FFIE1 |
+                         CAN_IER_TMEIE);
 
 }
 
@@ -160,7 +172,9 @@ void canShutdown(void)
 {
   // clear filters
   init_filters(0, 0, false);
-  can_disable_irq(CAN1, CAN_IER_FMPIE0 | CAN_IER_FMPIE1 | CAN_IER_TMEIE);
+  can_disable_irq(CAN1, CAN_IER_FMPIE0 | CAN_IER_FFIE0 |
+                        CAN_IER_FMPIE1 | CAN_IER_FFIE1 |
+                        CAN_IER_TMEIE);
   can_reset(CAN1);
 }
 
@@ -172,7 +186,7 @@ void canShutdown(void)
  */
 canframe_t *canGet(void)
 {
-    if (rxpos < 0)
+    if (rxpos < 1)
         return NULL;
 
     return &rxbuf[--rxpos];
@@ -190,11 +204,14 @@ int8_t canPost(canframe_t *msg)
   if (txpos >= BUFFER_SIZE)
     return -1;
 
-  canframe_t *bmsg = &txbuf[++txpos];
+  // notify which node sends this msg
+  msg->IDE &= (CAN_MSG_TYPE_MASK | CAN_MSG_ID_MASK | NODE_ID);
+
+  canframe_t *bmsg = &txbuf[txpos++];
   memcpy(bmsg, msg, sizeof(canframe_t));
 
   if (can_available_mailbox(CAN1)) {
-    nvic_generate_software_interrupt(CAN_IER_TMEIE);
+    nvic_generate_software_interrupt(NVIC_USB_HP_CAN1_TX_IRQ);
     return 1;
   }
   return 0;

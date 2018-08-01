@@ -33,9 +33,9 @@ const struct rcc_clock_scale clock_scale  = {
 };
 
 #if NODE_ID==CAN_PARKBRAKE_NODE
-const uint16_t canId = CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdReboot | C_parkbrakeNode;
+const uint16_t canId = CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdBootloader | C_parkbrakeNode;
 #elif NODE_ID==C_suspensionNode
-const uint16_t canId = CAN_MSG_TYPE_COMMAND | C_suspensionCmdReboot | C_suspensionNode;
+const uint16_t canId = CAN_MSG_TYPE_COMMAND | C_suspensionCmdBootloader | C_suspensionNode;
 #endif
 
 const uint16_t pageSize = 2048; // 2kb
@@ -108,6 +108,8 @@ void systemToApplication(void)
       msg.data8[1] = C_bootloaderErrNonValidBin;
       canPost(&msg);
       msg.data8[0] = C_bootloaderWait;
+      msg.DLC = 1;
+      canPost(&msg);
       commandsStart(&msg);
     }
   }

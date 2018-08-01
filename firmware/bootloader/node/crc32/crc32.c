@@ -13,10 +13,10 @@ uint32_t crc32(uint32_t init, const void *data, size_t length)
 {
     // static to save some stackspace,
     // not sure if its needed due to non recursive, but bss (better save space)...
-    static uint8_t *p;
+    static const uint8_t *p;
     static uint32_t i, crc, bit;
 
-    p = (uint8_t *)data;
+    p = (const uint8_t *)data;
     crc = ~init;
     for (i = 0; i < length; i++) {
         for (bit = 0; bit < 8; bit++) {

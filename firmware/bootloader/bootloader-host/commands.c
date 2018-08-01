@@ -157,25 +157,9 @@ static bool canrecv(canframe_t *frm, int timeoutms)
     else if (ret) {
         int nbytes;
         // Data is available now.
-        struct {
-            struct bcm_msg_head msg_head;
-            struct can_frame frame;
-        } bmsg;
-
-        if ((nbytes = read(cansock, &bmsg, sizeof(bmsg))) < 0)
-            errExit("bcm read");
-
-        if (bmsg.msg_head.opcode != RX_CHANGED) {
-            fprintf(stderr, "**Received strange BCM opcode %d!\n", bmsg.msg_head.opcode);
-            return false; /* quit */
-        }
-
-        if (nbytes != sizeof(bmsg)) {
-            fprintf(stderr, "**Received strange BCM data length %d!\n", nbytes);
-            return false; /* quit */
-        }
-
-        memcpy(frm, &bmsg.frame, sizeof(canframe_t));
+        if ((nbytes = read(cansock, frm, sizeof(*frm))) < 0)
+            errExit("CAN read from socket failed");
+        return true;
     }
     return false;
 }
@@ -193,6 +177,7 @@ static bool filteredRecv(canframe_t *recvFrm, int timeout,
         {
             break;
         }
+        res = 0;
         if (!running)
             cleanExit();
     }
@@ -214,26 +199,27 @@ static void initMemoryInfo(canframe_t *sendFrm, canframe_t *recvFrm)
     sendFrm->can_dlc = 1;
     sendFrm->data[0] = C_bootloaderStartAddress;
     if (!cansend(sendFrm, 1000))
-        errExit("cant send");
+        errExit("cant send\n");
 
     // get result
     if (!filteredRecv(recvFrm, 1000, 0, C_bootloaderStartAddress))
-        errExit("No response from node");
+        errExit("No response from node\n");
 
-    memory.bootRomStart = (recvFrm->data[2] >> 8 | recvFrm->data[1]);
+    memory.bootRomStart = (uint32_t)(recvFrm->data[4] << 24 | recvFrm->data[3] << 16 |
+                                     recvFrm->data[2] << 8  | recvFrm->data[1]);
 
     // get the rest
     sendFrm->can_dlc = 1;
     sendFrm->data[0] = C_bootloaderMemPageInfo;
     if (!cansend((sendFrm), 1000))
-        errExit("cant send");
+        errExit("cant send\n");
 
 
     if (!filteredRecv(recvFrm, 1000, 0, C_bootloaderMemPageInfo))
-        errExit("No response from node");
+        errExit("No response from node\n");
 
-    memory.pageSize = recvFrm->data[2] >> 8 | recvFrm->data[1];
-    memory.nrPages  = recvFrm->data[4] >> 8 | recvFrm->data[3];
+    memory.pageSize = (uint16_t)(recvFrm->data[2] << 8 | recvFrm->data[1]);
+    memory.nrPages  = (uint16_t)(recvFrm->data[4] << 8 | recvFrm->data[3]);
 
     memory.bootRomEnd = memory.bootRomStart +
                             (memory.pageSize * memory.nrPages);
@@ -246,7 +232,7 @@ static can_bootloaderErrs_e resetNode(canframe_t *sendFrm, canframe_t *recvFrm)
     if (!cansend(sendFrm, 1000))
         return C_bootloaderErrSendFailed;
 
-    if (!filteredRecv(recvFrm, 2000, 0, C_bootloaderWait))
+    if (!filteredRecv(recvFrm, 2000, 0, C_bootloaderReset))
         return C_bootloaderErrNoResponse;
 
     return C_bootloaderErrOK;
@@ -256,7 +242,7 @@ static can_bootloaderErrs_e getRemoteChecksum(memoptions_t *mopt,
                                              canframe_t *sendFrm,
                                              canframe_t *recvFrm)
 {
-    sendFrm->can_dlc = 8;
+    sendFrm->can_dlc = 0;
     sendFrm->data[sendFrm->can_dlc++] = C_bootloaderChecksum;
     // start address
     sendFrm->data[sendFrm->can_dlc++] = (mopt->lowerbound & 0x000000FF);
@@ -270,13 +256,11 @@ static can_bootloaderErrs_e getRemoteChecksum(memoptions_t *mopt,
     sendFrm->data[sendFrm->can_dlc++] = (len & 0x00FF0000) >> 16;
     cansend(sendFrm, 100);
 
-    if (!filteredRecv(recvFrm, 100, 0, C_bootloaderChecksum))
+    if (!filteredRecv(recvFrm, 2000, 0, C_bootloaderChecksum))
         return C_bootloaderErrNoResponse;
 
-    nodeCrc = (recvFrm->data[1] & 0x000000FF) |
-              (recvFrm->data[1] & 0x0000FF00) >> 8 |
-              (recvFrm->data[1] & 0x00FF0000) >> 16 |
-              (recvFrm->data[1] & 0xFF000000) >> 24;
+    nodeCrc = (uint32_t)(recvFrm->data[4] << 24 | recvFrm->data[3] << 16 |
+                         recvFrm->data[2] << 8  | recvFrm->data[1]);
 
     return C_bootloaderErrOK;
 }
@@ -311,8 +295,8 @@ static uint8_t *readLocalFile(const char *binName, long *sz)
 {
 
     binFile = fopen(binName, "r");
-    if (binName == NULL) {
-        fprintf(stderr, "**Couldn't open binfile '%s'", binName);
+    if (binFile == NULL) {
+        fprintf(stderr, "**Couldn't open binfile '%s'\n", binName);
         errExit(0);
     }
 
@@ -321,19 +305,21 @@ static uint8_t *readLocalFile(const char *binName, long *sz)
     *sz = ftell(binFile);
     rewind(binFile);
 
+    fprintf(stdout, "--Using file: %s\n", binName);
+
     if (*sz < 0)
-        errExit("Error when determining filesize");
+        errExit("Error when determining filesize\n");
 
     if (*sz > 3072000) {
         fclose(binFile);
         binFile = NULL;
-        errExit("Binfile over 3Mb, aborting....");
+        errExit("Binfile over 3Mb, aborting....\n");
      }
 
     // create buffer
     uint8_t *fileBuf = (uint8_t*)malloc(sizeof(uint8_t) * (size_t)*sz);
     if (fileBuf == NULL)
-        errExit("Couldnt read file into RAM memory. any space left?");
+        errExit("Couldnt read file into RAM memory. any space left?\n");
 
     // read file into ram
     uint8_t *fileIt = fileBuf;
@@ -434,16 +420,11 @@ static can_bootloaderErrs_e recvFileFromNode(uint8_t *fileCache, canframe_t *sen
                                             uint32_t endAddr)
 {
     uint16_t canPageNr;
-    uint8_t frames, frameNr; //, *addr, *endAddr;
+    uint8_t frames, frameNr;
     uint32_t crc = 0;
 
-    uint32_t memPages = ((endAddr - startAddr) / memory.pageSize) +
-                        ((endAddr - startAddr) % memory.pageSize);
+    uint32_t lastStoredIdx = 0;
 
-    uint16_t memPagesWritten = 0;
-
-
-readMemPageLoop:
     canPageNr = 0;
 
 readCanPageLoop:
@@ -456,63 +437,57 @@ readCanPageLoop:
 
       if ((recvFrm->data[0] & 0x80) && frames == 0) {
         // get header
-        crc = (recvFrm->data[4] >> 24 | recvFrm->data[3] >> 16 |
-               recvFrm->data[2] >> 8  | recvFrm->data[1]);
+        crc = (uint32_t)(recvFrm->data[4] << 24 | recvFrm->data[3] << 16 |
+                         recvFrm->data[2] << 8  | recvFrm->data[1]);
         frames = recvFrm->data[5];
         if (canPageNr != (recvFrm->data[7] << 8 | recvFrm->data[6])) {
           return C_bootloaderErrCanPageOutOfOrder;
         }
       } else {
-        // it's a payload frame
+        // it's a payload frame, frames might arrive at random order
+        uint32_t cPage = (canPageNr * BOOTLOADER_PAGE_SIZE) * 7,
+                 fOffset = ((recvFrm->data[0] & 0x7F) * 7);
+        if (lastStoredIdx < cPage + fOffset + recvFrm->can_dlc -1)
+            lastStoredIdx = cPage + fOffset + recvFrm->can_dlc -1;
         for (uint8_t i = 1; i < 8; ++i) {
           if (recvFrm->can_dlc == i)
             break; // frameNr == frames should be true now
-          fileCache[(memPagesWritten * memory.pageSize)
-                    + (canPageNr * 0x7F)
-                    + (recvFrm->data[0] & 0x7F) + i] = recvFrm->data[i];
+          fileCache[cPage + fOffset + i -1] = recvFrm->data[i];
         }
+        //printf("at idx:%u cPage:%u fOffset:%u\n", cPage + fOffset + recvFrm->can_dlc -1, cPage, fOffset);
       }
 
-      ++frameNr;
-    } while (frameNr < frames);
+    } while (frameNr++ < frames);
 
     // check canPage
     // pointer buf[0] advance to start of canPage.
     // last frame might be less than 7 bytes
-    if (!crc32(0, fileCache + (memPagesWritten * memory.pageSize)
-                  + (canPageNr * 0x7F), (frames * 7)
-                  - (7 + recvFrm->can_dlc)))
-    {
+    uint32_t recvCrc = crc32(0, fileCache + (canPageNr * BOOTLOADER_PAGE_SIZE * 7),
+                             lastStoredIdx - (canPageNr * BOOTLOADER_PAGE_SIZE * 7));
+    if (crc != recvCrc) {
       // notify node that we need this canPage retransmitted
       sendFrm->can_dlc = 2;
       sendFrm->data[0] = C_bootloaderReadFlash;
       sendFrm->data[1] = C_bootloaderErrResend;
-      if (cansend(sendFrm, 1000))
+      if (!cansend(sendFrm, 1000))
           return C_bootloaderErrSendFailed;
 
       goto readCanPageLoop;
     }
 
-    ++canPageNr;
 
     // if we haven't received a complete pageSize yet
     // and we are not at end of bin
     // (last memPage sent from invoker might be less than pageSize)
-    if ((canPageNr + frames) < memory.pageSize &&
-        (memPagesWritten + 1) < memPages)
-    {
+    if (lastStoredIdx < (endAddr - startAddr -1)) {
+      ++canPageNr;
       sendFrm->can_dlc = 2;
       sendFrm->data[0] = C_bootloaderReadFlash;
       sendFrm->data[1] = C_bootloaderErrOK;
-      if (cansend(sendFrm, 1000))
+      if (!cansend(sendFrm, 1000))
           return C_bootloaderErrSendFailed;
       goto readCanPageLoop;
     }
-
-    // here we are at the last canPage of this memPage
-    // a *.bin might span over many memPages
-    if (++memPagesWritten < memPages)
-      goto readMemPageLoop;
 
     return C_bootloaderErrOK;
 }
@@ -526,6 +501,7 @@ void cleanup(void)
         close(cansock);
     if (binFile)
         fclose(binFile);
+    binFile = 0;
 }
 
 void cleanExit(void)
@@ -601,7 +577,7 @@ void doReadCmd(memoptions_t *mopt, char *storeName)
     if (!filteredRecv(&recvFrm, 100, 0, C_bootloaderReadFlash))
         errExit("No ack for CAN read\n");
 
-    if (recvFrm.data[0] != C_bootloaderErrOK)
+    if (recvFrm.data[1] != C_bootloaderErrOK)
         nodeErrExit("Node gives error when init read mode:", recvFrm.data[1]);
 
     // allocate a filecache for received bytes
@@ -624,10 +600,10 @@ void doReadCmd(memoptions_t *mopt, char *storeName)
             goto readCleanup;
         }
 
-        fprintf(stdout, "Successfully written to '%s'\n\n", fileName);
+        fprintf(stdout, "\n--Successfully written to '%s'\n\n", fileName);
     } else {
         // some error during reception?
-        fprintf(stderr, "Error when recieving bin from node: %s\n", bootloadErrToStr(err));
+        fprintf(stderr, "**Error when recieving bin from node: %s\n", bootloadErrToStr(err));
         errOccured = true;
     }
 
@@ -639,6 +615,7 @@ readCleanup:
     if (fileCache)
         free(fileCache);
     fclose(binFile);
+    binFile = 0;
     if (errOccured)
         errExit(0);
 
@@ -654,8 +631,8 @@ void doPrintMemorySetupCmd(void)
     // get memory setup from Node uC
     initMemoryInfo(&sendFrm, &recvFrm);
 
-    fprintf(stdout, "\nStartAddress:  %x\n"
-                      "Endaddress:    %x"
+    fprintf(stdout, "\nStartAddress:  0x%x\n"
+                      "Endaddress:    0x%x\n"
                       "PageSize:     %u\n"
                       "Nr pages:     %u\n"
                       "Totalsize:    %u\n\n",
@@ -682,7 +659,7 @@ void doChecksumCmd(memoptions_t *mopt)
         errExit(0);
     }
 
-    fprintf(stdout, "Flash in node @ %x to %x\ncrc32 = %u\n",
+    fprintf(stdout, "\n--Flash in node @ %x to %x\n--Memory crc32 = %u\n",
             mopt->lowerbound, mopt->upperbound, nodeCrc);
 }
 
@@ -696,7 +673,7 @@ void doResetCmd(void)
     if (err != C_bootloaderErrOK)
         nodeErrExit("Error while reset:", err);
 
-    fprintf(stdout, "Reset done succesfully!");
+    fprintf(stdout, "\n--Reset done succesfully!\n");
 }
 
 // this function prints crc of a local file
@@ -707,7 +684,7 @@ void doChecksumLocalCmd(const char *binName)
     binCrc = crc32(0, cache, sizeof(uint8_t) * (size_t)sz);
     free(cache);
 
-    fprintf(stdout, "\nBinfile crc32 = %u\n\n", binCrc);
+    fprintf(stdout, "\n--Binfile crc32 = %u\n\n", binCrc);
 }
 
 void doCompareCmd(const char *binName)
@@ -725,7 +702,7 @@ void doCompareCmd(const char *binName)
     binCrc = crc32(0, buf, (size_t)sz);
     free(buf);
 
-    fprintf(stdout, "\nBinfile crc32 = %u\n\n", binCrc);
+    fprintf(stdout, "\n--Binfile crc32 = %u\n\n", binCrc);
 
     // get remote crc up to size of our localfile
     memoptions_t mopt = {
@@ -737,7 +714,7 @@ void doCompareCmd(const char *binName)
     doChecksumCmd(&mopt);
 
     if (binCrc == nodeCrc)
-        fprintf(stdout, "Files match!!!\n\n");
+        fprintf(stdout, "\n--Files match!!!\n\n");
     else
         fprintf(stdout, "*********** MISMATCH ***********\n\n");
 }
@@ -768,7 +745,7 @@ void doEraseCmd(memoptions_t *mopt)
 
     const uint32_t timeout = 30000;
     if (!canrecv(&recvFrm, timeout)) {
-        fprintf(stderr, "No repsonse from node, timeout after:%dms", timeout);
+        fprintf(stderr, "**No repsonse from node, timeout after:%dms", timeout);
         errExit(0);
     }
 
@@ -809,7 +786,7 @@ void doWriteCmd(memoptions_t *mopt, char *binName)
     can_bootloaderErrs_e err = writeFileToNode(mopt, fileCache,
                                                &sendFrm, &recvFrm);
     if (err == C_bootloaderErrOK) {
-        fprintf(stdout, "Write process completed successfully!\nChecking checksum...\n");
+        fprintf(stdout, "\n--Write process completed successfully!\nChecking checksum...\n");
 
         err = getRemoteChecksum(mopt, &sendFrm, &recvFrm);
         if (err != C_bootloaderErrOK) {
@@ -824,8 +801,8 @@ void doWriteCmd(memoptions_t *mopt, char *binName)
             goto writeCleanup;
         }
 
-        fprintf(stdout, "CRC match!! bincrc:%u  nodecrc:%u\n\n", binCrc, nodeCrc);
-        fprintf(stdout, "You can now reset node to make it run normally on the new firmware\n  Do you want to reset? [Y] or [N]");
+        fprintf(stdout, "\n--CRC match!! bincrc:%u  nodecrc:%u\n\n", binCrc, nodeCrc);
+        fprintf(stdout, "\n--You can now reset node to make it run normally on the new firmware\n  Do you want to reset? [Y] or [N]");
         int ch = getc(stdin);
         if (ch == 'Y' || ch == 'y' || ch == 'j' || ch == 'J') {
             err = resetNode(&sendFrm, &recvFrm);
@@ -856,12 +833,23 @@ void doBootloaderModeCmd(void)
     canframe_t sendFrm, recvFrm;
     initFrame(&sendFrm);
     initFrame(&recvFrm);
-    resetNode(&sendFrm, &recvFrm);
+    bool printResetFail = true;
+    while (true) {
+        if (resetNode(&sendFrm, &recvFrm) != C_bootloaderErrOK)
+            if (printResetFail) {
+                printResetFail =false;
+                fprintf(stderr, "**Unable to reset node, please powercycle node (ie. yank fuse)\n");
+            }
 
-    if (!canrecv(&recvFrm, 5000))
-        errExit("Failed to reset to bootloadermode\n");
+        if (canrecv(&recvFrm, 1000)) {
+            if ((recvFrm.can_dlc > 0) &&
+                (recvFrm.data[0] == C_bootloaderWait ||
+                 recvFrm.data[0] == C_bootloaderReset))
+                break;
+        }
+    }
 
     // trigger a cmd so we set node in cammand mode
-    fprintf(stdout, "Successfully set in bootloadermode\n");
-    doPrintMemorySetupCmd();
+    fprintf(stdout, "\n--Successfully set in bootloadermode\n--Printing memory\n\n");
+    doPrintMemorySetupCmd(); // using memory print for this
 }

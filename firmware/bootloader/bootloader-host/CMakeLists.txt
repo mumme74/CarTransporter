@@ -11,7 +11,7 @@ add_executable(${PROJECT_NAME} "commands.c"
                                "../node/crc32/crc32.c")
 
 set(CMAKE_BUILD_TYPE Debug)
-add_definitions(-DDEBUG=1)
+#add_definitions(-DDEBUG=1)
 
 include_directories(
     /Volumes/qt5pi/usr/include/arm-rpi3-linux-gnueabihf

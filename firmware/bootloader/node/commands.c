@@ -18,7 +18,7 @@
 
 
 // _appRomXXX from linkscript
-extern const uint8_t *_appRomStart, *_appRomEnd, *_bootRom;
+extern const uint32_t _appRomStart, _appRomEnd, _bootRom;
 
 static void sendErr(canframe_t *msg, can_bootloaderErrs_e err)
 {
@@ -27,17 +27,19 @@ static void sendErr(canframe_t *msg, can_bootloaderErrs_e err)
   CAN_POST_MSG;
 }
 
+static uint8_t *addr, *endAddr;
+
 // used by both readflash and writeflash
-static bool getAndCheckAddress(canframe_t *msg, uint8_t *addr, uint8_t *endAddr)
+static bool getAndCheckAddress(canframe_t *msg)
 {
-  addr = (uint8_t*)((msg->data8[3] << 24) | (msg->data8[2] << 16) |
-                    (msg->data8[1] << 8)  | (msg->data8[0])) ;
-  endAddr = addr + ((msg->data8[2] << 16) | (msg->data8[1] << 8) |
-                  (msg->data8[0]));
-  if (addr < _appRomStart) {
+  addr = (uint8_t*)((msg->data8[4] << 24) | (msg->data8[3] << 16) |
+                    (msg->data8[2] << 8)  | (msg->data8[1])) ;
+  endAddr = addr + ((msg->data8[7] << 16) | (msg->data8[6] << 8) |
+                    (msg->data8[5]));
+  if (addr < (uint8_t*)&_appRomStart) {
     sendErr(msg, C_bootloaderErrStartAddressOutOfRange);
     return false; // to commands loop
-  } else if (endAddr > _appRomEnd) {
+  } else if (endAddr > (uint8_t*)&_appRomEnd) {
     sendErr(msg, C_bootloaderErrEndAddressOutOfRange);
     return false; // to commands loop
   }
@@ -48,24 +50,32 @@ static bool runCommand(canframe_t *msg)
 {
   static uint32_t crc;
   static uint16_t canPageNr; // as in CAN page
-  static uint8_t  frames, frameNr, *addr, *endAddr;
+  static uint8_t  frames, frameNr; //, *addr, *endAddr;
 
   switch(msg->data8[0]){
   case C_bootloaderReadFlash: {
-    if (!getAndCheckAddress(msg, addr, endAddr))
+    if (!getAndCheckAddress(msg))
       break;
+    // report to invoker that we are in read command mode
+    msg->data8[1] = C_bootloaderErrOK;
+    msg->DLC = 2;
+    CAN_POST_MSG;
+
     canPageNr = 0;
+    uint8_t *addrAtCanPageStart;
 
 readPageLoop:
     // begin header
     frameNr = 0;
+    addrAtCanPageStart = addr;
     // concept here is that addr advances in send loop with nr bytes written
     // we will eventually reach endAddr
     // also when reading memory we don't need that 2K memory page restriction that we need when writing to memory
-    frames = MIN(endAddr - addr, BOOTLOADER_PAGE_SIZE) / 7 +
-             MIN(endAddr - addr, BOOTLOADER_PAGE_SIZE) % 7;
+    frames = MIN((endAddr - addr-1) / 7 + (endAddr - addr -1) % 7,
+                 BOOTLOADER_PAGE_SIZE);
 
-    crc = crc32(0, addr, MIN(endAddr - addr, BOOTLOADER_PAGE_SIZE));
+    crc = crc32(0, addr + (frameNr * 7),
+                MIN(endAddr - addr -1, (BOOTLOADER_PAGE_SIZE * 7)));
     msg->DLC = 8;
     msg->data8[0] = C_bootloaderReadFlash;
     msg->data8[1] = (crc & 0x000000FF);
@@ -74,18 +84,21 @@ readPageLoop:
     msg->data8[4] = (crc & 0xFF000000) >> 24;
     // len of page
     msg->data8[5] = frames;
-    msg->data8[6] = (canPageNr & 0x0000FF00) >> 8;
-    msg->data8[7] = (canPageNr & 0x00FF0000) >> 16;
+    msg->data8[6] = (canPageNr & 0x00FF);
+    msg->data8[7] = (canPageNr & 0xFF00) >> 8;
     CAN_POST_MSG;
-    ++canPageNr;
+    // inc canPageNr when we know if invoker has crc accepted this frame
+    // done below
 
     // begin payload frames
     while (frameNr < frames) {
       msg->data8[0] = frameNr++;
       for (uint8_t i = 1; i < 8; ++i) {
         msg->data8[i] = *addr;
-        if (++addr >= endAddr)
+        if (++addr >= endAddr) {
+          msg->DLC = i;
           break; // frameId should now be frameId == frames
+        }
       }
       CAN_POST_MSG;
     }
@@ -93,18 +106,24 @@ readPageLoop:
     // wait for remote to Ack this page
     do {
       CAN_NEXT_MSG;
+      if (msg->DLC > 0 && msg->data8[0] == C_bootloaderReset)
+        systemReset();
     } while(msg->DLC != 2 && msg->data8[0] != C_bootloaderReadFlash);
 
     // check if we should resend
     if (msg->data8[1] == C_bootloaderErrOK)
       ++canPageNr;
+    else {
+      // resend
+      addr = addrAtCanPageStart;
+    }
     if (addr >= endAddr)
       return true; // finished!, to commands loop
     goto readPageLoop;
   }  break;
 
   case C_bootloaderChecksum: {
-    if (!getAndCheckAddress(msg, addr, endAddr))
+    if (!getAndCheckAddress(msg))
       break;
     crc = crc32(0, addr, endAddr - addr);
     msg->DLC = 5;
@@ -116,7 +135,7 @@ readPageLoop:
   }  break;
 
   case C_bootloaderWriteFlash: {
-    if (!getAndCheckAddress(msg, addr, endAddr))
+    if (!getAndCheckAddress(msg))
       break;
     uint16_t memPages = ((endAddr - addr) / pageSize) +
                         ((endAddr - addr) % pageSize);
@@ -210,14 +229,14 @@ writeCanPageLoop:
 
   case C_bootloaderEraseFlash: {
     canPageNr = (msg->data8[2] >> 8 | msg->data8[1]) +
-                ((_appRomStart - _bootRom) / pageSize);
-    addr = (uint8_t*)_appRomStart + (canPageNr * pageSize);
-    if (addr > _appRomEnd) {
+                ((&_appRomStart - &_bootRom) / pageSize);
+    addr = (uint8_t*)&_appRomStart + (canPageNr * pageSize);
+    if (addr > (uint8_t*)&_appRomEnd) {
       sendErr(msg, C_bootloaderErrStartPageOutOfRange);
       break;
     }
     endAddr = addr + ((msg->data8[4] << 8 | msg->data8[3]) * pageSize);
-    if (endAddr > _appRomEnd) {
+    if (endAddr > (uint8_t*)_appRomEnd) {
       sendErr(msg, C_bootloaderErrPageLenOutOfRange);
       break;
     }
@@ -230,21 +249,22 @@ writeCanPageLoop:
 
   case C_bootloaderStartAddress: {
     msg->DLC = 5;
-    uint32_t stAdr = (uint32_t)(_appRomStart);
-    msg->data8[1] = (stAdr & 0x000000FF);
-    msg->data8[2] = (stAdr & 0x0000FF00) >> 8;
-    msg->data8[3] = (stAdr & 0x00FF0000) >> 16;
-    msg->data8[4] = (stAdr & 0xFF000000) >> 24;
+    const uint32_t romStart = (uint32_t)&_appRomStart;
+    msg->data8[1] = (romStart & 0x000000FF);
+    msg->data8[2] = (romStart & 0x0000FF00) >> 8;
+    msg->data8[3] = (romStart & 0x00FF0000) >> 16;
+    msg->data8[4] = (romStart & 0xFF000000) >> 24;
     CAN_POST_MSG;
   }  break;
 
   case C_bootloaderMemPageInfo: {
     msg->DLC = 5;
-    canPageNr = (_appRomEnd - _appRomStart) / pageSize;
+    canPageNr = ((uint32_t)&_appRomEnd - (uint32_t)&_appRomStart) / pageSize;
     msg->data8[1] = (pageSize & 0x00FF);
     msg->data8[2] = (pageSize & 0xFF00) >> 8;
     msg->data8[3] = (canPageNr & 0x00FF);
     msg->data8[4] = (canPageNr & 0x00FF) >> 8;
+    CAN_POST_MSG;
   }  break;
 
   case C_bootloaderReset:

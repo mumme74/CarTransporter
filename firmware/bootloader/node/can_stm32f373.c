@@ -36,18 +36,18 @@ static void init_filters(uint32_t id, uint32_t mask, bool enable)
     // filter out all but 11bit ids and our specific ID
     can_filter_id_mask_16bit_init(
                 filterId++,     /* Filter ID */
-                (uint16_t)(id & 0x7FF), /* CAN ID */
-                (uint16_t)(mask & 0x7FF),  /* CAN ID mask */
-                (uint16_t)(id & 0x7FF),
-                (uint16_t)(mask & 0x7FF),
+                (uint16_t)(id & 0x000007FF), /* CAN ID */
+                (uint16_t)(mask & 0x000007FF),  /* CAN ID mask */
+                (uint16_t)(id & 0x000007FF),
+                (uint16_t)(mask & 0x000007FF),
                 fifo,     /* FIFO assignment (here: FIFO0) */
                 enable); /* Enable the filter. */
     // squeslh all 29bit IDs
-    can_filter_id_mask_32bit_init(filterId++, 0, mask, fifo, enable);
+    //can_filter_id_mask_32bit_init(filterId++, 0, 0x1FFFFFFF, fifo, enable);
   }
 }
 
-
+// called by receive interrupts
 static void receive(uint8_t fifo)
 {
     // check if we are full
@@ -150,8 +150,8 @@ void canInit(uint32_t filterId)
 
 
     /* CAN filter init.on all fifos */
-    //init_filters(filterId, 0x7FF, true);
-    init_filters(0, 0, true);
+    init_filters(filterId, filterId & 0x000007F8, true);
+    //init_filters(0, 0, true); // for debug, all open filters
 
     /* NVIC setup. for both rx FIFOs  */
     nvic_enable_irq(NVIC_USB_LP_CAN1_RX0_IRQ); // fifo 0

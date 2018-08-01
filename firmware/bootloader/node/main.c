@@ -27,8 +27,7 @@ int main(void)
 
     canframe_t msg, *pmsg;
     canInitFrame(&msg, canId);
-    msg.data8[msg.DLC++] =  C_bootloaderWait & 0x00FF;
-    msg.data8[msg.DLC++] = (C_bootloaderWait & 0xFF00) >> 8;
+    msg.data8[msg.DLC++] = C_bootloaderReset;
     canPost(&msg);
 
     while (globalMsSinceStartup < WAIT_BEFORE_APPBOOT){

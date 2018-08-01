@@ -122,7 +122,7 @@ void setup_can_iface(char *name)
         rcvfilter.can_mask = 0x7F8; // filter in only this id
     } else {
         // 29 bit (extended frame)
-        rcvfilter.can_mask = 0x7FF8;
+        rcvfilter.can_mask = 0x1FFFFFF8;
     }
     rcvfilter.can_id = canIdx;
     setsockopt(cansock, SOL_CAN_RAW, CAN_RAW_FILTER, &rcvfilter, sizeof (struct can_filter));
@@ -183,7 +183,8 @@ void print_usage(char *prg)
     fprintf(stderr, "                       If no memory region given, use standard place\n\n");
     fprintf(stderr, "                       Erases flash memory in node.\n");
     fprintf(stderr, "                       If no memory region given, erase complete memory\n\n");
-    fprintf(stderr, "   compare      file.bin      <optional memory region in hex>\n");
+    fprintf(stderr, "   comparewithfile\n");
+    fprintf(stderr, "               file.bin      <optional memory region in hex>\n");
     fprintf(stderr, "                       Compares memory in node with file.bin.\n");
     fprintf(stderr, "                       If no memory region given, compare from standard startadress\n");
     fprintf(stderr, "                       up to filesize of file.bin\n\n");
@@ -233,7 +234,7 @@ int main(int argc, char *argv[])
         switch (opt) {
         case 'i': {
             long idx = strtol(optarg, NULL, 16);
-            if (idx < 0 || idx > 0x7FFF) {
+            if (idx < 0 || idx > 0x7FF) {
                 errExit("Wrong canID given\n");
             }
             canIdx = (unsigned int)idx;
@@ -241,29 +242,29 @@ int main(int argc, char *argv[])
         case 'n': {
             int idx = atoi(optarg);
             if (idx < 0 || idx > MAX_NODENR || !isdigit(optarg[0])) {
-                errExit("Wrong nodeNr given\n");
+                errExit("Wrong nodeNr given. Only 11bits is ok\n");
             }
             switch (idx) {
             case 0:
-                canIdx = CAN_MSG_TYPE_DIAG | C_parkbrakeDiagSerial | C_displayNode;
+                canIdx = CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdBootloader | C_displayNode;
                 break;
             case 1:
-                canIdx = CAN_MSG_TYPE_DIAG | C_suspensionDiagSerial | C_displayNode;
+                canIdx = CAN_MSG_TYPE_COMMAND | C_suspensionCmdBootloader | C_displayNode;
                 break;
             case 2:
-                canIdx = CAN_MSG_TYPE_DIAG | C_displayDiag_LAST | C_displayNode;
+                canIdx = CAN_MSG_TYPE_COMMAND; // | C_displayDiag_LAST | C_displayNode;
                 break;
             case 3:
-                canIdx = CAN_MSG_TYPE_DIAG;
+                canIdx = CAN_MSG_TYPE_COMMAND;
                 break;
             case 4:
-                canIdx = CAN_MSG_TYPE_DIAG;
+                canIdx = CAN_MSG_TYPE_COMMAND;
                 break;
             case 5:
-                canIdx = CAN_MSG_TYPE_DIAG;
+                canIdx = CAN_MSG_TYPE_COMMAND;
                 break;
             case 6:
-                canIdx = CAN_MSG_TYPE_DIAG;
+                canIdx = CAN_MSG_TYPE_COMMAND;
                 break;
             case 7:
                 canIdx = CAN_MSG_TYPE_DIAG;
@@ -274,9 +275,9 @@ int main(int argc, char *argv[])
         }   break;
         case 'N':
             if (strcmp(optarg, "parkbrakeNode") == 0)
-                canIdx = CAN_MSG_TYPE_DIAG | C_parkbrakeDiagSerial | C_displayNode;
+                canIdx = CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdBootloader | C_displayNode;
             else if (strcmp(optarg, "suspensionNode") == 0)
-                canIdx = CAN_MSG_TYPE_DIAG | C_suspensionDiagSerial | C_displayNode;
+                canIdx = CAN_MSG_TYPE_COMMAND | C_suspensionCmdBootloader | C_displayNode;
             else {
                 fprintf(stderr, "Unknown node %s\n", optarg);
                 errExit(0);
@@ -326,9 +327,9 @@ int main(int argc, char *argv[])
                     fprintf(stderr, "**Wrong memory regions given %s\n", argoptions[0]);
                     errExit(0);
                 }
-            } else if (argoptionsc < 1)
+            } else if (argoptionsc < 2)
                 errExit("Must give a filename to save to");
-            doReadCmd(&mopt, argoptions[0]);
+            doReadCmd(&mopt, argoptions[1]);
 
         } else if (strcmp(cmd, "checksum") == 0) {
             // get memory checksum
@@ -362,9 +363,9 @@ int main(int argc, char *argv[])
                     fprintf(stderr, "**Wrong memory regions given %s\n", argoptions[0]);
                     errExit(0);
                 }
-            } else if (argoptionsc < 1)
+            } else if (argoptionsc < 2)
                 errExit("Must give a filename to save to");
-            doWriteCmd(&mopt, argoptions[0]);
+            doWriteCmd(&mopt, argoptions[1]);
 
         } else if (strcmp(cmd, "reset") == 0) {
             // reset device
@@ -372,15 +373,15 @@ int main(int argc, char *argv[])
 
         } else if (strcmp(cmd, "checksumfile") == 0) {
             // get the checksum of local file
-            if (argoptionsc < 1)
+            if (argoptionsc < 2)
                 errExit("Must give a binary filepath as argument");
-            doChecksumLocalCmd(argoptions[0]);
+            doChecksumLocalCmd(argoptions[1]);
 
-        } else if (strcmp(cmd, "comparefile") == 0) {
+        } else if (strcmp(cmd, "comparewithfile") == 0) {
             // compares local bin with remote file
-            if (argoptionsc < 1)
+            if (argoptionsc < 2)
                 errExit("Must give a binary file path as argument");
-            doCompareCmd(argoptions[0]);
+            doCompareCmd(argoptions[1]);
 
         } else if (strcmp(cmd, "memoryinfo") == 0) {
             doPrintMemorySetupCmd();

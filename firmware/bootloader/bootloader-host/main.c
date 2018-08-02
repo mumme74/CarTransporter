@@ -138,16 +138,17 @@ bool parse_memoptions(memoptions_t *mopt, char *argoption)
 {
     char *ptok;
     mopt->lowerbound = mopt->upperbound = 0;
-    if ((ptok = strtok(argoption, ":")) != NULL)
+    if ((ptok = strtok(argoption, ":")) != NULL) {
         mopt->lowerbound = (uint32_t)strtol(ptok, NULL, 0);
-    else
-        return false;
-    if ((ptok = strtok(argoption, ":")) != NULL)
-        mopt->upperbound = (uint32_t)strtol(ptok, NULL, 0);
-    else
+
+        if ((ptok = strtok(NULL, ":")) != NULL)
+            mopt->upperbound = (uint32_t)strtol(ptok, NULL, 0);
+        else
+            return false;
+    } else
         return false;
 
-    if (mopt->lowerbound == 0 && mopt->upperbound == 0)
+    if (mopt->lowerbound == 0 || mopt->upperbound == 0)
         return false;
 
     if (mopt->lowerbound > mopt->upperbound) {
@@ -309,7 +310,7 @@ int main(int argc, char *argv[])
         char *cmd = argv[optind + 1];
 
         // get rest of agrguments
-        enum {max_arg_options = 2};
+        enum {max_arg_options = 3};
         char *argoptions[max_arg_options];
 
         int argoptionsc = MIN(argc - optind -1, max_arg_options);
@@ -323,7 +324,7 @@ int main(int argc, char *argv[])
             // split memory regions ie 0x800000:0x8000400
             memoptions_t mopt = {0, 0};
             if (argoptionsc > 2) { // more arguments given
-                if (!parse_memoptions(&mopt, argoptions[1])) {
+                if (!parse_memoptions(&mopt, argoptions[2])) {
                     fprintf(stderr, "**Wrong memory regions given %s\n", argoptions[0]);
                     errExit(0);
                 }
@@ -358,8 +359,8 @@ int main(int argc, char *argv[])
             // write a bin file to node
             // split memory regions ie 0x800000:0x8000400
             memoptions_t mopt = {0, 0};
-            if (argoptionsc > 1) { // more arguments given
-                if (!parse_memoptions(&mopt, argoptions[1])) {
+            if (argoptionsc > 2) { // more arguments given
+                if (!parse_memoptions(&mopt, argoptions[2])) {
                     fprintf(stderr, "**Wrong memory regions given %s\n", argoptions[0]);
                     errExit(0);
                 }

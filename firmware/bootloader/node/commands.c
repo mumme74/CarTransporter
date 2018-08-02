@@ -149,20 +149,25 @@ readPageLoop:
 
     uint8_t buf[pageSize];
     can_bootloaderErrs_e err;
+    uint32_t lastStoredIdx;
 
 writeMemPageLoop:
     canPageNr = 0;
 
 writeCanPageLoop:
     frameNr = frames = 0;
+    lastStoredIdx = 0;
 
     // loop to receive a complete canPage
     do {
       CAN_NEXT_MSG;
-      if ((msg->data8[0] & 0x80) && frames == 0) {
+      if ((msg->data8[0] & 0x80)) {
+        if (msg->data8[0] != C_bootloaderWriteFlash)
+          return true; // stuck in loop, we should probably abort
+
         // get header
-        crc = (msg->data8[4] >> 24 | msg->data8[3] >> 16 |
-               msg->data8[2] >> 8  | msg->data8[1]);
+        crc = (msg->data8[4] << 24 | msg->data8[3] << 16 |
+               msg->data8[2] << 8  | msg->data8[1]);
         frames = msg->data8[5];
         if (canPageNr != (msg->data8[7] << 8 | msg->data8[6])) {
           sendErr(msg, C_bootloaderErrCanPageOutOfOrder);
@@ -170,20 +175,27 @@ writeCanPageLoop:
         }
       } else {
         // it's a payload frame
+        uint32_t cPage = (canPageNr * BOOTLOADER_PAGE_SIZE) * 7,
+                 fOffset = ((msg->data8[0] & 0x7F) * 7);
+        if (lastStoredIdx < cPage + fOffset + msg->DLC -1)
+            lastStoredIdx = cPage + fOffset + msg->DLC -1;
         for (uint8_t i = 1; i < 8; ++i) {
           if (msg->DLC == i)
             break; // frameNr == frames should be true now
-          buf[(canPageNr * 0x7F) + (msg->data8[0] & 0x7F) + i] = msg->data8[i];
+          buf[cPage + fOffset + i -1] = msg->data8[i];
         }
+        ++frameNr;
       }
 
-      ++frameNr;
     } while (frameNr < frames);
 
     // check canPage
     // pointer buf[0] advance to start of canPage.
     // last frame might be less than 7 bytes
-    if (!crc32(0, buf + (canPageNr * 0x7F), (frames * 7) - (7 + msg->DLC))) {
+
+    uint32_t recvCrc = crc32(0, buf + (canPageNr * BOOTLOADER_PAGE_SIZE * 7),
+                             lastStoredIdx);
+    if (crc != recvCrc) {
       sendErr(msg, C_bootloaderErrResend);
       goto writeCanPageLoop;// resend this canPage
     } else {
@@ -228,15 +240,14 @@ writeCanPageLoop:
   }  break; // to commands loop
 
   case C_bootloaderEraseFlash: {
-    canPageNr = (msg->data8[2] >> 8 | msg->data8[1]) +
-                ((&_appRomStart - &_bootRom) / pageSize);
+    canPageNr = (msg->data8[2] >> 8 | msg->data8[1]);
     addr = (uint8_t*)&_appRomStart + (canPageNr * pageSize);
     if (addr > (uint8_t*)&_appRomEnd) {
       sendErr(msg, C_bootloaderErrStartPageOutOfRange);
       break;
     }
     endAddr = addr + ((msg->data8[4] << 8 | msg->data8[3]) * pageSize);
-    if (endAddr > (uint8_t*)_appRomEnd) {
+    if (endAddr > (uint8_t*)&_appRomEnd) {
       sendErr(msg, C_bootloaderErrPageLenOutOfRange);
       break;
     }

@@ -617,6 +617,7 @@ typedef enum {
   C_bootloaderErrPageWriteFailed       = 0x06,
   C_bootloaderErrPageEraseFailed       = 0x07,
   C_bootloaderErrCanPageOutOfOrder     = 0x08,
+  C_bootloaderErrMemoryPageViolation   = 0x09,
   C_bootloaderErrNoResponse            = 0x20,
   C_bootloaderErrSendFailed            = 0x21,
 

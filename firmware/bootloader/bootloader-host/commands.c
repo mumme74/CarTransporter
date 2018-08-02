@@ -8,17 +8,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include <sys/uio.h>
 #include <net/if.h>
-#include <errno.h>
 
 #include <linux/can.h>
 #include <linux/can/raw.h>
 #include <linux/can/bcm.h>
+#include <linux/errno.h> // must be included before errno.h
+#include <errno.h>
 
 #include "crc32.h"
 #include "can_protocol.h"
@@ -129,8 +131,18 @@ static int wait_on_sock(int sock, long timeout, int r, int w)
 
 static bool cansend(canframe_t *msg, int timeoutms)
 {
-    if (write(cansock, msg, CAN_MTU) != CAN_MTU) {
-        perror("write to CAN");
+    ssize_t e = write(cansock, msg, CAN_MTU);
+    if (e == -1 &&
+        (errno == EWOULDBLOCK || errno == EAGAIN || errno == ENOBUFS))
+    {
+        // wait for 50ms then retry
+        struct timespec time = { 0 /*sec*/, 50000000 /*nanosecs*/ };
+        nanosleep(&time, NULL);
+        e = write(cansock, msg, CAN_MTU);
+    }
+
+    if (e != CAN_MTU) {
+        fprintf(stderr, "**write to CAN failed errno:%d\n", errno);
         return false;
     }
     return wait_on_sock(cansock, timeoutms, 0, 1) == 0;
@@ -348,45 +360,51 @@ static can_bootloaderErrs_e writeFileToNode(memoptions_t *mopt, uint8_t *fileCac
     uint16_t canPageNr = 0,
              memPageGuard = 0;
     uint32_t crc;
+    uint8_t *addrAtCanPageStart;
+    uint8_t *addrAtMemPageStart;
 
-writePageLoop:
+writeMemPageLoop:
+    addrAtMemPageStart = addr;
+
+writeCanPageLoop:
     // begin header
     // on top of the 889 bytes restriction in CAN pages, BOOTLOADER_PAGE_SIZE,
     // it must also send in chunks divisible by mempage.pageSize (ie 2048)
-
+    addrAtCanPageStart = addr;
 
     // concept here is that addr advances in send loop with nr bytes written
-    // we use memPageGuard to make sure we transmitt in pageSize chunks
+    // we use addrAtMemPageStart to make sure we transmitt in pageSize chunks
     // we will eventually reach endAddr
     frameNr = 0;
-    frames = MIN(endAddr - addr, BOOTLOADER_PAGE_SIZE) / 7 +
-             MIN(endAddr - addr, BOOTLOADER_PAGE_SIZE) % 7;
-    crc = crc32(0, addr, MIN(endAddr - addr, BOOTLOADER_PAGE_SIZE));
+    frames = MIN(endAddr - addr -1, BOOTLOADER_PAGE_SIZE * 7) / 7 +
+             MIN(endAddr - addr -1, BOOTLOADER_PAGE_SIZE * 7) % 7;
+
+    crc = crc32(0, addr, MIN(MIN(endAddr - addr -1, frames * 7),
+                             BOOTLOADER_PAGE_SIZE * 7));
     sendFrm->can_dlc = 8;
-    sendFrm->data[0] = C_bootloaderReadFlash;
+    sendFrm->data[0] = C_bootloaderWriteFlash;
     sendFrm->data[1] = (crc & 0x000000FF);
     sendFrm->data[2] = (crc & 0x0000FF00) >> 8;
     sendFrm->data[3] = (crc & 0x00FF0000) >> 16;
     sendFrm->data[4] = (crc & 0xFF000000) >> 24;
     // len of page
     sendFrm->data[5] = frames;
-    sendFrm->data[6] = (canPageNr & 0x0000FF00) >> 8;
-    sendFrm->data[7] = (canPageNr & 0x00FF0000) >> 16;
+    sendFrm->data[6] = (canPageNr & 0x000000FF);
+    sendFrm->data[7] = (canPageNr & 0x0000FF00) >> 8;
     if (!cansend(sendFrm, 1000))
         return C_bootloaderErrSendFailed;
-    ++canPageNr;
-    memPageGuard += sendFrm->can_dlc;
 
     // begin payload frames
     while (frameNr < frames) {
       sendFrm->data[0] = frameNr++;
-      // we dont need to ++memPageGuard for frameNr byte as that doesn't land in flash
-      for (uint8_t i = 1; i < 8; ++i) {
+      uint8_t end = MIN(7, memory.pageSize -
+                            (addr - addrAtMemPageStart)) + 1;
+      for (uint8_t i = 1; i < end; ++i) {
         sendFrm->data[i] = *addr;
         if (++memPageGuard >= memory.pageSize) {
           // break at 2048 bits for a stm32
-          memPageGuard = 0;
-          break;
+          // should never arrive here!
+          return C_bootloaderErrMemoryPageViolation;
         }
         if (addr++ >= endAddr)
           break; // frameId should now be frameId == frames
@@ -397,7 +415,7 @@ writePageLoop:
 
     // wait for remote to Ack this page
     do {
-        if (!cansend(sendFrm, 1000))
+        if (!canrecv(recvFrm, 1000))
             return C_bootloaderErrSendFailed;
         if (!running)
             return C_bootloaderErrUnknown;
@@ -407,10 +425,19 @@ writePageLoop:
     // check if we should resend
     if (recvFrm->data[1] == C_bootloaderErrOK)
       ++canPageNr;
-    if (addr >= endAddr)
-      return C_bootloaderErrOK;; // finished!
+    else if (recvFrm->data[1] == C_bootloaderErrResend) {
+        addrAtCanPageStart = addr;
+        memPageGuard -= frameNr * 7;
+        goto writeCanPageLoop;
+    }
+    else
+        nodeErrExit("Error returned from node %s\n", recvFrm->data[1]);
 
-    goto writePageLoop;
+    if (addr >= endAddr)
+      return C_bootloaderErrOK; // finished!
+    else if (addr - addrAtMemPageStart >= memory.pageSize)
+        goto writeMemPageLoop;
+    goto writeCanPageLoop;
 }
 
 
@@ -555,6 +582,12 @@ void doReadCmd(memoptions_t *mopt, char *storeName)
         errOccured = true;
         goto readCleanup;
     }
+    //debug create a file sequenced (easier view in memory browser)
+    //for (int i = 0; i < 256; ++i) {
+    //    for (int j = 0; j < 256; j++)
+    //        fputc(j, binFile);
+    //}
+    //goto readCleanup;
 
     // now that we have successfully opened the file we retrive memory from node
     sendFrm.can_dlc = 0;
@@ -732,13 +765,13 @@ void doEraseCmd(memoptions_t *mopt)
 
     // startpage to erase
     uint32_t startPage = (mopt->lowerbound - memory.bootRomStart) / memory.pageSize;
-    sendFrm.data[sendFrm.can_dlc] =  (startPage & 0x000000FF);
-    sendFrm.data[sendFrm.can_dlc] =  (startPage & 0x0000FF00) >> 8;
+    sendFrm.data[sendFrm.can_dlc++] =  (startPage & 0x000000FF);
+    sendFrm.data[sendFrm.can_dlc++] =  (startPage & 0x0000FF00) >> 8;
 
     // nr of pages
-    uint32_t nrPages = (mopt->upperbound - memory.bootRomEnd) / memory.pageSize;
-    sendFrm.data[sendFrm.can_dlc] =  (nrPages & 0x000000FF);
-    sendFrm.data[sendFrm.can_dlc] =  (nrPages & 0x0000FF00) >> 8;
+    uint32_t nrPages = (mopt->upperbound - mopt->lowerbound) / memory.pageSize;
+    sendFrm.data[sendFrm.can_dlc++] =  (nrPages & 0x000000FF);
+    sendFrm.data[sendFrm.can_dlc++] =  (nrPages & 0x0000FF00) >> 8;
 
     if (!cansend(&sendFrm, 1000))
         errExit("Couldnt send on can network\n");
@@ -757,6 +790,8 @@ void doEraseCmd(memoptions_t *mopt)
 
     if (recvFrm.data[1] != C_bootloaderErrOK)
         nodeErrExit("An error occured in node %s\n", recvFrm.data[1]);
+
+    fprintf(stdout, "--Successfully erased memory!\n");
 }
 
 
@@ -782,6 +817,30 @@ void doWriteCmd(memoptions_t *mopt, char *binName)
     }
 
     fprintf(stdout, "\n--Writing binfile '%s' with crc32 = %u\n\n", binName, binCrc);
+
+    // now that we have successfully opened the file we retrive memory from node
+    sendFrm.can_dlc = 0;
+    sendFrm.data[sendFrm.can_dlc++] = C_bootloaderWriteFlash;
+    // startaddress
+    sendFrm.data[sendFrm.can_dlc++] = (mopt->lowerbound & 0x000000FF) >> 0;
+    sendFrm.data[sendFrm.can_dlc++] = (mopt->lowerbound & 0x0000FF00) >> 8;
+    sendFrm.data[sendFrm.can_dlc++] = (mopt->lowerbound & 0x00FF0000) >> 16;
+    sendFrm.data[sendFrm.can_dlc++] = (mopt->lowerbound & 0xFF000000) >> 24;
+
+    // length
+    uint32_t len = (mopt->upperbound - mopt->lowerbound);
+    sendFrm.data[sendFrm.can_dlc++] = (len & 0x000000FF) >> 0;
+    sendFrm.data[sendFrm.can_dlc++] = (len & 0x0000FF00) >> 8;
+    sendFrm.data[sendFrm.can_dlc++] = (len & 0x00FF0000) >> 16;
+
+    if (!cansend(&sendFrm, 100))
+        errExit("Failed to send flash command");
+
+    if (!filteredRecv(&recvFrm, 100, 0, C_bootloaderWriteFlash))
+        errExit("No ack for CAN write\n");
+
+    if (recvFrm.data[1] != C_bootloaderErrOK)
+        nodeErrExit("Node gives error when init write mode:", recvFrm.data[1]);
 
     can_bootloaderErrs_e err = writeFileToNode(mopt, fileCache,
                                                &sendFrm, &recvFrm);

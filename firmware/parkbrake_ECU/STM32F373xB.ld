@@ -19,7 +19,8 @@
  */
 MEMORY
 {
-    flash0  : org = 0x08000000, len = 128k
+/*    flash0  : org = 0x08000000, len = 128k */
+    flash0  : org = 0x08002000, len = 120k /* bootloader offset */
     flash1  : org = 0x00000000, len = 0
     flash2  : org = 0x00000000, len = 0
     flash3  : org = 0x00000000, len = 0

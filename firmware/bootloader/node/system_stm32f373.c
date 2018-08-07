@@ -186,11 +186,29 @@ can_bootloaderErrs_e systemFlashWritePage(uint16_t *memPageBuf,
   flash_unlock();
   flash_wait_for_last_operation();
 
+  // erase this memorypage before we write new stuff
+  // we must do this as flash write requires 0xffff in address to write
+  FLASH_CR |= FLASH_CR_PER;
+  FLASH_AR = (uint32_t)addr;
+  FLASH_CR |= FLASH_CR_STRT;
+  flash_wait_for_last_operation();
+
+  // Page erase flag does not clear automatically.
+  FLASH_CR &= ~FLASH_CR_PER;
+  FLASH_CR &= ~FLASH_CR_STRT; // clear erase
+  FLASH_SR |= FLASH_SR_EOP; // end erase eof by writing a 1
+  flash_wait_for_last_operation();
+
   // must only write 2 bytes at a time, as per programming manual
   // else bus error interrupt occurs
   uint16_t *end = memPageBuf + (pageSize / 2); // pagesize is uint8 not 16
+
+  // set programming bit
+  FLASH_CR |= FLASH_CR_PG;
+  flash_wait_for_last_operation();
+
   do {
-    FLASH_CR |= FLASH_CR_PG;
+
     *addr = *memPageBuf; // write to rom
     flash_wait_for_last_operation();
 
@@ -202,7 +220,11 @@ can_bootloaderErrs_e systemFlashWritePage(uint16_t *memPageBuf,
     }
 
     ++addr;
-  } while (memPageBuf++ < end);
+  } while (++memPageBuf < end);
+
+  // clear programming bit
+  FLASH_CR &= ~FLASH_CR_PG;
+  flash_wait_for_last_operation();
 
   flash_lock();
   flash_wait_for_last_operation();

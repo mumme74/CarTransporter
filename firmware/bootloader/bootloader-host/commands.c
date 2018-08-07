@@ -365,6 +365,8 @@ static can_bootloaderErrs_e writeFileToNode(memoptions_t *mopt, uint8_t *fileCac
 
 writeMemPageLoop:
     addrAtMemPageStart = addr;
+    memPageGuard = 0;
+    canPageNr = 0;
 
 writeCanPageLoop:
     // begin header
@@ -376,10 +378,12 @@ writeCanPageLoop:
     // we use addrAtMemPageStart to make sure we transmitt in pageSize chunks
     // we will eventually reach endAddr
     frameNr = 0;
-    frames = MIN(endAddr - addr -1, BOOTLOADER_PAGE_SIZE * 7) / 7 +
-             MIN(endAddr - addr -1, BOOTLOADER_PAGE_SIZE * 7) % 7;
+    uint8_t *eAddr = MIN(addrAtMemPageStart + memory.pageSize +1, endAddr);
+    frames = MIN(eAddr - addr -1, BOOTLOADER_PAGE_SIZE * 7) / 7;
+    if ((MIN(eAddr - addr -1, BOOTLOADER_PAGE_SIZE * 7) % 7) > 0)
+        frames += 1;
 
-    crc = crc32(0, addr, MIN(MIN(endAddr - addr -1, frames * 7),
+    crc = crc32(0, addr, MIN(MIN(eAddr - addr -1, frames * 7),
                              BOOTLOADER_PAGE_SIZE * 7));
     sendFrm->can_dlc = 8;
     sendFrm->data[0] = C_bootloaderWriteFlash;
@@ -399,14 +403,15 @@ writeCanPageLoop:
       sendFrm->data[0] = frameNr++;
       uint8_t end = MIN(7, memory.pageSize -
                             (addr - addrAtMemPageStart)) + 1;
+      sendFrm->can_dlc = end;
       for (uint8_t i = 1; i < end; ++i) {
         sendFrm->data[i] = *addr;
-        if (++memPageGuard >= memory.pageSize) {
+        if (memPageGuard++ >= memory.pageSize) {
           // break at 2048 bits for a stm32
           // should never arrive here!
           return C_bootloaderErrMemoryPageViolation;
         }
-        if (addr++ >= endAddr)
+        if (addr++ >= eAddr)
           break; // frameId should now be frameId == frames
       }
       if (!cansend(sendFrm, 1000))
@@ -426,8 +431,8 @@ writeCanPageLoop:
     if (recvFrm->data[1] == C_bootloaderErrOK)
       ++canPageNr;
     else if (recvFrm->data[1] == C_bootloaderErrResend) {
-        addrAtCanPageStart = addr;
-        memPageGuard -= frameNr * 7;
+        addr = addrAtCanPageStart;
+        memPageGuard -= (frameNr * 7) + (8 - sendFrm->can_dlc);
         goto writeCanPageLoop;
     }
     else

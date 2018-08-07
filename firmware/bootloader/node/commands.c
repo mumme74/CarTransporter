@@ -194,7 +194,7 @@ writeCanPageLoop:
     // last frame might be less than 7 bytes
 
     uint32_t recvCrc = crc32(0, buf + (canPageNr * BOOTLOADER_PAGE_SIZE * 7),
-                             lastStoredIdx);
+                             lastStoredIdx - (canPageNr * BOOTLOADER_PAGE_SIZE * 7));
     if (crc != recvCrc) {
       sendErr(msg, C_bootloaderErrResend);
       goto writeCanPageLoop;// resend this canPage
@@ -208,7 +208,7 @@ writeCanPageLoop:
     // if we haven't received a complete pageSize yet
     // and we are not at end of bin
     // (last memPage sent from invoker might be less than pageSize)
-    if ((canPageNr + frames) < pageSize &&
+    if (lastStoredIdx < pageSize &&
         memPagesWritten + 1 < memPages)
     {
       goto writeCanPageLoop;
@@ -220,9 +220,11 @@ writeCanPageLoop:
 
     // setup a pointer to our buffer with offset to end of just received +1
     //  (msg->DLC is +1 due to data8[0] is frameid)
-    uint8_t *pbuf = buf + (((canPageNr -1) * 0x7F) * 7) + (frames * 7) -  (7 - msg->DLC) +1;
-    while (pbuf++ < (buf + pageSize))
+    //uint8_t *pbuf = buf + (((canPageNr -1) * 0x7F) * 7) + (frames * 7) -  (7 - msg->DLC) +1;
+    uint8_t *pbuf = &buf[MIN(lastStoredIdx, pageSize) -1];
+    while (++pbuf < (buf + pageSize)) {
       *pbuf = 0xFF;
+    }
 
     // write flashpage to rom
     err = systemFlashWritePage((uint16_t*)buf, (uint16_t*)addr);

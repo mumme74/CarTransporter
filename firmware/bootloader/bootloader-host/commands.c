@@ -399,7 +399,7 @@ writeCanPageLoop:
         return C_bootloaderErrSendFailed;
 
     // begin payload frames
-    while (frameNr < frames) {
+    while (frameNr <= frames) {
       sendFrm->data[0] = frameNr++;
       uint8_t end = MIN(7, memory.pageSize -
                             (addr - addrAtMemPageStart)) + 1;

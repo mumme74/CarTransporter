@@ -10,7 +10,7 @@
 #include "crc32.h"
 #include <can_protocol.h>
 
-#define CAN_NEXT_MSG  while ((msg = canGet()) == NULL)  // blocks until rcv
+#define CAN_NEXT_MSG  while (canGet(msg) == false)  // blocks until rcv
 #define CAN_POST_MSG  while ((canPost(msg) < 0))        // --""--       txv
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 

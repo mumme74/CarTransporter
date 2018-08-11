@@ -29,7 +29,7 @@ typedef struct {
 } canframe_t;
 
 
-canframe_t *canGet(void);
+bool canGet(canframe_t *msg);
 void canInit(uint32_t filterId);
 void canInitFrame(canframe_t *msg, uint32_t id);
 int8_t canPost(canframe_t *msg);

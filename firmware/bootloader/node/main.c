@@ -25,15 +25,14 @@ int main(void)
     canInit(canId); // canId from system.c
     systickInit();
 
-    canframe_t msg, *pmsg;
+    canframe_t msg;
     canInitFrame(&msg, canId);
     msg.data8[msg.DLC++] = C_bootloaderReset;
     canPost(&msg);
 
     while (globalMsSinceStartup < WAIT_BEFORE_APPBOOT){
-      pmsg = canGet();
-      if (pmsg != NULL)
-        commandsStart(pmsg); // resets from within
+      if (canGet(&msg))
+        commandsStart(&msg); // resets from within
     }
 
     systemDeinit();

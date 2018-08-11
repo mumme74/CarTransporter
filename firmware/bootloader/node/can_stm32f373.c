@@ -52,7 +52,7 @@ static void receive(uint8_t fifo)
 {
     // check if we are full
     if (rxpos >= BUFFER_SIZE) {
-      can_fifo_release(CAN1, fifo); // discard
+      //can_fifo_release(CAN1, fifo); // discard
       return;
     }
 
@@ -184,12 +184,20 @@ void canShutdown(void)
  * returns: null if empty
  *          last recieved frame
  */
-canframe_t *canGet(void)
+bool canGet(canframe_t *msg)
 {
-    if (rxpos < 1)
-        return NULL;
+    if (rxpos < 1) {
+        if (CAN_RF0R(CAN1) & CAN_RF0R_FMP0_MASK)
+          receive(0);
+        else if (CAN_RF1R(CAN1) & CAN_RF0R_FMP0_MASK)
+          receive(1);
+        else
+          return false; // nothing yet
+    }
 
-    return &rxbuf[--rxpos];
+    memcpy(msg, &rxbuf[rxpos - 1], sizeof(canframe_t));
+    --rxpos;
+    return true;
 }
 
 /**

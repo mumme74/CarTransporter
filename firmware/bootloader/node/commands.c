@@ -71,11 +71,11 @@ readPageLoop:
     // concept here is that addr advances in send loop with nr bytes written
     // we will eventually reach endAddr
     // also when reading memory we don't need that 2K memory page restriction that we need when writing to memory
-    frames = MIN((endAddr - addr-1) / 7 + (endAddr - addr -1) % 7,
-                 BOOTLOADER_PAGE_SIZE);
+    frames = MIN(((endAddr - addr-1) / 7 + (endAddr - addr -1) % 7),
+                 BOOTLOADER_PAGE_SIZE+1);
 
     crc = crc32(0, addr + (frameNr * 7),
-                MIN(endAddr - addr -1, (BOOTLOADER_PAGE_SIZE * 7)));
+                MIN(endAddr - addr-1, ((BOOTLOADER_PAGE_SIZE+1) * 7)));
     msg->DLC = 8;
     msg->data8[0] = C_bootloaderReadFlash;
     msg->data8[1] = (crc & 0x000000FF);
@@ -175,7 +175,7 @@ writeCanPageLoop:
         }
       } else {
         // it's a payload frame
-        uint32_t cPage = (canPageNr * BOOTLOADER_PAGE_SIZE) * 7,
+        uint32_t cPage = (canPageNr * (BOOTLOADER_PAGE_SIZE+1) * 7),
                  fOffset = ((msg->data8[0] & 0x7F) * 7);
         if (lastStoredIdx < cPage + fOffset + msg->DLC -1)
             lastStoredIdx = cPage + fOffset + msg->DLC -1;
@@ -193,8 +193,8 @@ writeCanPageLoop:
     // pointer buf[0] advance to start of canPage.
     // last frame might be less than 7 bytes
 
-    uint32_t recvCrc = crc32(0, buf + (canPageNr * BOOTLOADER_PAGE_SIZE * 7),
-                             lastStoredIdx - (canPageNr * BOOTLOADER_PAGE_SIZE * 7));
+    uint32_t recvCrc = crc32(0, buf + (canPageNr * (BOOTLOADER_PAGE_SIZE+1) * 7),
+                             lastStoredIdx - (canPageNr * (BOOTLOADER_PAGE_SIZE+1) * 7));
     if (crc != recvCrc) {
       sendErr(msg, C_bootloaderErrResend);
       goto writeCanPageLoop;// resend this canPage

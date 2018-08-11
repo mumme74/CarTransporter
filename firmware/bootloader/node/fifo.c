@@ -14,25 +14,26 @@
 #include <string.h> // for memcpy
 
 
-void fifo_init(fifo_t *queue, canframe_t *buf[], uint8_t size)
+void fifo_init(fifo_t *queue, canframe_t *buf, uint8_t size)
 {
-  queue->buf = buf;
   queue->size = size;
   queue->head = 0;
   queue->tail = 0;
+  queue->buf = buf;
 }
 
 bool fifo_push(fifo_t *queue, canframe_t *frm)
 {
-  if ((queue->head +1 == queue->tail) ||
-      ((queue->head +1 == queue->size) && (queue->tail == 0)))
+  int sp = fifo_spaceleft(queue);
+  if (sp < 2) // need 2 as 1 + 1 would rest (start over algorithm assumes empty)
   {
     // no more room
     return false;
   }
-
-  memcpy(queue->buf[queue->head], frm, sizeof(canframe_t));
+  canframe_t *f = &queue->buf[queue->head];
+  memcpy(f, frm, sizeof(canframe_t));
   ++queue->head;
+
   if (queue->head == queue->size)
     queue->head = 0; // wrap around
   return true;
@@ -41,7 +42,9 @@ bool fifo_push(fifo_t *queue, canframe_t *frm)
 bool fifo_pop(fifo_t *queue, canframe_t *frm)
 {
   if (queue->tail != queue->head) {
-    memcpy(frm, queue->buf[queue->tail++], sizeof(canframe_t));
+    canframe_t *f = &queue->buf[queue->tail];
+    memcpy(frm, f, sizeof(canframe_t));
+    ++queue->tail;
     if (queue->tail == queue->size)
       queue->tail = 0;
     return true;
@@ -52,6 +55,6 @@ bool fifo_pop(fifo_t *queue, canframe_t *frm)
 int fifo_spaceleft(fifo_t *queue)
 {
   if (queue->head < queue->tail)
-    return queue->size - (queue->tail - queue->head);
-  return queue->size - (queue->head - queue->tail);
+    return queue->tail - queue->head;
+  return queue->size - queue->head + queue->tail;
 }

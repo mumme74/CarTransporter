@@ -27,9 +27,22 @@
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
 
-canframe_t rxbuf[BUFFER_SIZE];
-canframe_t txbuf[BUFFER_SIZE];
-fifo_t rxqueue, txqueue;
+static canframe_t rxbuf[BUFFER_SIZE];
+static canframe_t txbuf[BUFFER_SIZE];
+static fifo_t rxqueue, txqueue;
+//static fifo_t rxqueue = {
+//    .size = BUFFER_SIZE,
+//    .head = 0,
+//    .tail = 0,
+//    .buf[BUFFER_SIZE] = {}
+//};
+//
+//static fifo_t txqueue = {
+//    .size = BUFFER_SIZE,
+//    .head = 0,
+//    .tail = 0,
+//    .buf[BUFFER_SIZE] = {}
+//};
 
 
 static void init_filters(uint32_t id, uint32_t mask, bool enable)
@@ -91,14 +104,16 @@ void usb_hp_can1_tx_isr(void)
   if (CAN_TSR(CAN1) & CAN_TSR_RQCP2)
     CAN_TSR(CAN1) |= CAN_TSR_RQCP2;
 
-  if (!can_available_mailbox(CAN1))
-    return; // output registers full
+  if (can_available_mailbox(CAN1)) {
+    canframe_t msg;
+    if (!fifo_pop(&txqueue, &msg))
+      return; // nothing to send
 
-  canframe_t msg;
-  if (!fifo_pop(&txqueue, &msg))
-    return; // nothing to send
-
-  can_transmit(CAN1, msg.EID, msg.ext, msg.rtr, msg.DLC, msg.data8);
+    static int test = 0;
+    if (can_transmit(CAN1, msg.EID, msg.ext, msg.rtr, msg.DLC, msg.data8) == -1) {
+      ++test;
+    }
+  }
 }
 
 
@@ -108,8 +123,8 @@ void usb_hp_can1_tx_isr(void)
 void canInit(uint32_t filterId)
 {
     // init queues
-    fifo_init(&rxqueue, (canframe_t**)&rxbuf, BUFFER_SIZE);
-    fifo_init(&txqueue, (canframe_t**)&txbuf, BUFFER_SIZE);
+    fifo_init(&rxqueue, rxbuf, BUFFER_SIZE);
+    fifo_init(&txqueue, txbuf, BUFFER_SIZE);
 
     /* Enable peripheral clocks. */
     rcc_periph_clock_enable(RCC_CAN1);

@@ -16,13 +16,13 @@ typedef struct {
   volatile uint8_t tail,
                     head;
   uint8_t size;
-  canframe_t **buf;
+  canframe_t *buf;
 } fifo_t;
 
-void fifo_init(fifo_t *queue, canframe_t *buf[], uint8_t size);
+void fifo_init(fifo_t *queue, canframe_t *buf, uint8_t size);
 bool fifo_push(fifo_t *queue, canframe_t *frm);
 bool fifo_pop(fifo_t *queue, canframe_t *frm);
-//int fifo_spaceleft(fifo_t *queue);
+int fifo_spaceleft(fifo_t *queue);
 
 
 #endif /* FIFO_H_ */

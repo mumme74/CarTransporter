@@ -34,6 +34,7 @@ SRCS = can_stm32f373.c \
 	   system_stm32f373.c \
 	   commands.c \
 	   crc32/crc32.c \
+	   fifo.c \
 	   main.c
 
 

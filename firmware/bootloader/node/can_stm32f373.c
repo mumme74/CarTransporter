@@ -19,6 +19,7 @@
 
 #include "system.h"
 #include "can.h"
+#include "fifo.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -28,7 +29,8 @@
 
 canframe_t rxbuf[BUFFER_SIZE];
 canframe_t txbuf[BUFFER_SIZE];
-volatile int rxpos, txpos;
+fifo_t rxqueue, txqueue;
+
 
 static void init_filters(uint32_t id, uint32_t mask, bool enable)
 {
@@ -51,17 +53,15 @@ static void init_filters(uint32_t id, uint32_t mask, bool enable)
 static void receive(uint8_t fifo)
 {
     // check if we are full
-    if (rxpos >= BUFFER_SIZE) {
-      //can_fifo_release(CAN1, fifo); // discard
+    if (fifo_spaceleft(&rxqueue) == 0)
       return;
-    }
 
     uint8_t fmi;
     uint16_t timestamp;
-    canframe_t *msg = &rxbuf[rxpos++];
-    can_receive(CAN1, fifo, true, &msg->EID, &msg->ext,
-                &msg->rtr, &fmi, &msg->DLC, &msg->data8[0], &timestamp);
-
+    canframe_t msg;
+    can_receive(CAN1, fifo, true, &msg.EID, &msg.ext,
+                &msg.rtr, &fmi, &msg.DLC, &msg.data8[0], &timestamp);
+    fifo_push(&rxqueue, &msg);
 }
 
 
@@ -91,13 +91,14 @@ void usb_hp_can1_tx_isr(void)
   if (CAN_TSR(CAN1) & CAN_TSR_RQCP2)
     CAN_TSR(CAN1) |= CAN_TSR_RQCP2;
 
-  if (txpos < 1)
-    return; // nothing to send
   if (!can_available_mailbox(CAN1))
     return; // output registers full
 
-  canframe_t *msg = &txbuf[--txpos];
-  can_transmit(CAN1, msg->EID, msg->ext, msg->rtr, msg->DLC, msg->data8);
+  canframe_t msg;
+  if (!fifo_pop(&txqueue, &msg))
+    return; // nothing to send
+
+  can_transmit(CAN1, msg.EID, msg.ext, msg.rtr, msg.DLC, msg.data8);
 }
 
 
@@ -106,8 +107,9 @@ void usb_hp_can1_tx_isr(void)
 
 void canInit(uint32_t filterId)
 {
-    // init store variables
-    rxpos = txpos = 0;
+    // init queues
+    fifo_init(&rxqueue, (canframe_t**)&rxbuf, BUFFER_SIZE);
+    fifo_init(&txqueue, (canframe_t**)&txbuf, BUFFER_SIZE);
 
     /* Enable peripheral clocks. */
     rcc_periph_clock_enable(RCC_CAN1);
@@ -181,23 +183,13 @@ void canShutdown(void)
 
 /**
  * @brief get the last recived msg form LIFO register
- * returns: null if empty
- *          last recieved frame
+ * returns: false if empty
+ *          fills msg with last recieved frame
+ *              return true if not empty
  */
 bool canGet(canframe_t *msg)
 {
-    if (rxpos < 1) {
-        if (CAN_RF0R(CAN1) & CAN_RF0R_FMP0_MASK)
-          receive(0);
-        else if (CAN_RF1R(CAN1) & CAN_RF0R_FMP0_MASK)
-          receive(1);
-        else
-          return false; // nothing yet
-    }
-
-    memcpy(msg, &rxbuf[rxpos - 1], sizeof(canframe_t));
-    --rxpos;
-    return true;
+  return fifo_pop(&rxqueue, msg);
 }
 
 /**
@@ -208,16 +200,14 @@ bool canGet(canframe_t *msg)
  */
 int8_t canPost(canframe_t *msg)
 {
-  // buffer full?
-  if (txpos >= BUFFER_SIZE)
-    return -1;
-
   // notify which node sends this msg
   msg->IDE &= (CAN_MSG_TYPE_MASK | CAN_MSG_ID_MASK | NODE_ID);
 
-  canframe_t *bmsg = &txbuf[txpos++];
-  memcpy(bmsg, msg, sizeof(canframe_t));
+  // buffer full?
+  if (!fifo_push(&txqueue, msg))
+    return -1;
 
+  // should we send immediately?
   if (can_available_mailbox(CAN1)) {
     nvic_generate_software_interrupt(NVIC_USB_HP_CAN1_TX_IRQ);
     return 1;

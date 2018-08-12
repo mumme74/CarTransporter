@@ -28,6 +28,12 @@
 
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
+// for progressbar
+#define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+#define PBWIDTH 60
+
+
+
 typedef struct can_frame canframe_t;
 
 // memory structure of uC
@@ -44,19 +50,26 @@ static memoryinfo_t memory = { 0 ,0 ,0 ,0 };
 static uint32_t nodeCrc,
                 binCrc;
 
-static FILE *binFile = NULL;
-
-
+void printProgress (double percentage)
+{
+    int val = (int) (percentage * 100);
+    int lpad = (int) (percentage * PBWIDTH);
+    int rpad = PBWIDTH - lpad;
+    printf ("\r%3d%% [%.*s%*s]", val, lpad, PBSTR, rpad, "");
+    fflush (stdout);
+}
 
 static char unknownErrbuf[50];
+
+static FILE *binFile = NULL;
 
 static char *bootloadErrToStr(can_bootloaderErrs_e err)
 {
     switch (err) {
     case C_bootloaderErr:                       return "BootloaderErr";
     case C_bootloaderErrResend:                 return "BootloaderErrResend";
-    case C_bootloaderErrStartAddressOutOfRange:  return "BootloaderErrStartaddressOutOfRange";
-    case C_bootloaderErrEndAddressOutOfRange:    return "BootloaderErrEndaddressOutOfRange";
+    case C_bootloaderErrStartAddressOutOfRange:  return "BootloaderErrStartAddressOutOfRange";
+    case C_bootloaderErrEndAddressOutOfRange:    return "BootloaderErrEndAddressOutOfRange";
     case C_bootloaderErrStartPageOutOfRange:    return "BootloaderErrStartPageOutOfRange";
     case C_bootloaderErrPageLenOutOfRange:      return "BootloaderErrPageLenOutOfRange";
     case C_bootloaderErrPageWriteFailed:        return "BootloaderErrWriteFailed";
@@ -355,8 +368,6 @@ static can_bootloaderErrs_e writeFileToNode(memoptions_t *mopt, uint8_t *fileCac
             *addr = fileCache,
             *endAddr = fileCache + (mopt->upperbound - mopt->lowerbound);
 
-//    if (!getAndCheckAddress(msg, addr, endAddr))
-//      break;
     uint16_t canPageNr = 0,
              memPageGuard = 0;
     uint32_t crc;
@@ -420,6 +431,13 @@ writeCanPageLoop:
 
     // wait for remote to Ack this page
     do {
+        // progressbar
+        uint32_t diff = (uint32_t)endAddr - (uint32_t)(endAddr - addr),
+                 total = (uint32_t)(endAddr - fileCache);
+        double progress = (double)diff / total;
+        printProgress(progress);
+
+        // get response from node
         if (!canrecv(recvFrm, 1000))
             return C_bootloaderErrSendFailed;
         if (!running)
@@ -491,6 +509,11 @@ readCanPageLoop:
       }
 
     } while (frameNr < frames);
+
+    // progressbar
+    uint32_t total = (uint32_t)(endAddr - startAddr);
+    double progress = (double)lastStoredIdx / total;
+    printProgress(progress);
 
     // check canPage
     // pointer buf[0] advance to start of canPage.

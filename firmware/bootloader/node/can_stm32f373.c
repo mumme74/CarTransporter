@@ -51,10 +51,10 @@ static void init_filters(uint32_t id, uint32_t mask, bool enable)
     // filter out all but 11bit ids and our specific ID
     can_filter_id_mask_16bit_init(
                 filterId++,     /* Filter ID */
-                (uint16_t)(id & 0x000007FF), /* CAN ID */
-                (uint16_t)(mask & 0x000007FF),  /* CAN ID mask */
-                (uint16_t)(id & 0x000007FF),
-                (uint16_t)(mask & 0x000007FF),
+                (uint16_t)id, /* CAN ID */
+                (uint16_t)mask,  /* CAN ID mask */
+                (uint16_t)id,
+                (uint16_t)mask,
                 fifo,     /* FIFO assignment (here: FIFO0) */
                 enable); /* Enable the filter. */
     // squeslh all 29bit IDs
@@ -117,7 +117,7 @@ void usb_hp_can1_tx_isr(void)
 // ------------------------------------------------------------------------
 // public functions and variables
 
-void canInit(uint32_t filterId)
+void canInit(void)
 {
     // init queues
     fifo_init(&rxqueue, rxbuf, BUFFER_SIZE);
@@ -164,8 +164,10 @@ void canInit(uint32_t filterId)
 
 
     /* CAN filter init.on all fifos */
-    init_filters(filterId, filterId & 0x000007F8, true);
-    //init_filters(0, 0, true); // for debug, all open filters
+    can_filter_id_mask_16bit_init(0, 0, canId, 0x0000, canId | C_displayNode, 0, true);
+    can_filter_id_mask_16bit_init(1, 0, canId, 0x0000, canId | C_displayNode, 1, true);
+    //init_filters(canId, 0x07F8, true);
+    //init_filters(0, 0, true); // for debug, all filters open
 
     /* NVIC setup. for both rx FIFOs  */
     nvic_enable_irq(NVIC_USB_LP_CAN1_RX0_IRQ); // fifo 0

@@ -22,7 +22,7 @@ void hard_fault_handler(void)
 int main(void)
 {
     systemInit();
-    canInit(canId); // canId from system.c
+    canInit(); // canId from system.c
     systickInit();
 
     canframe_t msg;

@@ -18,7 +18,7 @@
 
 
 // _appRomXXX from linkscript
-extern const uint32_t _appRomStart, _appRomEnd, _bootRom;
+extern const uint32_t _appRomStart, _appRomEnd;
 
 static void sendErr(canframe_t *msg, can_bootloaderErrs_e err)
 {
@@ -137,8 +137,7 @@ readPageLoop:
   case C_bootloaderWriteFlash: {
     if (!getAndCheckAddress(msg))
       break;
-    uint16_t memPages = ((endAddr - addr) / pageSize) +
-                        ((endAddr - addr) % pageSize);
+    uint16_t memPages = ((endAddr - addr) / pageSize);
 
     uint16_t memPagesWritten = 0 -1;
 

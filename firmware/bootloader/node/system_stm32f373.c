@@ -98,10 +98,10 @@ void systemToApplication(void)
   const size_t* applicationAddress = &_appRomStart;
 
   // safetycheck, if hang in bootloader mode if we dont have a valid start of vector table
-  if (applicationAddress[0] != _data) {
+  if (applicationAddress[0] > _stack || applicationAddress[0] < _data) {
     canframe_t msg;
     canInitFrame(&msg, canId);
-    canInit(CAN1);// need to reactivate
+    canInit();// need to reactivate
     while (1) {
       msg.DLC = 2;
       msg.data8[0] = C_bootloaderReset;

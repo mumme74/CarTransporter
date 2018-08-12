@@ -78,6 +78,7 @@ static char *bootloadErrToStr(can_bootloaderErrs_e err)
     case C_bootloaderErrOK:                     return "BootloaderErrOK";
     case C_bootloaderErrNoResponse:             return "BootloaderErrNoResponse";
     case C_bootloaderErrSendFailed:             return "BootloaderErrSendFailed";
+    case C_bootloaderErrReceiveTimeout:         return "BootloaderErrReceiveTimeout";
     default: ;
     }
 
@@ -422,8 +423,10 @@ writeCanPageLoop:
           // should never arrive here!
           return C_bootloaderErrMemoryPageViolation;
         }
-        if (addr++ >= eAddr)
+        if (++addr >= eAddr) {
+          sendFrm->can_dlc = i;
           break; // frameId should now be frameId == frames
+        }
       }
       if (!cansend(sendFrm, 1000))
           return C_bootloaderErrSendFailed;;
@@ -439,7 +442,7 @@ writeCanPageLoop:
 
         // get response from node
         if (!canrecv(recvFrm, 1000))
-            return C_bootloaderErrSendFailed;
+            return C_bootloaderErrReceiveTimeout;
         if (!running)
             return C_bootloaderErrUnknown;
     } while(recvFrm->can_dlc != 2 &&
@@ -944,20 +947,32 @@ void doBootloaderModeCmd(void)
     initFrame(&recvFrm);
     bool printResetFail = true;
     while (true) {
-        if (resetNode(&sendFrm, &recvFrm) != C_bootloaderErrOK)
+        sendFrm.can_dlc = 1;
+        sendFrm.data[0] = C_bootloaderReset;
+        if (!cansend(&sendFrm, 100)) {
             if (printResetFail) {
                 printResetFail =false;
                 fprintf(stderr, "**Unable to reset node, please powercycle node (ie. yank fuse)\n");
             }
-
+        }
         if (canrecv(&recvFrm, 1000)) {
             if ((recvFrm.can_dlc > 0) &&
                 (recvFrm.data[0] == C_bootloaderWait ||
                  recvFrm.data[0] == C_bootloaderReset))
-                break;
+            {
+                for (int i = 0; i < 10; ++i) {
+                    // shower our node with commands in the hope one will catch
+                    sendFrm.can_dlc = 1;
+                    sendFrm.data[0] = C_bootloaderWait;
+                    cansend(&sendFrm, 3);
+
+                }
+                goto bootModeOut;
+            }
         }
     }
 
+bootModeOut:
     // trigger a cmd so we set node in cammand mode
     fprintf(stdout, "\n--Successfully set in bootloadermode\n--Printing memory\n\n");
     doPrintMemorySetupCmd(); // using memory print for this

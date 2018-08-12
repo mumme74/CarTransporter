@@ -66,7 +66,7 @@ static void init_filters(uint32_t id, uint32_t mask, bool enable)
 static void receive(uint8_t fifo)
 {
     // check if we are full
-    if (fifo_spaceleft(&rxqueue) == 0)
+    if (fifo_spaceleft(&rxqueue) < 2)// need 2 as 1 + 1 would reset (start over algorithm assumes empty)
       return;
 
     uint8_t fmi;
@@ -109,10 +109,7 @@ void usb_hp_can1_tx_isr(void)
     if (!fifo_pop(&txqueue, &msg))
       return; // nothing to send
 
-    static int test = 0;
-    if (can_transmit(CAN1, msg.EID, msg.ext, msg.rtr, msg.DLC, msg.data8) == -1) {
-      ++test;
-    }
+    can_transmit(CAN1, msg.EID, msg.ext, msg.rtr, msg.DLC, msg.data8);
   }
 }
 
@@ -197,21 +194,31 @@ void canShutdown(void)
 
 
 /**
- * @brief get the last recived msg form LIFO register
+ * @brief get the first received msg from fifo
  * returns: false if empty
- *          fills msg with last recieved frame
+ *          fills msg with last received frame
  *              return true if not empty
  */
 bool canGet(canframe_t *msg)
 {
   return fifo_pop(&rxqueue, msg);
+//  if (!fifo_pop(&rxqueue, msg)) {
+//    // if we have unhandled stuff not yet received
+//    if (CAN_RF0R(CAN1) & CAN_RF0R_FMP0_MASK)
+//      nvic_generate_software_interrupt(NVIC_USB_LP_CAN1_RX0_IRQ);
+//    else if (CAN_RF1R(CAN1) & CAN_RF1R_FMP1_MASK)
+//      nvic_generate_software_interrupt(NVIC_CAN1_RX1_IRQ);
+//
+//    return false;
+//  }
+//  return true;
 }
 
 /**
  * @brief post a frame to can
  * returns: -1 if buffer full
  *          0 if queued
- *          1 if send immediatly
+ *          1 if send immediately
  */
 int8_t canPost(canframe_t *msg)
 {

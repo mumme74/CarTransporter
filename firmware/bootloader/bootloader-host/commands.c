@@ -389,13 +389,13 @@ writeCanPageLoop:
     // we use addrAtMemPageStart to make sure we transmitt in pageSize chunks
     // we will eventually reach endAddr
     frameNr = 0;
-    uint8_t *eAddr = MIN(addrAtMemPageStart + memory.pageSize +1, endAddr);
-    frames = MIN(eAddr - addr -1, (BOOTLOADER_PAGE_SIZE+1) * 7) / 7;
-    if ((MIN(eAddr - addr -1, (BOOTLOADER_PAGE_SIZE+1) * 7) % 7) > 0)
+    uint8_t *eAddr = MIN((addrAtMemPageStart + memory.pageSize +1), endAddr+1);
+    frames = MIN((eAddr - addr -1), ((BOOTLOADER_PAGE_SIZE+1) * 7)) / 7;
+    if ((MIN((eAddr - addr -1), ((BOOTLOADER_PAGE_SIZE+1) * 7)) % 7) > 0)
         frames += 1;
 
-    crc = crc32(0, addr, MIN(MIN(eAddr - addr -1, frames * 7),
-                             (BOOTLOADER_PAGE_SIZE+1) * 7));
+    crc = crc32(0, addr, MIN(MIN((eAddr - addr -1), (frames * 7)),
+                             ((BOOTLOADER_PAGE_SIZE+1) * 7)));
     sendFrm->can_dlc = 8;
     sendFrm->data[0] = C_bootloaderWriteFlash;
     sendFrm->data[1] = (crc & 0x000000FF);
@@ -432,8 +432,8 @@ writeCanPageLoop:
     // wait for remote to Ack this page
     do {
         // progressbar
-        uint32_t diff = (uint32_t)endAddr - (uint32_t)(endAddr - addr),
-                 total = (uint32_t)(endAddr - fileCache);
+        uint32_t total = (uint32_t)(endAddr - fileCache),
+                 diff = total - (uint32_t)(endAddr - addr);
         double progress = (double)diff / total;
         printProgress(progress);
 
@@ -457,7 +457,7 @@ writeCanPageLoop:
         nodeErrExit("Error returned from node %s\n", recvFrm->data[1]);
 
     if (addr >= endAddr)
-      return C_bootloaderErrOK; // finished!
+        return C_bootloaderErrOK; // finished!
     else if (addr - addrAtMemPageStart >= memory.pageSize)
         goto writeMemPageLoop;
     goto writeCanPageLoop;
@@ -511,7 +511,7 @@ readCanPageLoop:
     } while (frameNr < frames);
 
     // progressbar
-    uint32_t total = (uint32_t)(endAddr - startAddr);
+    uint32_t total = (uint32_t)(endAddr - startAddr -1);
     double progress = (double)lastStoredIdx / total;
     printProgress(progress);
 
@@ -654,6 +654,12 @@ void doReadCmd(memoptions_t *mopt, char *storeName)
     // initiate reception sequence
     can_bootloaderErrs_e err = recvFileFromNode(fileCache, &sendFrm, &recvFrm,
                                                 mopt->lowerbound, mopt->upperbound);
+
+    // release from blocking loop
+    sendFrm.can_dlc = 1;
+    sendFrm.data[0] = C_bootloaderUnblock;
+    if (!cansend(&sendFrm, 1000))
+        errExit("Couldn't send unblock");
 
     if (err == C_bootloaderErrOK) {
         // successfull
@@ -844,6 +850,11 @@ void doWriteCmd(memoptions_t *mopt, char *binName)
         fprintf(stderr, "**Binfile is bigger than given memory, available:%ubytes  bin is:%libytes\n", (mopt->upperbound - mopt->lowerbound), sz);
         errorOccured = true;
         goto writeCleanup;
+    } else if (mopt->lowerbound == memory.bootRomStart &&
+               mopt->upperbound == memory.bootRomEnd)
+    {
+        // send only our binfile (is probably smaller than max memory)
+        mopt->upperbound = memory.bootRomStart + (uint32_t)sz;
     }
 
     fprintf(stdout, "\n--Writing binfile '%s' with crc32 = %u\n\n", binName, binCrc);
@@ -874,6 +885,13 @@ void doWriteCmd(memoptions_t *mopt, char *binName)
 
     can_bootloaderErrs_e err = writeFileToNode(mopt, fileCache,
                                                &sendFrm, &recvFrm);
+
+    // release from blocking loop
+    sendFrm.can_dlc = 1;
+    sendFrm.data[0] = C_bootloaderUnblock;
+    if (!cansend(&sendFrm, 1000))
+        errExit("Couldn't send unblock");
+
     if (err == C_bootloaderErrOK) {
         fprintf(stdout, "\n--Write process completed successfully!\nChecking checksum...\n");
 
@@ -900,12 +918,14 @@ void doWriteCmd(memoptions_t *mopt, char *binName)
                 errorOccured = true;
                 goto writeCleanup;
             }
+
+            fprintf(stdout, "\n--Successfully reset node!\n\n");
         }
 
         // fallthrough to writeCleanup
 
     } else {
-        fprintf(stderr, "**Write process error %s\n", bootloadErrToStr(err));
+        fprintf(stderr, "\n**Write process error %s\n", bootloadErrToStr(err));
         errorOccured = true;
         goto writeCleanup;
     }

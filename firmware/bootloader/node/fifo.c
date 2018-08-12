@@ -25,7 +25,7 @@ void fifo_init(fifo_t *queue, canframe_t *buf, uint8_t size)
 bool fifo_push(fifo_t *queue, canframe_t *frm)
 {
   int sp = fifo_spaceleft(queue);
-  if (sp < 2) // need 2 as 1 + 1 would rest (start over algorithm assumes empty)
+  if (sp < 2) // need 2 as 1 + 1 would reset (start over algorithm assumes empty)
   {
     // no more room
     return false;

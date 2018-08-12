@@ -10,7 +10,7 @@
 
 #include <libopencm3/stm32/can.h>
 
-#define BUFFER_SIZE 16
+#define BUFFER_SIZE 128
 
 typedef struct {
   uint8_t DLC;

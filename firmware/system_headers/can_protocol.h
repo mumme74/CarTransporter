@@ -514,6 +514,7 @@ typedef enum {
 // cmds allways have a 1 in bit7 at first datapos [1xxxxxxx]
 typedef enum {
   C_bootloaderWait          = 0xA5, // node is ready for starting bootloader commands
+  C_bootloaderUnblock       = 0xA0, // unblock node from a hang in a receive loop
   C_bootloaderReadFlash     = 0x80, // first request
                                     // [0:7]        [0:31]         [0:23]
                                     // cmd 0x80   startaddress     length in bytes

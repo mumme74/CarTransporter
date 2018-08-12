@@ -140,7 +140,7 @@ readPageLoop:
     uint16_t memPages = ((endAddr - addr) / pageSize) +
                         ((endAddr - addr) % pageSize);
 
-    uint16_t memPagesWritten = 0;
+    uint16_t memPagesWritten = 0 -1;
 
     // initial state is tell invoker we are ready to recieve
     msg->data8[1] = C_bootloaderErrOK;
@@ -152,6 +152,7 @@ readPageLoop:
     uint32_t lastStoredIdx;
 
 writeMemPageLoop:
+    ++memPagesWritten;
     canPageNr = 0;
 
 writeCanPageLoop:
@@ -202,15 +203,15 @@ writeCanPageLoop:
       ++canPageNr;
     }
 
-    // notify invoker that we are ready for next frame
-    sendErr(msg, C_bootloaderErrOK);
 
     // if we haven't received a complete pageSize yet
     // and we are not at end of bin
     // (last memPage sent from invoker might be less than pageSize)
     if (lastStoredIdx < pageSize &&
-        memPagesWritten + 1 < memPages)
+        memPagesWritten < memPages)
     {
+      // notify invoker that we are ready for next frame
+      sendErr(msg, C_bootloaderErrOK);
       goto writeCanPageLoop;
     }
 
@@ -231,11 +232,17 @@ writeCanPageLoop:
     if (err != C_bootloaderErrOK) {
       sendErr(msg, err);
       break;
+    } else {
+      // advance addr to save in next memorypage next time
+      addr += pageSize;
     }
 
     // a *.bin might span over many memPages
-    if (++memPagesWritten < memPages)
+    if (memPagesWritten < memPages) {
+      // notify invoker that we are ready for next frame
+      sendErr(msg, C_bootloaderErrOK);
       goto writeMemPageLoop;
+    }
 
     sendErr(msg, err);
 

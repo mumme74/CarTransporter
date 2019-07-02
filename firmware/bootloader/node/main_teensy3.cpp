@@ -7,22 +7,26 @@
 
 
 #include <Arduino.h>
+#include <system.h>
 
 extern "C" {
-#include <system.h>
 #include <commands.h>
 #include <can.h>
 }
 
 void setup() {
-  Serial.begin(115200);
+  systemInit();
 }
 
 void loop() {
-  static uint32_t bootloaderWindow = millis() + 100;
+  static uint32_t bootloaderWindow = millis() + WAIT_BEFORE_APPBOOT;
 
   while (bootloaderWindow > millis()) {
 
   }
+
+  systemDeinit();
+  systemToApplication();
+  systemReset();
 }
 

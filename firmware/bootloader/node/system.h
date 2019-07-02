@@ -19,7 +19,6 @@
 
 #define WAIT_BEFORE_APPBOOT 100
 
-extern const struct rcc_clock_scale clock_scale;
 extern const uint16_t canId;
 extern volatile uint32_t globalMsSinceStartup;
 

@@ -68,6 +68,9 @@ SECTIONS
  /DISCARD/ : { *(.eh_frame) }
  . = ALIGN(4);
  end = .;
+ 
+ _estack = ORIGIN(ram) + LENGTH(ram);
+ 
 }
 PROVIDE(_stack       = ORIGIN(ram) + LENGTH(ram));
 PROVIDE(_appRomStart = ORIGIN(rom));

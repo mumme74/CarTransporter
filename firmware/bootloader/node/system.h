@@ -14,8 +14,8 @@
 #define SYSTEM_H_
 
 #include <stddef.h>
+#include <stdint.h>
 #include <can_protocol.h>
-#include <libopencm3/stm32/rcc.h>
 
 #define WAIT_BEFORE_APPBOOT 100
 

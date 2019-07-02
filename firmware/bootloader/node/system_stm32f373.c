@@ -13,7 +13,6 @@
 #include <libopencm3/cm3/systick.h>
 #include <libopencm3/cm3/scb.h>
 #include <libopencm3/cm3/vector.h>
-#include <libopencm3/stm32/common/rcc_common_all.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/flash.h>
 #include <libopencm3/cm3/nvic.h>
@@ -34,7 +33,7 @@ const struct rcc_clock_scale clock_scale  = {
 
 #if NODE_ID==CAN_PARKBRAKE_NODE
 const uint16_t canId = CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdBootloader | C_parkbrakeNode;
-#elif NODE_ID==C_suspensionNode
+#elif NODE_ID==CAN_SUSPENSION_NODE
 const uint16_t canId = CAN_MSG_TYPE_COMMAND | C_suspensionCmdBootloader | C_suspensionNode;
 #endif
 

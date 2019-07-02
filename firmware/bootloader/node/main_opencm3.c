@@ -9,8 +9,6 @@
 #include "can.h"
 #include "commands.h"
 #include <stddef.h>
-#include <libopencm3/stm32/gpio.h>
-#include <libopencm3/stm32/flash.h>
 #include <libopencm3/cm3/nvic.h>
 
 void hard_fault_handler(void)

@@ -5,7 +5,7 @@
  *      Author: jof
  */
 
-#include <can_protocol.h>
+//#include <can_protocol.h>
 #include "crc32.h"
 
 // this function is grabbed from https://github.com/cvra/CRC/blob/56cc8e841085bc3cca5b0f608c85841a2b135677/crc32.c

@@ -8,7 +8,7 @@
 #ifndef CAN_H_
 #define CAN_H_
 
-#include <libopencm3/stm32/can.h>
+#include <stdbool.h>
 
 #define BUFFER_SIZE 128
 

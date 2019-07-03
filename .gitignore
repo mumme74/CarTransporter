@@ -103,5 +103,5 @@ $*.sch
 
 #eclipse
 .dep
-build/
+build*/
 *.user

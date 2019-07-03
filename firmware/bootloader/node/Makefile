@@ -6,7 +6,8 @@ CAR_TRANSPORTER_ROOT = ../../../
 
 SRCS_common = commands.c \
 	          crc32/crc32.c \
-	          fifo.c
+	          fifo.c \
+	          can.c
 
 BINARY = can_bootloader_$(CORE)
 

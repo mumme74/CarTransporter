@@ -14,12 +14,13 @@ ARDUINO_LIBS = FlexCAN
 F_CPU=96000000
 MONITOR_BAUDRATE = 115200
 
-#USER_DEFINES += -DDEBUG_BLINK_ON
 
 ifndef NODE_ID
 	#NODE_ID := 0     # parkbrakeNode 
 	NODE_ID := 1     # suspensionNode
 endif
+
+USER_DEFINES += -DNODE_ID=$(NODE_ID)
 
 # name resulting bin correctly
 TARGET=$(BINARY)
@@ -29,6 +30,7 @@ TARGET=$(BINARY)
 # C files for this project
 LOCAL_C_SRCS = $(SRCS_common)
 LOCAL_CPP_SRCS = system_teensy3.cpp \
+                 can_teensy3.cpp \
                  main_teensy3.cpp
 
 

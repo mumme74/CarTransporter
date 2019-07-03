@@ -17,7 +17,7 @@
 #define RAMFUNC  __attribute__ ((section(".fastrun"), noinline, noclone, optimize("Os") ))
 
 // from linkscript
-extern const size_t _appRomStart, _appRomEnd, _bootRom, _estack, _sdata;
+extern const size_t _appRomStart, _appRomEnd, _bootRom, _stack, _heapstart;
 
 // from 4.3.4
 // http://infocenter.arm.com/help/topic/com.arm.doc.dui0553b/DUI0553.pdf
@@ -93,7 +93,8 @@ void systemDeinit(void) {
 void systickInit(void) {} /* stub */
 void systickShutdown(void) {} /* stub */
 
-void systemToApplication(void) {
+void systemToApplication(void)
+{
   typedef void (*funcptr_t)(void);
 
   /* variable that will be loaded with the start address of the application */
@@ -101,9 +102,12 @@ void systemToApplication(void) {
   const size_t* applicationAddress = &_appRomStart;
 
   // safetycheck, if hang in bootloader mode if we dont have a valid start of vector table
-  if (applicationAddress[0] > _estack || applicationAddress[0] < _sdata) {
+  if (applicationAddress[0] > _stack +4 ||
+      applicationAddress[0] < _heapstart + 100)
+  {
     canframe_t msg;
     canInitFrame(&msg, canId);
+    systemInit(); // set up clock
     canInit();// need to reactivate
     while (1) {
       msg.DLC = 2;
@@ -116,6 +120,8 @@ void systemToApplication(void) {
       commandsStart(&msg);
     }
   }
+  Serial.print("after");
+
 
   /* get jump address from application vector table */
   jumpAddress = (size_t*) applicationAddress[1];

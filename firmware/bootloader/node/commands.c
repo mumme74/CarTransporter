@@ -5,10 +5,24 @@
  *      Author: jof
  */
 
+#ifndef DEBUG
+#define DEBUG
+#endif
+
+#if defined(DEBUG) && defined(ARDUINO)
+# include <Arduino.h>
+#else
+# define usb_serial_write(buf, len)
+# define usb_serial_putchar(n)
+#endif
+
+
+
 #include "commands.h"
 #include "system.h"
 #include "crc32.h"
 #include <can_protocol.h>
+
 
 #define CAN_NEXT_MSG  while (canGet(msg) == false)  // blocks until rcv
 #define CAN_POST_MSG  while ((canPost(msg) < 0))        // --""--       txv
@@ -304,11 +318,14 @@ bool commandsStart(canframe_t *msg)
     if (msg == NULL || msg->DLC < 1 ||
         (msg->data8[0] & 0x80) == 0)
       return false;
-    // TODO assure HSI is enabled?
     res = runCommand(msg);
+    usb_serial_write("bailing out\r\n", 14);
+    usb_serial_putchar((uint8_t)res +48);
     if (!res)
       break;
+    usb_serial_write("wait for can\r\n", 15);
     CAN_NEXT_MSG;
+    usb_serial_write("got from can\r\n", 15);
   }
 
   return res;

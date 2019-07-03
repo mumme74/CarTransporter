@@ -31,7 +31,7 @@
 MEMORY
 {
     bootrom (rx) : ORIGIN = 0x00000000, LENGTH = 12K
-	rom (rx)     : ORIGIN = 0x00002000, LENGTH = 244K
+	rom (rx)     : ORIGIN = 0x00003000, LENGTH = 244K
 	RAM  (rwx)   : ORIGIN = 0x1FFF8000, LENGTH = 64K
 }
 
@@ -106,15 +106,12 @@ SECTIONS
 		__bss_end = .;
 		__bss_end__ = .;
 	} > RAM
+	. = ALIGN(4);
+	_heapstart = .;
 
-	_estack = ORIGIN(RAM) + LENGTH(RAM);
+	_estack = ORIGIN(RAM) + LENGTH(RAM) -4;
+	_stack  = _estack;
+	_appRomStart = ORIGIN(rom);
+	_appRomEnd   = ORIGIN(rom) + LENGTH(rom);
+	_bootRom     = ORIGIN(bootrom);
 }
-
-PROVIDE(_stack       = ORIGIN(RAM) + LENGTH(RAM));
-PROVIDE(_appRomStart = ORIGIN(rom));
-PROVIDE(_appRomEnd   = ORIGIN(rom) + LENGTH(rom));
-PROVIDE(_bootRom     = ORIGIN(bootrom));
-
-
-
-

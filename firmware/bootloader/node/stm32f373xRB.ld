@@ -68,11 +68,11 @@ SECTIONS
  /DISCARD/ : { *(.eh_frame) }
  . = ALIGN(4);
  end = .;
+ _heapstart = .;
  
- _estack = ORIGIN(ram) + LENGTH(ram);
- 
+ _stack = ORIGIN(ram) + LENGTH(ram) -4;
+ _appRomStart = ORIGIN(rom);
+ _appRomEnd   = ORIGIN(rom) + LENGTH(rom);
+ _bootRom     = ORIGIN(bootrom);
 }
-PROVIDE(_stack       = ORIGIN(ram) + LENGTH(ram));
-PROVIDE(_appRomStart = ORIGIN(rom));
-PROVIDE(_appRomEnd   = ORIGIN(rom) + LENGTH(rom));
-PROVIDE(_bootRom     = ORIGIN(bootrom));
+

@@ -12,6 +12,10 @@
 #include <stddef.h>
 #include "can.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
   volatile uint8_t tail,
                     head;
@@ -22,7 +26,13 @@ typedef struct {
 void fifo_init(fifo_t *queue, canframe_t *buf, uint8_t size);
 bool fifo_push(fifo_t *queue, canframe_t *frm);
 bool fifo_pop(fifo_t *queue, canframe_t *frm);
+bool fifo_peek(fifo_t *queue, canframe_t *frm);
+bool fifo_empty(fifo_t *queue);
 int fifo_spaceleft(fifo_t *queue);
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif /* FIFO_H_ */

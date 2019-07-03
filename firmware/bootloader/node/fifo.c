@@ -41,15 +41,28 @@ bool fifo_push(fifo_t *queue, canframe_t *frm)
 
 bool fifo_pop(fifo_t *queue, canframe_t *frm)
 {
-  if (queue->tail != queue->head) {
-    canframe_t *f = &queue->buf[queue->tail];
-    memcpy(frm, f, sizeof(canframe_t));
+  if (fifo_peek(queue, frm)) {
     ++queue->tail;
     if (queue->tail == queue->size)
       queue->tail = 0;
     return true;
   }
   return false; // nothing stored, empty
+}
+
+bool fifo_peek(fifo_t *queue, canframe_t *frm)
+{
+  if (queue->tail != queue->head) {
+    canframe_t *f = &queue->buf[queue->tail];
+    memcpy(frm, f, sizeof(canframe_t));
+    return true;
+  }
+  return false;
+}
+
+bool fifo_empty(fifo_t *queue)
+{
+  return queue->tail == queue->head;
 }
 
 int fifo_spaceleft(fifo_t *queue)

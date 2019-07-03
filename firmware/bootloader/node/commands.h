@@ -11,6 +11,14 @@
 #include "system.h"
 #include "can.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 bool commandsStart(canframe_t *msg);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* COMMANDS_H_ */

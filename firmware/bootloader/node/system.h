@@ -19,6 +19,10 @@
 
 #define WAIT_BEFORE_APPBOOT 100
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern const uint16_t canId;
 extern volatile uint32_t globalMsSinceStartup;
 
@@ -35,6 +39,8 @@ can_bootloaderErrs_e systemFlashErase(uint8_t *startAddr, uint8_t *endAddr);
 can_bootloaderErrs_e systemFlashWritePage(uint16_t *memPageBuf,
                                           volatile uint16_t *addr);
 
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SYSTEM_H_ */

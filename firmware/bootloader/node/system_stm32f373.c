@@ -17,6 +17,10 @@
 #include <libopencm3/stm32/flash.h>
 #include <libopencm3/cm3/nvic.h>
 
+
+// from linkscript
+extern const size_t _appRomStart, _appRomEnd, _bootRom;
+
 const struct rcc_clock_scale clock_scale  = {
     .pllsrc = RCC_CFGR_PLLSRC_HSE_PREDIV,
     .pllmul = RCC_CFGR_PLLMUL_MUL3,
@@ -89,7 +93,6 @@ void sys_tick_handler(void)
 
 void systemToApplication(void)
 {
-  extern const size_t _appRomStart, _bootRom;
   typedef void (*funcptr_t)(void);
 
   /* variable that will be loaded with the start address of the application */
@@ -147,6 +150,11 @@ void systemReset(void)
 
 can_bootloaderErrs_e systemFlashErase(uint8_t *startAddr, uint8_t *endAddr)
 {
+  if (startAddr < (uint8_t*)_appRomStart)
+    return C_bootloaderErrStartAddressOutOfRange;
+  if (endAddr > (uint8_t*)_appRomEnd)
+    return C_bootloaderErrEndAddressOutOfRange;
+
   can_bootloaderErrs_e err = C_bootloaderErrOK;
   flash_unlock();
   flash_wait_for_last_operation();
@@ -181,6 +189,9 @@ can_bootloaderErrs_e systemFlashErase(uint8_t *startAddr, uint8_t *endAddr)
 can_bootloaderErrs_e systemFlashWritePage(uint16_t *memPageBuf,
                                           volatile uint16_t *addr)
 {
+  if (addr < (uint16_t*)_appRomStart)
+    return C_bootloaderErrStartAddressOutOfRange;
+
   can_bootloaderErrs_e err = C_bootloaderErrOK;
   flash_unlock();
   flash_wait_for_last_operation();

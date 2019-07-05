@@ -178,7 +178,7 @@ int socketcan_init(const char *name)
  * @param id, use this can msg ID
  * @return 0 on error, 1 when ok
  */
-int socketcan_set_filter(uint32_t mask, uint32_t id)
+int socketcan_set_filter(canid_t mask, canid_t id)
 {
     if (socketcan_status() != 1) {
         sprintf(canbridge_errmsg, "Not in initialized state\n");

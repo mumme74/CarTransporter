@@ -5,6 +5,7 @@
 #include <linux/can.h>
 
 typedef struct can_frame canframe_t;
+typedef struct can_filter can_filter_t;
 
 
 /**
@@ -20,7 +21,7 @@ int socketcan_init(const char *name);
  * @param id, use this can msg ID
  * @return 0 on error, 1 when ok
  */
-int socketcan_set_filter(uint32_t mask, uint32_t id);
+int socketcan_set_filter(canid_t mask, canid_t id);
 
 /**
  * @brief socketcan_open, open a previously initialized

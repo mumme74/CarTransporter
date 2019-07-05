@@ -141,7 +141,7 @@ int canbridge_init(const char *idStr)
  * @param id, use this can msg ID
  * @return 0 on error, 1 when ok
  */
-int canbridge_set_filter(uint32_t mask, uint32_t id)
+int canbridge_set_filter(canid_t mask, canid_t id)
 {
     switch (_driverId) {
     case CAN_driver_slcan:

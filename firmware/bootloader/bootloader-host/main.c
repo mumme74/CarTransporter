@@ -123,7 +123,7 @@ void print_usage(char *prg)
 
     fprintf(stderr, "\n");
     fprintf(stderr, "A CAN interface must be specified on the commandline in the form:\n");
-#ifdef __linux__
+#ifdef BUILD_SOCKETCAN
     fprintf(stderr, " <ifname> (driver=socketcan)\n");
 #endif
     fprintf(stderr, " <serialport> (driver=slcan)\n");
@@ -262,8 +262,14 @@ int main(int argc, char *argv[])
         errExit("Must specify a driver to use\n\n");
 
     // no options
-    if (optind == argc || canIdx <= 0)
-        errExit("Must give interface after options, ie. can0 (driver=socketcan) or /dev/ttySerial (driver=slcan) etc.\n\n");
+    if (optind == argc || canIdx <= 0) {
+        fprintf(stderr, "Must give interface after options, ie.");
+#ifdef BUILD_SOCKETCAN
+        fprintf(stderr, " can0 (driver=socketcan) or");
+#endif
+        fprintf(stderr, " /dev/ttySerial (driver=slcan) etc.\n\n");
+        errExit(0);
+    }
     else {
         // parse arguments
         // first argument should be interface ie. can0

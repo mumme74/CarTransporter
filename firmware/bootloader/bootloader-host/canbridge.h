@@ -9,26 +9,35 @@
 #ifndef CANBRIDGE_H
 #define CANBRIDGE_H
 
-#ifdef __linux__
-# include "socketcan.h"
-#endif // __linux__
+// include drivers
+#include "slcan.h" // lawcell protocol, over serialport
 
-// #include "slcan.h" // lawcell protocol, over serialport
+#ifdef BUILD_SOCKETCAN
+# include "socketcan.h" // only available on linux
+#else
+# include "cantypes.h"
+#endif // BUILD_SOCKETCAN
 
 
+// global defines
 #define CANBRIDGE_CLOSED 0
 #define CANBRIDGE_INIT 1
 #define CANBRIDGE_OPEN 2
 
 
-// available driver to choose from
+/**
+ * @brief CAN_Drivers_t, these are the available driver to choose from
+ */
 typedef enum {
     CAN_driver_invalid = 0,
-    CAN_driver_slcan = 1,
-
 #ifdef __linux__
-    CAN_driver_socketcan = 2,
+    CAN_driver_socketcan = 1,
 #endif
+    CAN_driver_slcan = 2,
+    // fill with more drivers here
+
+
+    // end marker
     _CAN_driver_end // must be dead last in enum,
                     // used at stop marker in for loop
 } CAN_Drivers_t;
@@ -92,7 +101,7 @@ int canbridge_init(const char *idStr);
  * @param id, use this can msg ID
  * @return 0 on error, 1 when ok
  */
-int canbridge_set_filter(uint32_t mask, uint32_t id);
+int canbridge_set_filter(canid_t mask, canid_t id);
 
 /**
  * @brief socketcan_open, open a previously initialized

@@ -3,135 +3,83 @@
   *
   * Based on candump from VW
   */
-/*
- * modified from candump.c
- *
- * Copyright (c) 2002-2009 Volkswagen Group Electronic Research
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of Volkswagen nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * Alternatively, provided that this notice is retained in full, this
- * software may be distributed under the terms of the GNU General
- * Public License ("GPL") version 2, in which case the provisions of the
- * GPL apply INSTEAD OF those given above.
- *
- * The provided data structures and external interfaces from this code
- * are not restricted to be used by modules with a GPL compatible license.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
- * DAMAGE.
- *
- * Send feedback to <linux-can@vger.kernel.org>
- *
- */
-
+// std headers
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
 #include <stddef.h>
-#include <getopt.h>
 #include <signal.h>
 #include <ctype.h>
-#include <libgen.h>
 #include <time.h>
 #include <errno.h>
 
+// unix headers
+#include <getopt.h>
+//#include <unistd.h>
+#include <libgen.h>
 
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <sys/uio.h>
+//#include <sys/time.h>
+//#include <sys/types.h>
+//#include <sys/socket.h>
+//#include <sys/ioctl.h>
+//#include <sys/uio.h>
 #include <net/if.h>
-#include <sys/select.h>
+//#include <sys/select.h>
 
-#include <linux/can.h>
+//#include <linux/can.h>
 #include <linux/can/raw.h>
 
 #include "can_protocol.h"
 #include "commands.h"
+#include "canbridge.h"
 
-// global vars
-int running = 0;
-int cansock = 0;
-uint32_t canIdx = 0;
-struct sockaddr_can addr;
-
-// file specific vars
-static struct ifreq ifr;
-static const int canfd_on = 1;
 
 #define ANYDEV "any"  /* name of interface to receive from any CAN interface */
 #define MAX_NODENR 2
 #define DEBUG 1
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
+// global vars
+int abortVar = 0;
+uint32_t canIdx = 0;
+
+
+#ifdef _WIN32
+char *basename(const char* filepath) {
+    static char bname[100], ext[10];
+    _splitpath_s(filepath,
+            NULL, 0, // drive
+            NULL, 0, // dir
+            bname, 88, // filename
+            ext, 10);
+    strcat(bname, ".");
+    strcat(bname, ext);
+    return bname;
+}
+#endif
 
 void setup_can_iface(char *name)
 {
-    cansock = socket(PF_CAN, SOCK_RAW, CAN_RAW);
-    if (cansock < 0)
-        errExit("CAN socket failed to open");
-
-
-
-    addr.can_family = AF_CAN;
-
-    memset(&ifr.ifr_name, 0, sizeof(ifr.ifr_name));
-    strncpy(ifr.ifr_name, name, strlen(name));
-
-    printf("Using interface name '%s'.\n", ifr.ifr_name);
-
-    // set can interface
-    ifr.ifr_ifindex = (int)if_nametoindex(ifr.ifr_name);
-    if (!ifr.ifr_ifindex)
-        errExit("Failed to open interface\n");
-
-    memset(&addr, 0, sizeof(addr));
-    addr.can_family = AF_CAN;
-    addr.can_ifindex = ifr.ifr_ifindex;
+    if (!canbridge_init(name))
+        errExit(canbridge_errmsg);
 
     // filter out all other messages
-    struct can_filter rcvfilter;
+    uint32_t mask, id;
     if (canIdx < 0x800) {
         // 11 bit id
-        rcvfilter.can_mask = 0x7F8; // filter in only this id
+        mask = 0x7F8; // filter in only this id
     } else {
         // 29 bit (extended frame)
-        rcvfilter.can_mask = 0x1FFFFFF8;
+        mask = 0x1FFFFFF8;
     }
-    rcvfilter.can_id = canIdx;
-    setsockopt(cansock, SOL_CAN_RAW, CAN_RAW_FILTER, &rcvfilter, sizeof (struct can_filter));
+    id = canIdx;
+    if (!canbridge_set_filter(mask, id))
+        errExit(canbridge_errmsg);
 
-    /* try to switch the socket into CAN FD mode */
-    setsockopt(cansock, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &canfd_on, sizeof(canfd_on));
-
-    if (bind(cansock, (struct sockaddr *)&addr, sizeof(addr)) < 0)
-        errExit("bind");
+    if (!canbridge_open())
+        errExit(canbridge_errmsg);
 }
 
 bool parse_memoptions(memoptions_t *mopt, char *argoption)
@@ -169,9 +117,16 @@ void print_usage(char *prg)
     fprintf(stderr, "                                       3-7=currently not used nodes\n");
     fprintf(stderr, "         -N <node>    nodename: parkbrakeNode | suspensionNode\n");
     fprintf(stderr, "         -i <ID>      CAN frameid to listen to in HEX\n");
+    fprintf(stderr, "         -d <driver>  what driver to use, ie:\n");
+    for(CAN_Drivers_t d = CAN_driver_invalid +1; d < _CAN_driver_end; ++d)
+        fprintf(stderr, "                            %s", canbridge_get_driverNameForId(d));
+
     fprintf(stderr, "\n");
-    fprintf(stderr, "A CAN interface must be specified\n");
-    fprintf(stderr, "on the commandline in the form: <ifname>\n");
+    fprintf(stderr, "A CAN interface must be specified on the commandline in the form:\n");
+#ifdef __linux__
+    fprintf(stderr, " <ifname> (driver=socketcan)\n");
+#endif
+    fprintf(stderr, " <serialport> (driver=slcan)\n");
     fprintf(stderr, "CAN ID in hexadecimal values, or nodename  must be given.\n\n");
     fprintf(stderr, "Use interface name '%s' to receive from all CAN interfaces.\n", ANYDEV);
     fprintf(stderr, "\nActions:      arguments:   optional arguments:\n");
@@ -217,7 +172,7 @@ void print_usage(char *prg)
 void sigterm(int signo)
 {
     (void)signo;
-    running = 0;
+    abortVar = 1;
 }
 
 int main(int argc, char *argv[])
@@ -229,9 +184,9 @@ int main(int argc, char *argv[])
     signal(SIGHUP, sigterm);
     signal(SIGINT, sigterm);
 
-    running = 1;
+    abortVar = 0;
 
-    while ((opt = getopt(argc, argv, "i:n:N:h?")) != -1) {
+    while ((opt = getopt(argc, argv, "i:n:N:d:h?")) != -1) {
         switch (opt) {
         case 'i': {
             long idx = strtol(optarg, NULL, 16);
@@ -284,6 +239,14 @@ int main(int argc, char *argv[])
                 errExit(0);
             }
             break;
+        case 'd':
+            if (!canbridge_set_driverFromName(optarg)) {
+                fprintf(stderr, "**%s\navaliable:", canbridge_errmsg);
+                for (CAN_Drivers_t d = CAN_driver_invalid +1; d < _CAN_driver_end; ++d)
+                    fprintf(stderr, " %s", canbridge_get_driverNameForId(d));
+                errExit(0);
+            }
+            break;
         case '?':
             fprintf(stderr, "unknown option char at index:%d\n", optind);
             errExit(0);
@@ -294,14 +257,18 @@ int main(int argc, char *argv[])
         }
     }
 
+    // driver check
+    if (canbridge_get_driverId() == CAN_driver_invalid)
+        errExit("Must specify a driver to use\n\n");
+
     // no options
     if (optind == argc || canIdx <= 0)
-        errExit("Must give interface after options, ie. can0 or can1 etc.\n\n");
+        errExit("Must give interface after options, ie. can0 (driver=socketcan) or /dev/ttySerial (driver=slcan) etc.\n\n");
     else {
         // parse arguments
         // first argument should be interface ie. can0
         char *cansockname = argv[optind];
-        setup_can_iface(cansockname);
+        setup_can_iface(cansockname); // FIXME implement code to select driver
 
         // next comes the verb (what we should do)
         if (optind + 1 == argc)

@@ -13,12 +13,6 @@
 #include <stdbool.h>
 
 
-#define TEMP_FAIL_RETRY( expression) { \
-  int var;  \
-  do { \
-    var = (expression); \
-  } while (var == -1 && errno == EINTR && running); \
-}
 
 typedef struct {
     uint32_t lowerbound;
@@ -27,11 +21,9 @@ typedef struct {
 
 
 // gets set in main.c
-extern int running;
-extern int running;
-extern int cansock;
+extern int abortVar;
+extern int abortVar;
 extern uint32_t canIdx;
-extern struct sockaddr_can addr;
 
 
 void cmdInit(void);
@@ -46,6 +38,7 @@ void doWriteCmd(memoptions_t *mopt, char *binName);
 void doBootloaderModeCmd(void);
 
 void errExit(char *errStr)  __attribute__ ((noreturn));
+void printCanError(void);
 void cleanExit(void) __attribute__ ((noreturn));
 void cleanup(void);
 

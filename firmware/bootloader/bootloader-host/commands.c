@@ -25,6 +25,7 @@
 #include "crc32.h"
 #include "can_protocol.h"
 #include "commands.h"
+#include "canbridge.h"
 
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
@@ -32,9 +33,6 @@
 #define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
 #define PBWIDTH 60
 
-
-
-typedef struct can_frame canframe_t;
 
 // memory structure of uC
 typedef struct {
@@ -44,11 +42,12 @@ typedef struct {
     uint16_t nrPages;
 } memoryinfo_t;
 
-extern int cansock;
+extern uint32_t canIdx;
 
 static memoryinfo_t memory = { 0 ,0 ,0 ,0 };
 static uint32_t nodeCrc,
                 binCrc;
+
 
 void printProgress (double percentage)
 {
@@ -99,97 +98,6 @@ static void nodeErrExit(const char *str, can_bootloaderErrs_e err)
     exit(EXIT_FAILURE);
 }
 
-// got this from https://stackoverflow.com/questions/4181784/
-//  how-to-set-socket-timeout-in-c-when-making-multiple-connections
-static int wait_on_sock(int sock, long timeout, int r, int w)
-{
-    struct timeval tv = {0,0};
-    fd_set fdset;
-    fd_set *rfds, *wfds;
-    int n, so_error;
-    unsigned so_len;
-
-    FD_ZERO (&fdset);
-    FD_SET  (sock, &fdset);
-    tv.tv_sec = timeout;
-    tv.tv_usec = 0;
-
-#ifdef DEBUG
-    fprintf(stdout, "wait in progress tv={%ld,%ld} ...\n",
-            tv.tv_sec, tv.tv_usec);
-#endif
-
-    if (r) rfds = &fdset; else rfds = NULL;
-    if (w) wfds = &fdset; else wfds = NULL;
-
-    TEMP_FAIL_RETRY (n = select (sock+1, rfds, wfds, NULL, &tv));
-    switch (n) {
-    case 0:
-        fprintf(stderr, "**wait timed out\n");
-        return -errno;
-    case -1:
-        fprintf(stderr, "**error during wait\n");
-        return -errno;
-    default:
-        // select tell us that sock is ready, test it
-        so_len = sizeof(so_error);
-        so_error = 0;
-        getsockopt (sock, SOL_SOCKET, SO_ERROR, &so_error, &so_len);
-        if (so_error == 0)
-            return 0;
-        errno = so_error;
-        fprintf(stderr, "**wait failed\n");
-        return -errno;
-    }
-}
-
-static bool cansend(canframe_t *msg, int timeoutms)
-{
-    ssize_t e = write(cansock, msg, CAN_MTU);
-    if (e == -1 &&
-        (errno == EWOULDBLOCK || errno == EAGAIN || errno == ENOBUFS))
-    {
-        // wait for 50ms then retry
-        struct timespec time = { 0 /*sec*/, 50000000 /*nanosecs*/ };
-        nanosleep(&time, NULL);
-        e = write(cansock, msg, CAN_MTU);
-    }
-
-    if (e != CAN_MTU) {
-        fprintf(stderr, "**write to CAN failed errno:%d\n", errno);
-        return false;
-    }
-    return wait_on_sock(cansock, timeoutms, 0, 1) == 0;
-}
-
-static bool canrecv(canframe_t *frm, int timeoutms)
-{
-    struct timeval tv;
-
-    /* Watch stdin (fd 0) to see when it has input. */
-    fd_set rdfs;
-    FD_ZERO(&rdfs);
-    FD_SET(cansock, &rdfs);
-
-    /* Wait up to five seconds. */
-    tv.tv_sec = timeoutms / 1000;
-    tv.tv_usec = (timeoutms - tv.tv_sec) * 1000;
-
-    int ret;
-    TEMP_FAIL_RETRY (ret = select(cansock +1, &rdfs, NULL, NULL, &tv));
-    /* Don't rely on the value of tv now! */
-    if (ret == -1)
-        errExit("Failed to connect to CAN while receive");
-    else if (ret) {
-        int nbytes;
-        // Data is available now.
-        if ((nbytes = read(cansock, frm, sizeof(*frm))) < 0)
-            errExit("CAN read from socket failed");
-        return true;
-    }
-    return false;
-}
-
 // recives a specific frame with a specific data at pos
 static bool filteredRecv(canframe_t *recvFrm, int timeout,
                   uint8_t dataPos, uint8_t isvlu)
@@ -197,17 +105,20 @@ static bool filteredRecv(canframe_t *recvFrm, int timeout,
     // get result
     int res = 0;
     // we might get another queued frame, discard that...
-    while ((res = canrecv(recvFrm, timeout)))  {
+    while ((res = canbridge_recv(recvFrm, timeout)) > 0)  {
         if ((recvFrm->can_dlc > 0) &&
             (recvFrm->data[dataPos] == isvlu))
         {
             break;
         }
         res = 0;
-        if (!running)
+        if (abortVar)
             cleanExit();
     }
-    return res;
+    if (res < 1)
+        printCanError();
+
+    return res > 0;
 }
 
 static void initFrame(canframe_t *frm)
@@ -224,8 +135,10 @@ static void initMemoryInfo(canframe_t *sendFrm, canframe_t *recvFrm)
     // send request
     sendFrm->can_dlc = 1;
     sendFrm->data[0] = C_bootloaderStartAddress;
-    if (!cansend(sendFrm, 1000))
-        errExit("cant send\n");
+    if (canbridge_send(sendFrm, 1000) < 1) {
+        printCanError();
+        errExit("can't send\n");
+    }
 
     // get result
     if (!filteredRecv(recvFrm, 1000, 0, C_bootloaderStartAddress))
@@ -237,8 +150,10 @@ static void initMemoryInfo(canframe_t *sendFrm, canframe_t *recvFrm)
     // get the rest
     sendFrm->can_dlc = 1;
     sendFrm->data[0] = C_bootloaderMemPageInfo;
-    if (!cansend((sendFrm), 1000))
+    if (canbridge_send((sendFrm), 1000) < 1) {
+        printCanError();
         errExit("cant send\n");
+    }
 
 
     if (!filteredRecv(recvFrm, 1000, 0, C_bootloaderMemPageInfo))
@@ -255,8 +170,10 @@ static can_bootloaderErrs_e resetNode(canframe_t *sendFrm, canframe_t *recvFrm)
 {
     sendFrm->can_dlc = 1;
     sendFrm->data[0] = C_bootloaderReset;
-    if (!cansend(sendFrm, 1000))
+    if (canbridge_send(sendFrm, 1000) < 1) {
+        printCanError();
         return C_bootloaderErrSendFailed;
+    }
 
     if (!filteredRecv(recvFrm, 2000, 0, C_bootloaderReset))
         return C_bootloaderErrNoResponse;
@@ -280,7 +197,10 @@ static can_bootloaderErrs_e getRemoteChecksum(memoptions_t *mopt,
     sendFrm->data[sendFrm->can_dlc++] = (len & 0x000000FF) >> 0;
     sendFrm->data[sendFrm->can_dlc++] = (len & 0x0000FF00) >> 8;
     sendFrm->data[sendFrm->can_dlc++] = (len & 0x00FF0000) >> 16;
-    cansend(sendFrm, 100);
+    if (canbridge_send(sendFrm, 100) < 1) {
+        printCanError();
+        return C_bootloaderErr;
+    }
 
     if (!filteredRecv(recvFrm, 2000, 0, C_bootloaderChecksum))
         return C_bootloaderErrNoResponse;
@@ -407,8 +327,10 @@ writeCanPageLoop:
     sendFrm->data[5] = frames;
     sendFrm->data[6] = (canPageNr & 0x000000FF);
     sendFrm->data[7] = (canPageNr & 0x0000FF00) >> 8;
-    if (!cansend(sendFrm, 1000))
+    if (canbridge_send(sendFrm, 1000) < 1) {
+        printCanError();
         return C_bootloaderErrSendFailed;
+    }
 
     // begin payload frames
     while (frameNr < frames) {
@@ -428,8 +350,10 @@ writeCanPageLoop:
           break; // frameId should now be frameId == frames
         }
       }
-      if (!cansend(sendFrm, 1000))
-          return C_bootloaderErrSendFailed;;
+      if (canbridge_send(sendFrm, 1000) < 1) {
+          printCanError();
+          return C_bootloaderErrSendFailed;
+      }
     }
 
     // wait for remote to Ack this page
@@ -441,9 +365,11 @@ writeCanPageLoop:
         printProgress(progress);
 
         // get response from node
-        if (!canrecv(recvFrm, 1000))
+        if (canbridge_recv(recvFrm, 1000) < 1) {
+            printCanError();
             return C_bootloaderErrReceiveTimeout;
-        if (!running)
+        }
+        if (!abortVar)
             return C_bootloaderErrUnknown;
     } while(recvFrm->can_dlc != 2 &&
             recvFrm->data[0] != C_bootloaderReadFlash);
@@ -487,8 +413,10 @@ readCanPageLoop:
 
     // loop to receive a complete canPage
     do {
-      if (!canrecv(recvFrm, 1000))
+      if (canbridge_recv(recvFrm, 1000) < 1) {
+          printCanError();
           return C_bootloaderErrNoResponse;
+      }
 
       if ((recvFrm->data[0] & 0x80) && frames == 0) {
         // get header
@@ -528,8 +456,10 @@ readCanPageLoop:
       sendFrm->can_dlc = 2;
       sendFrm->data[0] = C_bootloaderReadFlash;
       sendFrm->data[1] = C_bootloaderErrResend;
-      if (!cansend(sendFrm, 1000))
+      if (canbridge_send(sendFrm, 1000) < 1) {
+          printCanError();
           return C_bootloaderErrSendFailed;
+      }
 
       goto readCanPageLoop;
     }
@@ -543,8 +473,10 @@ readCanPageLoop:
       sendFrm->can_dlc = 2;
       sendFrm->data[0] = C_bootloaderReadFlash;
       sendFrm->data[1] = C_bootloaderErrOK;
-      if (!cansend(sendFrm, 1000))
+      if (canbridge_send(sendFrm, 1000) < 1) {
+          printCanError();
           return C_bootloaderErrSendFailed;
+      }
       previousStoredIndex = lastStoredIdx;
       goto readCanPageLoop;
     }
@@ -557,8 +489,8 @@ readCanPageLoop:
 
 void cleanup(void)
 {
-    if (cansock)
-        close(cansock);
+    if (canbridge_status() != CANBRIDGE_CLOSED)
+        canbridge_close();
     if (binFile)
         fclose(binFile);
     binFile = 0;
@@ -579,6 +511,14 @@ void errExit(char *errStr)
     }
     cleanup();
     exit(EXIT_FAILURE);
+}
+
+void printCanError(void)
+{
+    if (strlen(canbridge_errmsg) > 0) {
+        fprintf(stderr, "**%s", canbridge_errmsg);
+        fflush(stderr);
+    }
 }
 
 // reads parts or all of uC flash memory
@@ -637,8 +577,10 @@ void doReadCmd(memoptions_t *mopt, char *storeName)
     sendFrm.data[sendFrm.can_dlc++] = (len & 0x0000FF00) >> 8;
     sendFrm.data[sendFrm.can_dlc++] = (len & 0x00FF0000) >> 16;
 
-    if (!cansend(&sendFrm, 100))
+    if (canbridge_send(&sendFrm, 100) < 1) {
+        printCanError();
         errExit("Failed to send flash command");
+    }
 
     if (!filteredRecv(&recvFrm, 100, 0, C_bootloaderReadFlash))
         errExit("No ack for CAN read\n");
@@ -661,8 +603,10 @@ void doReadCmd(memoptions_t *mopt, char *storeName)
     // release from blocking loop
     sendFrm.can_dlc = 1;
     sendFrm.data[0] = C_bootloaderUnblock;
-    if (!cansend(&sendFrm, 1000))
+    if (canbridge_send(&sendFrm, 1000) < 1) {
+        printCanError();
         errExit("Couldn't send unblock");
+    }
 
     if (err == C_bootloaderErrOK) {
         // successfull
@@ -812,11 +756,14 @@ void doEraseCmd(memoptions_t *mopt)
     sendFrm.data[sendFrm.can_dlc++] =  (nrPages & 0x000000FF);
     sendFrm.data[sendFrm.can_dlc++] =  (nrPages & 0x0000FF00) >> 8;
 
-    if (!cansend(&sendFrm, 1000))
+    if (canbridge_send(&sendFrm, 1000) < 1) {
+        printCanError();
         errExit("Couldnt send on can network\n");
+    }
 
     const uint32_t timeout = 30000;
-    if (!canrecv(&recvFrm, timeout)) {
+    if (canbridge_recv(&recvFrm, timeout) < 1) {
+        printCanError();
         fprintf(stderr, "**No repsonse from node, timeout after:%dms", timeout);
         errExit(0);
     }
@@ -877,8 +824,9 @@ void doWriteCmd(memoptions_t *mopt, char *binName)
     sendFrm.data[sendFrm.can_dlc++] = (len & 0x0000FF00) >> 8;
     sendFrm.data[sendFrm.can_dlc++] = (len & 0x00FF0000) >> 16;
 
-    if (!cansend(&sendFrm, 100))
+    if (canbridge_send(&sendFrm, 100) < 1) {
         errExit("Failed to send flash command");
+    }
 
     if (!filteredRecv(&recvFrm, 100, 0, C_bootloaderWriteFlash))
         errExit("No ack for CAN write\n");
@@ -892,8 +840,10 @@ void doWriteCmd(memoptions_t *mopt, char *binName)
     // release from blocking loop
     sendFrm.can_dlc = 1;
     sendFrm.data[0] = C_bootloaderUnblock;
-    if (!cansend(&sendFrm, 1000))
+    if (canbridge_send(&sendFrm, 1000) < 1) {
+        printCanError();
         errExit("Couldn't send unblock");
+    }
 
     if (err == C_bootloaderErrOK) {
         fprintf(stdout, "\n--Write process completed successfully!\nChecking checksum...\n");
@@ -949,13 +899,14 @@ void doBootloaderModeCmd(void)
     while (true) {
         sendFrm.can_dlc = 1;
         sendFrm.data[0] = C_bootloaderReset;
-        if (!cansend(&sendFrm, 100)) {
+        if (canbridge_send(&sendFrm, 100) < 1) {
+            printCanError();
             if (printResetFail) {
                 printResetFail =false;
                 fprintf(stderr, "**Unable to reset node, please powercycle node (ie. yank fuse)\n");
             }
         }
-        if (canrecv(&recvFrm, 1000)) {
+        if (canbridge_recv(&recvFrm, 1000) == 1) {
             if ((recvFrm.can_dlc > 0) &&
                 (recvFrm.data[0] == C_bootloaderWait ||
                  recvFrm.data[0] == C_bootloaderReset))
@@ -964,11 +915,14 @@ void doBootloaderModeCmd(void)
                     // shower our node with commands in the hope one will catch
                     sendFrm.can_dlc = 1;
                     sendFrm.data[0] = C_bootloaderWait;
-                    cansend(&sendFrm, 3);
+                    canbridge_send(&sendFrm, 3);
 
                 }
                 goto bootModeOut;
             }
+        } else {
+            printCanError();
+            errExit("Can't send to CAN\n");
         }
     }
 

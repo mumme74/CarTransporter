@@ -45,7 +45,7 @@ typedef struct {
 extern uint32_t canIdx;
 
 static memoryinfo_t memory = { 0 ,0 ,0 ,0 };
-static uint32_t nodeCrc,
+static byte4_t  nodeCrc,
                 binCrc;
 
 
@@ -144,8 +144,14 @@ static void initMemoryInfo(canframe_t *sendFrm, canframe_t *recvFrm)
     if (!filteredRecv(recvFrm, 1000, 0, C_bootloaderStartAddress))
         errExit("No response from node\n");
 
-    memory.bootRomStart = (uint32_t)(recvFrm->data[4] << 24 | recvFrm->data[3] << 16 |
-                                     recvFrm->data[2] << 8  | recvFrm->data[1]);
+    byte4_t addr;
+    addr.b0 = recvFrm->data[1];
+    addr.b1 = recvFrm->data[2];
+    addr.b2 = recvFrm->data[3];
+    addr.b3 = recvFrm->data[4];
+    memory.bootRomStart = addr.vlu;
+    //memory.bootRomStart = (uint32_t)(recvFrm->data[4] << 24 | recvFrm->data[3] << 16 |
+    //                                 recvFrm->data[2] << 8  | recvFrm->data[1]);
 
     // get the rest
     sendFrm->can_dlc = 1;
@@ -159,8 +165,14 @@ static void initMemoryInfo(canframe_t *sendFrm, canframe_t *recvFrm)
     if (!filteredRecv(recvFrm, 1000, 0, C_bootloaderMemPageInfo))
         errExit("No response from node\n");
 
-    memory.pageSize = (uint16_t)(recvFrm->data[2] << 8 | recvFrm->data[1]);
-    memory.nrPages  = (uint16_t)(recvFrm->data[4] << 8 | recvFrm->data[3]);
+    byte2_t pgSz, nPg;
+    pgSz.b0 = recvFrm->data[1];
+    pgSz.b1 = recvFrm->data[2];
+    nPg.b0 = recvFrm->data[3];
+    nPg.b1 = recvFrm->data[4];
+
+    memory.pageSize = pgSz.vlu; //(uint16_t)(recvFrm->data[2] << 8 | recvFrm->data[1]);
+    memory.nrPages  = nPg.vlu; // (uint16_t)(recvFrm->data[4] << 8 | recvFrm->data[3]);
 
     memory.bootRomEnd = memory.bootRomStart +
                             (memory.pageSize * memory.nrPages);
@@ -205,8 +217,12 @@ static can_bootloaderErrs_e getRemoteChecksum(memoptions_t *mopt,
     if (!filteredRecv(recvFrm, 2000, 0, C_bootloaderChecksum))
         return C_bootloaderErrNoResponse;
 
-    nodeCrc = (uint32_t)(recvFrm->data[4] << 24 | recvFrm->data[3] << 16 |
-                         recvFrm->data[2] << 8  | recvFrm->data[1]);
+    nodeCrc.b0 = recvFrm->data[1];
+    nodeCrc.b1 = recvFrm->data[2];
+    nodeCrc.b2 = recvFrm->data[3];
+    nodeCrc.b3 = recvFrm->data[4];
+    //nodeCrc = (uint32_t)(recvFrm->data[4] << 24 | recvFrm->data[3] << 16 |
+    //                     recvFrm->data[2] << 8  | recvFrm->data[1]);
 
     return C_bootloaderErrOK;
 }
@@ -289,16 +305,16 @@ static can_bootloaderErrs_e writeFileToNode(memoptions_t *mopt, uint8_t *fileCac
             *addr = fileCache,
             *endAddr = fileCache + (mopt->upperbound - mopt->lowerbound);
 
-    uint16_t canPageNr = 0,
-             memPageGuard = 0;
-    uint32_t crc;
+    byte2_t canPageNr = { 0 };
+    uint16_t memPageGuard = 0;
+    byte4_t crc = { 0 };
     uint8_t *addrAtCanPageStart;
     uint8_t *addrAtMemPageStart;
 
 writeMemPageLoop:
     addrAtMemPageStart = addr;
     memPageGuard = 0;
-    canPageNr = 0;
+    canPageNr.vlu = 0;
 
 writeCanPageLoop:
     // begin header
@@ -315,18 +331,18 @@ writeCanPageLoop:
     if ((MIN((eAddr - addr -1), ((BOOTLOADER_PAGE_SIZE+1) * 7)) % 7) > 0)
         frames += 1;
 
-    crc = crc32(0, addr, MIN(MIN((eAddr - addr -1), (frames * 7)),
-                             ((BOOTLOADER_PAGE_SIZE+1) * 7)));
+    crc.vlu = crc32(0, addr, MIN(MIN((eAddr - addr -1), (frames * 7)),
+                                 ((BOOTLOADER_PAGE_SIZE+1) * 7)));
     sendFrm->can_dlc = 8;
     sendFrm->data[0] = C_bootloaderWriteFlash;
-    sendFrm->data[1] = (crc & 0x000000FF);
-    sendFrm->data[2] = (crc & 0x0000FF00) >> 8;
-    sendFrm->data[3] = (crc & 0x00FF0000) >> 16;
-    sendFrm->data[4] = (crc & 0xFF000000) >> 24;
+    sendFrm->data[1] = crc.b0; // (crc & 0x000000FF);
+    sendFrm->data[2] = crc.b1; // (crc & 0x0000FF00) >> 8;
+    sendFrm->data[3] = crc.b2; // (crc & 0x00FF0000) >> 16;
+    sendFrm->data[4] = crc.b3; // (crc & 0xFF000000) >> 24;
     // len of page
     sendFrm->data[5] = frames;
-    sendFrm->data[6] = (canPageNr & 0x000000FF);
-    sendFrm->data[7] = (canPageNr & 0x0000FF00) >> 8;
+    sendFrm->data[6] = canPageNr.b0; //(canPageNr & 0x000000FF);
+    sendFrm->data[7] = canPageNr.b1; //(canPageNr & 0x0000FF00) >> 8;
     if (canbridge_send(sendFrm, 1000) < 1) {
         printCanError();
         return C_bootloaderErrSendFailed;
@@ -376,7 +392,7 @@ writeCanPageLoop:
 
     // check if we should resend
     if (recvFrm->data[1] == C_bootloaderErrOK)
-      ++canPageNr;
+      ++canPageNr.vlu;
     else if (recvFrm->data[1] == C_bootloaderErrResend) {
         addr = addrAtCanPageStart;
         memPageGuard -= (frameNr * 7) + (8 - sendFrm->can_dlc);
@@ -400,7 +416,7 @@ static can_bootloaderErrs_e recvFileFromNode(uint8_t *fileCache, canframe_t *sen
 {
     uint16_t canPageNr;
     uint8_t frames, frameNr;
-    uint32_t crc = 0;
+    byte4_t crc = { 0 };
 
     uint32_t lastStoredIdx = 0,
              previousStoredIndex = 0;
@@ -420,11 +436,20 @@ readCanPageLoop:
 
       if ((recvFrm->data[0] & 0x80) && frames == 0) {
         // get header
-        crc = (uint32_t)(recvFrm->data[4] << 24 | recvFrm->data[3] << 16 |
-                         recvFrm->data[2] << 8  | recvFrm->data[1]);
+        crc.b0 = recvFrm->data[1];
+        crc.b1 = recvFrm->data[2];
+        crc.b2 = recvFrm->data[3];
+        crc.b3 = recvFrm->data[4];
+
+        //crc = (uint32_t)(recvFrm->data[4] << 24 | recvFrm->data[3] << 16 |
+        //                 recvFrm->data[2] << 8  | recvFrm->data[1]);
         frames = recvFrm->data[5];
-        if (canPageNr != (recvFrm->data[7] << 8 | recvFrm->data[6])) {
-          return C_bootloaderErrCanPageOutOfOrder;
+        byte2_t pgNr;
+        pgNr.b0 = recvFrm->data[6];
+        pgNr.b1 = recvFrm->data[7];
+        //if (canPageNr != (recvFrm->data[7] << 8 | recvFrm->data[6])) {
+        if (canPageNr != pgNr.vlu) {
+            return C_bootloaderErrCanPageOutOfOrder;
         }
       } else {
         // it's a payload frame, frames might arrive at random order
@@ -451,7 +476,7 @@ readCanPageLoop:
     // last frame might be less than 7 bytes
     uint32_t recvCrc = crc32(0, fileCache + (canPageNr * (BOOTLOADER_PAGE_SIZE +1) * 7),
                              lastStoredIdx - previousStoredIndex);
-    if (crc != recvCrc) {
+    if (crc.vlu != recvCrc) {
       // notify node that we need this canPage retransmitted
       sendFrm->can_dlc = 2;
       sendFrm->data[0] = C_bootloaderReadFlash;
@@ -676,7 +701,7 @@ void doChecksumCmd(memoptions_t *mopt)
     }
 
     fprintf(stdout, "\n--Flash in node @ %x to %x\n--Memory crc32 = %u\n",
-            mopt->lowerbound, mopt->upperbound, nodeCrc);
+            mopt->lowerbound, mopt->upperbound, nodeCrc.vlu);
 }
 
 void doResetCmd(void)
@@ -697,10 +722,10 @@ void doChecksumLocalCmd(const char *binName)
 {
     long sz;
     uint8_t *cache = readLocalFile(binName, &sz);
-    binCrc = crc32(0, cache, sizeof(uint8_t) * (size_t)sz);
+    binCrc.vlu = crc32(0, cache, sizeof(uint8_t) * (size_t)sz);
     free(cache);
 
-    fprintf(stdout, "\n--Binfile crc32 = %u\n\n", binCrc);
+    fprintf(stdout, "\n--Binfile crc32 = %u\n\n", binCrc.vlu);
 }
 
 void doCompareCmd(const char *binName)
@@ -715,10 +740,10 @@ void doCompareCmd(const char *binName)
     // get local file crc and size
     long sz;
     uint8_t *buf = readLocalFile(binName, &sz);
-    binCrc = crc32(0, buf, (size_t)sz);
+    binCrc.vlu = crc32(0, buf, (size_t)sz);
     free(buf);
 
-    fprintf(stdout, "\n--Binfile crc32 = %u\n\n", binCrc);
+    fprintf(stdout, "\n--Binfile crc32 = %u\n\n", binCrc.vlu);
 
     // get remote crc up to size of our localfile
     memoptions_t mopt = {
@@ -729,7 +754,7 @@ void doCompareCmd(const char *binName)
     // request crc from node
     doChecksumCmd(&mopt);
 
-    if (binCrc == nodeCrc)
+    if (binCrc.vlu == nodeCrc.vlu)
         fprintf(stdout, "\n--Files match!!!\n\n");
     else
         fprintf(stdout, "*********** MISMATCH ***********\n\n");
@@ -793,7 +818,7 @@ void doWriteCmd(memoptions_t *mopt, char *binName)
     // get local file crc and size
     long sz;
     uint8_t *fileCache = readLocalFile(binName, &sz);
-    binCrc = crc32(0, fileCache, (size_t)sz);
+    binCrc.vlu = crc32(0, fileCache, (size_t)sz);
 
     // does it fit within given space?
     if ((uint32_t)sz > mopt->upperbound - mopt->lowerbound) {
@@ -807,22 +832,23 @@ void doWriteCmd(memoptions_t *mopt, char *binName)
         mopt->upperbound = memory.bootRomStart + (uint32_t)sz;
     }
 
-    fprintf(stdout, "\n--Writing binfile '%s' with crc32 = %u\n\n", binName, binCrc);
+    fprintf(stdout, "\n--Writing binfile '%s' with crc32 = %u\n\n", binName, binCrc.vlu);
 
     // now that we have successfully opened the file we retrive memory from node
     sendFrm.can_dlc = 0;
     sendFrm.data[sendFrm.can_dlc++] = C_bootloaderWriteFlash;
     // startaddress
-    sendFrm.data[sendFrm.can_dlc++] = (mopt->lowerbound & 0x000000FF) >> 0;
-    sendFrm.data[sendFrm.can_dlc++] = (mopt->lowerbound & 0x0000FF00) >> 8;
-    sendFrm.data[sendFrm.can_dlc++] = (mopt->lowerbound & 0x00FF0000) >> 16;
-    sendFrm.data[sendFrm.can_dlc++] = (mopt->lowerbound & 0xFF000000) >> 24;
+    byte4_t memOptLow = { mopt->lowerbound };
+    sendFrm.data[sendFrm.can_dlc++] = memOptLow.b0; //(mopt->lowerbound & 0x000000FF) >> 0;
+    sendFrm.data[sendFrm.can_dlc++] = memOptLow.b1; //(mopt->lowerbound & 0x0000FF00) >> 8;
+    sendFrm.data[sendFrm.can_dlc++] = memOptLow.b2; //(mopt->lowerbound & 0x00FF0000) >> 16;
+    sendFrm.data[sendFrm.can_dlc++] = memOptLow.b3; //(mopt->lowerbound & 0xFF000000) >> 24;
 
     // length
-    uint32_t len = (mopt->upperbound - mopt->lowerbound);
-    sendFrm.data[sendFrm.can_dlc++] = (len & 0x000000FF) >> 0;
-    sendFrm.data[sendFrm.can_dlc++] = (len & 0x0000FF00) >> 8;
-    sendFrm.data[sendFrm.can_dlc++] = (len & 0x00FF0000) >> 16;
+    byte4_t len = { (mopt->upperbound - mopt->lowerbound) };
+    sendFrm.data[sendFrm.can_dlc++] = len.b0; //(len & 0x000000FF) >> 0;
+    sendFrm.data[sendFrm.can_dlc++] = len.b1; //(len & 0x0000FF00) >> 8;
+    sendFrm.data[sendFrm.can_dlc++] = len.b2; //(len & 0x00FF0000) >> 16;
 
     if (canbridge_send(&sendFrm, 100) < 1) {
         errExit("Failed to send flash command");
@@ -855,13 +881,13 @@ void doWriteCmd(memoptions_t *mopt, char *binName)
             goto writeCleanup;
         }
 
-        if (nodeCrc != binCrc) {
-            fprintf(stderr, "**Error checksum doesnt match! binfile:%u node:%u\n", binCrc, nodeCrc);
+        if (nodeCrc.vlu != binCrc.vlu) {
+            fprintf(stderr, "**Error checksum doesnt match! binfile:%u node:%u\n", binCrc.vlu, nodeCrc.vlu);
             errorOccured = true;
             goto writeCleanup;
         }
 
-        fprintf(stdout, "\n--CRC match!! bincrc:%u  nodecrc:%u\n\n", binCrc, nodeCrc);
+        fprintf(stdout, "\n--CRC match!! bincrc:%u  nodecrc:%u\n\n", binCrc.vlu, nodeCrc.vlu);
         fprintf(stdout, "\n--You can now reset node to make it run normally on the new firmware\n  Do you want to reset? [Y] or [N]");
         int ch = getc(stdin);
         if (ch == 'Y' || ch == 'y' || ch == 'j' || ch == 'J') {

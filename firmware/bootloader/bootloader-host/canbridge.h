@@ -18,12 +18,50 @@
 # include "cantypes.h"
 #endif // BUILD_SOCKETCAN
 
+#ifdef _WIN32
+# if REG_DWORD == REG_DWORD_LITTLE_ENDIAN
+#  define IS_LITTLE_ENDIAN
+# endif
+#else // _WIN32
+# if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#  define IS_LITTLE_ENDIAN
+# endif
+#endif
 
 // global defines
 #define CANBRIDGE_CLOSED 0
 #define CANBRIDGE_INIT 1
 #define CANBRIDGE_OPEN 2
 
+typedef union {
+    uint32_t vlu;
+    struct {
+#ifdef IS_LITTLE_ENDIAN
+      uint8_t b0,
+              b1,
+              b2,
+              b3;
+#else
+      uint8_t b3,
+              b2,
+              b1,
+              b0;
+#endif
+    };
+} byte4_t;
+
+typedef union {
+    uint16_t vlu;
+    struct {
+#ifdef IS_LITTLE_ENDIAN
+      uint8_t b0,
+              b1;
+#else
+      uint8_t b1,
+              b0;
+#endif
+    };
+} byte2_t;
 
 /**
  * @brief CAN_Drivers_t, these are the available driver to choose from

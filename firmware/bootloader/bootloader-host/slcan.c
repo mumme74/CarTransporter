@@ -30,6 +30,12 @@ static int canfd = 0;
 #include <unistd.h>
 #include <sys/time.h>
 
+#ifdef __APPLE__
+// for iotcl set serial speed to 1000000 baud
+# include <sys/ioctl.h>
+# include <IOKit/serial/ioss.h>
+#endif
+
 typedef struct timeval timeval_t;
 
 // https://stackoverflow.com/questions/6947413/how-to-open-read-and-write-from-serial-port-in-c
@@ -53,9 +59,11 @@ static int open_port(const char *portname)
         return -1;
     }
 
+#ifndef __APPLE__
     // set speed to 1Mbit/s
     cfsetospeed(&tty, B1000000);
     cfsetispeed(&tty, B1000000);
+#endif
 
     tty.c_cflag |= (CLOCAL | CREAD);    /* ignore modem controls */
     tty.c_cflag &= ~(uint32_t)CSIZE;
@@ -77,6 +85,15 @@ static int open_port(const char *portname)
         sprintf(canbridge_errmsg, "Error from tcsetattr: %s\n", strerror(errno));
         return -1;
     }
+
+#ifdef __APPLE__
+    speed_t speed = 1000000;
+    if (ioctl(canfd, IOSSIOSPEED, &speed)) {
+        sprintf(canbridge_errmsg, "Error when setting serial speed to 1Mbaud\n");
+        return 0;
+    }
+#endif
+
     return 1;
 }
 

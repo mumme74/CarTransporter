@@ -75,9 +75,9 @@ typedef union {
 typedef enum {
     CAN_driver_invalid = 0,
 #ifdef __linux__
-    CAN_driver_socketcan = 1,
+    CAN_driver_socketcan,
 #endif
-    CAN_driver_slcan = 2,
+    CAN_driver_slcan,
     // fill with more drivers here
 
 

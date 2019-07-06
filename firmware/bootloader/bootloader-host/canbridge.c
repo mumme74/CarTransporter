@@ -17,7 +17,11 @@ static CAN_Drivers_t _driverId = CAN_driver_invalid;
 // available drivers as string name
 // must be in the order they were entered in CAN_Drivers_t
 static const char CAN_Drivers[_CAN_driver_end][MAXLEN_DRIVERNAME_STR] = {
-    "invalid", "slcan", "socketcan"
+    { "invalid" },
+#ifdef BUILD_SOCKETCAN
+    { "socketcan" },
+#endif
+    { "slcan" },
 };
 
 
@@ -27,6 +31,8 @@ int setupDriver(CAN_Drivers_t driverId)
 
     switch (_driverId) {
     case CAN_driver_slcan:
+        canbridge_send = &slcan_send;
+        canbridge_recv = &slcan_recv;
         return 1; // FIXME
 #ifdef __linux__
     case CAN_driver_socketcan:
@@ -124,7 +130,7 @@ int canbridge_init(const char *idStr)
 {
     switch (_driverId) {
     case CAN_driver_slcan:
-        return 0; // FIXME
+        return slcan_init(idStr); // FIXME
 #ifdef __linux__
     case CAN_driver_socketcan:
         return socketcan_init(idStr);
@@ -145,7 +151,7 @@ int canbridge_set_filter(canid_t mask, canid_t id)
 {
     switch (_driverId) {
     case CAN_driver_slcan:
-        return 0; // FIXME
+        return slcan_set_filter(mask, id); // FIXME
 #ifdef __linux__
     case CAN_driver_socketcan:
         return socketcan_set_filter(mask, id);
@@ -164,7 +170,7 @@ int canbridge_open(void)
 {
     switch (_driverId) {
     case CAN_driver_slcan:
-        return 0; // FIXME
+        return slcan_open(); // FIXME
 #ifdef __linux__
     case CAN_driver_socketcan:
         return socketcan_open();
@@ -183,7 +189,7 @@ int canbridge_status(void)
 {
     switch (_driverId) {
     case CAN_driver_slcan:
-        return 0; // FIXME
+        return slcan_status(); // FIXME
 #ifdef __linux__
     case CAN_driver_socketcan:
         return socketcan_status();
@@ -202,7 +208,7 @@ int canbridge_set_fd_mode(void)
 {
     switch (_driverId) {
     case CAN_driver_slcan:
-        return 0; // FIXME
+        return slcan_set_fd_mode(); // FIXME
 #ifdef __linux__
     case CAN_driver_socketcan:
         return socketcan_set_fd_mode();
@@ -221,7 +227,7 @@ int canbridge_close(void)
 {
     switch (_driverId) {
     case CAN_driver_slcan:
-        return 0; // FIXME
+        return slcan_close(); // FIXME
 #ifdef __linux__
     case CAN_driver_socketcan:
         return socketcan_close();
@@ -242,6 +248,7 @@ void canbridge_set_abortvariable(int *abortVar)
 {
     switch (_driverId) {
     case CAN_driver_slcan:
+        slcan_set_abortvariable(abortVar);
         break; // FIXME
 #ifdef __linux__
     case CAN_driver_socketcan:

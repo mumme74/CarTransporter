@@ -16,10 +16,10 @@
 #include <sys/uio.h>
 #include <net/if.h>
 
-#include <linux/can.h>
-#include <linux/can/raw.h>
-#include <linux/can/bcm.h>
-#include <linux/errno.h> // must be included before errno.h
+//#include <linux/can.h>
+//#include <linux/can/raw.h>
+//#include <linux/can/bcm.h>
+//#include <linux/errno.h> // must be included before errno.h
 #include <errno.h>
 
 #include "crc32.h"

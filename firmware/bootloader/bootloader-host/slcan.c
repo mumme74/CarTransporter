@@ -262,23 +262,8 @@ static int close_port(void)
 */
 
 static int state = CANBRIDGE_CLOSED;
-static char CR = '\r';
+static const char CR = '\r';
 
-static int send_cmd(char *cmd, int timeoutms)
-{
-    uint32_t len = strnlen(cmd, 20) + 1,
-             bytesWritten = 0;
-
-    cmd[len] = CR; // must end with '\r' as per spec
-
-    if (!write_port(cmd, len, &bytesWritten, timeoutms)) {
-        sprintf(canbridge_errmsg, "slcan send_cmd sent %d bytes of %d\n",
-                bytesWritten, len);
-        return 0;
-    }
-
-    return 1;
-}
 
 
 // ----------------------------------------------------------------
@@ -320,7 +305,8 @@ int slcan_set_filter(uint32_t mask, uint32_t id)
     // should send LSB first
     byte4_t code[] = { {id}, {mask} };
     char buf[10];
-    int j;
+    uint32_t nBytes = 0, j;
+
     for(int i = 0; i < 2; ++i) {
         j = 1;
         buf[j++] = cmds[i]; // insert command
@@ -328,14 +314,17 @@ int slcan_set_filter(uint32_t mask, uint32_t id)
         sprintf(&buf[j++],"%X", code[i].b1);
         sprintf(&buf[j++],"%X", code[i].b2);
         sprintf(&buf[j++],"%X", code[i].b3); // msb
-        buf[j] = 0; // end string marker
+        buf[j++] = CR; // end marker
 
-        if (!send_cmd(buf, 10)) // does its own error reporting
+        if (!write_port(buf, j, &nBytes, 10)) {
+            sprintf(canbridge_errmsg,
+                    "Failed to send CAN filter to serial\nwritten:%d of %d",
+                    nBytes, j);
             return 0;
+        }
 
         // get response
-        uint32_t bytesRead = 0;
-        if (!read_port(buf, 1, &bytesRead, 100)) {
+        if (!read_port(buf, 1, &nBytes, 100)) {
             sprintf(canbridge_errmsg, "Failed to set CAN filter, reponse timeout\n");
             return 0;
         }
@@ -363,13 +352,15 @@ int slcan_open(void)
     }
 
     // open CAN channel
-    if (send_cmd("O", 10))
+    uint32_t nBytes;
+    char buf[] = { 'O', CR };
+    if (!write_port(buf, 2, &nBytes, 10)) {
+        sprintf(canbridge_errmsg, "Failed to send open cmd to serial");
         return 0;
+    }
 
     // get response
-    uint32_t bytesRead = 0;
-    char buf[1];
-    if (!read_port(buf, 1, &bytesRead, 100)) {
+    if (!read_port(buf, 1, &nBytes, 100)) {
         sprintf(canbridge_errmsg, "Failed to open CAN channel, reponse timeout\n");
         return 0;
     }
@@ -416,13 +407,15 @@ int slcan_close(void)
     // close possible CAN channel
     if (state == CANBRIDGE_OPEN) {
         // close CAN channel
-        if (send_cmd("C", 10))
+        uint32_t nBytes;
+        char buf[] = { 'C', CR };
+        if (!write_port(buf, 2, &nBytes, 10)) {
+            sprintf(canbridge_errmsg, "Failed to send close cmd to serial");
             return 0;
+        }
 
         // get response
-        uint32_t bytesRead = 0;
-        char buf[1];
-        if (!read_port(buf, 1, &bytesRead, 100)) {
+        if (!read_port(buf, 1, &nBytes, 100)) {
             sprintf(canbridge_errmsg, "Failed to close CAN channel, reponse timeout\n");
             return 0;
         }
@@ -432,7 +425,7 @@ int slcan_close(void)
         }
     }
 
-    int res = close_port();
+    int res = close_port(); // close serial
     if (res)
         state = CANBRIDGE_CLOSED;
 
@@ -463,7 +456,7 @@ int slcan_send(canframe_t *frm, int timeoutms)
         return 0;
     }
 
-    int pos = 0;
+    uint32_t pos = 0, nBytes;
     char cmd[14];
     if (frm->can_id & CAN_RTR_FLAG) {
         // is a rtr frame
@@ -480,6 +473,7 @@ int slcan_send(canframe_t *frm, int timeoutms)
         sprintf(&cmd[pos++], "%02X", id.b2);
         sprintf(&cmd[pos++], "%02X", id.b1);
     } else
+        // 11bits should only print 3chars
         sprintf(&cmd[pos++], "%01X", id.b1);
     sprintf(&cmd[pos++], "%02X", id.b0);
 
@@ -512,15 +506,16 @@ int slcan_send(canframe_t *frm, int timeoutms)
     }
 
     // end string
-    cmd[pos] = 0;
+    cmd[pos++] = CR;
 
-    if (!send_cmd(cmd, timeoutms))
+    if (!write_port(cmd, pos, &nBytes, timeoutms)) {
+        sprintf(canbridge_errmsg, "Failed to send to serial\nwritten:%d of %d", nBytes, pos);
         return 0; // send_cmd sets canbridge_errmsg
+    }
 
     // get response
-    uint32_t bytesRead = 0;
     char buf[1];
-    if (!read_port(buf, 1, &bytesRead, timeoutms)) {
+    if (!read_port(buf, 1, &nBytes, timeoutms)) {
         sprintf(canbridge_errmsg, "Failed to send to CAN channel, reponse timeout\n");
         return 0;
     }
@@ -530,8 +525,8 @@ int slcan_send(canframe_t *frm, int timeoutms)
         return 0;
     }
 
-    // success, but we need to grb the CR from input buffer
-    read_port(buf, 1, &bytesRead, 5);
+    // success, but we need to grab the CR from input buffer
+    read_port(buf, 1, &nBytes, 5);
 
     return 1;
 }

@@ -43,7 +43,7 @@ static int open_port(const char *portname)
 {
     struct termios tty;
 
-    canfd = open(portname, O_RDWR | O_NOCTTY | O_SYNC);
+    canfd = open(portname, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (canfd < 0) {
         sprintf(canbridge_errmsg, "Error opening %s: %s\n", portname, strerror(errno));
         return -errno;
@@ -293,7 +293,7 @@ static const char CR = '\r';
 int slcan_init(const char *name)
 {
     // this driver needs a open
-    if (!open_port(name))
+    if (open_port(name) < 1)
         return 0;
 
     state = CANBRIDGE_INIT;
@@ -325,12 +325,12 @@ int slcan_set_filter(uint32_t mask, uint32_t id)
     uint32_t nBytes = 0, j;
 
     for(int i = 0; i < 2; ++i) {
-        j = 1;
+        j = 0;
         buf[j++] = cmds[i]; // insert command
-        sprintf(&buf[j++],"%X", code[i].b0); // lsb
-        sprintf(&buf[j++],"%X", code[i].b1);
-        sprintf(&buf[j++],"%X", code[i].b2);
-        sprintf(&buf[j++],"%X", code[i].b3); // msb
+        sprintf(&buf[j++],"%02X", code[i].b0); // lsb
+        sprintf(&buf[j++],"%02X", code[i].b1);
+        sprintf(&buf[j++],"%02X", code[i].b2);
+        sprintf(&buf[j++],"%02X", code[i].b3); // msb
         buf[j++] = CR; // end marker
 
         if (!write_port(buf, j, &nBytes, 10)) {

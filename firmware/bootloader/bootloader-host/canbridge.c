@@ -54,7 +54,7 @@ char canbridge_errmsg[CANBRIDGE_ERRORMSG_SZ];
  * @brief canbridge_get_driverId, gets the currently used driver
  * @return id of current driver
  */
-CAN_Drivers_t canbridge_get_driverId(void)
+CAN_Drivers_t canbridge_get_driver_id(void)
 {
     return _driverId;
 }
@@ -63,7 +63,7 @@ CAN_Drivers_t canbridge_get_driverId(void)
  * @brief canbridge_set_driverId, sets the currently used driver
  * @param driverId, use this driver in the future
  */
-void canbridge_set_driverId(CAN_Drivers_t driverId)
+void canbridge_set_driver_id(CAN_Drivers_t driverId)
 {
     setupDriver(driverId);
 }
@@ -72,7 +72,7 @@ void canbridge_set_driverId(CAN_Drivers_t driverId)
  * @brief canbridge_get_driverName
  * @return get the string name for current driver
  */
-const char *canbridge_get_driverName(void)
+const char *canbridge_get_driver_name(void)
 {
     return CAN_Drivers[_driverId];
 }
@@ -82,7 +82,7 @@ const char *canbridge_get_driverName(void)
  * @param driverId get name for driverId
  * @return the name the driver or NULL
  */
-const char *canbridge_get_driverNameForId(CAN_Drivers_t driverId)
+const char *canbridge_get_driver_name_for_id(CAN_Drivers_t driverId)
 {
     if (driverId < CAN_driver_invalid || driverId >= _CAN_driver_end)
         return NULL;
@@ -103,7 +103,7 @@ uint8_t canbridge_get_driver_count(void)
  * @param name, driver to lookup
  * @return 1 on success, 0 = failure to find name
  */
-int canbridge_set_driverFromName(const char *name)
+int canbridge_set_driver_from_name(const char *name)
 {
     for(CAN_Drivers_t d = CAN_driver_invalid +1; d < _CAN_driver_end; ++d) {
         if (strncmp(name, CAN_Drivers[d], MAXLEN_DRIVERNAME_STR) == 0) {

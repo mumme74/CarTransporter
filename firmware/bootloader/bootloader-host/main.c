@@ -119,7 +119,7 @@ void print_usage(char *prg)
     fprintf(stderr, "         -i <ID>      CAN frameid to listen to in HEX\n");
     fprintf(stderr, "         -d <driver>  what driver to use, ie:\n");
     for(CAN_Drivers_t d = CAN_driver_invalid +1; d < _CAN_driver_end; ++d)
-        fprintf(stderr, "                            %s", canbridge_get_driverNameForId(d));
+        fprintf(stderr, "                            %s", canbridge_get_driver_name_for_id(d));
 
     fprintf(stderr, "\n");
     fprintf(stderr, "A CAN interface must be specified on the commandline in the form:\n");
@@ -240,10 +240,10 @@ int main(int argc, char *argv[])
             }
             break;
         case 'd':
-            if (!canbridge_set_driverFromName(optarg)) {
+            if (!canbridge_set_driver_from_name(optarg)) {
                 fprintf(stderr, "**%s\navaliable:", canbridge_errmsg);
                 for (CAN_Drivers_t d = CAN_driver_invalid +1; d < _CAN_driver_end; ++d)
-                    fprintf(stderr, " %s", canbridge_get_driverNameForId(d));
+                    fprintf(stderr, " %s", canbridge_get_driver_name_for_id(d));
                 errExit(0);
             }
             break;
@@ -258,7 +258,7 @@ int main(int argc, char *argv[])
     }
 
     // driver check
-    if (canbridge_get_driverId() == CAN_driver_invalid)
+    if (canbridge_get_driver_id() == CAN_driver_invalid)
         errExit("Must specify a driver to use\n\n");
 
     // no options

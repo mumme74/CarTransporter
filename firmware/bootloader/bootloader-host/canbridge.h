@@ -98,33 +98,33 @@ extern char canbridge_errmsg[CANBRIDGE_ERRORMSG_SZ];
  * @brief canbridge_get_driverId, gets the currently used driver
  * @return id of current driver
  */
-CAN_Drivers_t canbridge_get_driverId(void);
+CAN_Drivers_t canbridge_get_driver_id(void);
 
 /**
  * @brief canbridge_set_driverId, sets the currently used driver
  * @param driverId, use this driver in the future
  */
-void canbridge_set_driverId(CAN_Drivers_t driverId);
+void canbridge_set_driver_id(CAN_Drivers_t driverId);
 
 /**
  * @brief canbridge_get_driverName
  * @return get the string name for current driver
  */
-const char *canbridge_get_driverName(void);
+const char *canbridge_get_driver_name(void);
 
 /**
  * @brief canbridge_get_driverNameForId
  * @param driverId get name for driverId
  * @return the name the driver or NULL
  */
-const char *canbridge_get_driverNameForId(CAN_Drivers_t driverId);
+const char *canbridge_get_driver_name_for_id(CAN_Drivers_t driverId);
 
 /**
  * @brief canbridge_set_driverFromName
  * @param name, driver to lookup
  * @return 1 on success, 0 = failure to find name
  */
-int canbridge_set_driverFromName(const char *name);
+int canbridge_set_driver_from_name(const char *name);
 
 /**
  * @brief canbridge_get_driver_count, number of different drivers

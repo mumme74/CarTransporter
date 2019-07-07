@@ -138,12 +138,18 @@ static int wait_on_sock(int sock, long timeout, int r, int w)
 /**
  * @brief socketcan_init, initializes, bur not open, socketcan
  * @param name, Interface to use, ie can0
+ * @param speed, the bitrate to use
  * @return 0 on error, 1 when ok
  */
-int socketcan_init(const char *name)
+int socketcan_init(const char *name, CAN_Speeds_t speed)
 {
     if (cansock != 0) {
         sprintf(canbridge_errmsg, "Already initialized\n");
+        return 0;
+    }
+
+    if (speed != CAN_speed_socketspeed) {
+        sprintf(canbridge_errmsg, "socketcan does not support setting bitrate\n");
         return 0;
     }
 

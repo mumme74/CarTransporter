@@ -100,13 +100,15 @@ static int open_port(const char *portname)
 static int write_port(const char *buf, uint32_t len,
                       uint32_t *bytesWritten, int timeoutms)
 {
+    *bytesWritten = 0;
+
     timeval_t timeoutAt, initial, now, add = { 0 , 1000 * timeoutms };
     gettimeofday(&initial, NULL);
 
     // calculate when to bail out
     timeradd(&initial, &add, &timeoutAt);
     do {
-        int res = write(canfd, buf, len);
+        ssize_t res = write(canfd, buf, len);
         if (res > 0)
             *bytesWritten += (uint32_t)res;
         gettimeofday(&now, NULL);
@@ -119,6 +121,7 @@ static int write_port(const char *buf, uint32_t len,
 static int read_port(char *buf, uint32_t len,
                      uint32_t *bytesRead, int timeoutms)
 {
+    *bytesRead = 0;
 
     timeval_t timeoutAt, initial, now, add = { 0 , 1000 * timeoutms };
     gettimeofday(&initial, NULL);
@@ -126,7 +129,7 @@ static int read_port(char *buf, uint32_t len,
     // calculate when to bail out
     timeradd(&initial, &add, &timeoutAt);
     do {
-        int res = read(canfd, buf, len);
+        ssize_t res = read(canfd, buf, len);
         if (res > 0)
             *bytesRead += (uint32_t)res;
         gettimeofday(&now, NULL);
@@ -279,8 +282,34 @@ static int close_port(void)
 */
 
 static int state = CANBRIDGE_CLOSED;
-static const char CR = '\r';
+static const char CR = '\r', BELL = 7;
+static int hwVersion = 0, swVersion = 0;
 
+
+static int clear_pipeline(void) {
+    // canusb.com states:
+    // Always start each session (when your program starts) with sending 2-3 [CR]
+    for(int i = 0; i < 3; ++i) {
+        char ch = CR;
+        uint32_t nBytes;
+        if (!write_port(&ch, 1, &nBytes, 10)) {
+            sprintf(canbridge_errmsg, "Failed to clear tranmitt buffer\n");
+            return 0;
+        }
+
+        // clear reponse buffer, 1char at a time until CR is recieved
+        // we might have old responses in pipeline
+        do {
+            if (!read_port(&ch, 1, &nBytes, 20)) {
+                sprintf(canbridge_errmsg, "Failed to get response while clearing serial buffer\n");
+                return 0;
+            }
+
+        } while(ch != CR);
+    }
+
+    return 1;
+}
 
 
 // ----------------------------------------------------------------
@@ -288,15 +317,81 @@ static const char CR = '\r';
 /**
  * @brief slcan_init, initializes, bur not open, slcan
  * @param name, Interface to use, ie /dev/ttyACM0 or COM10
+ * @param speed, the bitrate to use
  * @return 0 on error, 1 when ok
  */
-int slcan_init(const char *name)
+int slcan_init(const char *name, CAN_Speeds_t speed)
 {
     // this driver needs a open
     if (open_port(name) < 1)
         return 0;
 
     state = CANBRIDGE_INIT;
+
+    // clear old messages
+    if (!clear_pipeline())
+        return 0;
+
+    // canusb states we must get version before anything else
+    const int bufSz = 6;
+    char buf[6] = { 'V', CR, 0, 0, 0, 0 };
+    uint32_t nBytes;
+    if (!write_port(buf, 2, &nBytes, 10)) {
+        sprintf(canbridge_errmsg, "Failed to send version request\n");
+        return 0;
+    }
+
+    for (int i = 0; i < bufSz; ++i){
+        if (!read_port(&buf[i], 1, &nBytes, 15)) {
+            sprintf(canbridge_errmsg, "Failed to read version response\n");
+            return 0;
+        } else if (buf[i] == BELL) {
+            sprintf(canbridge_errmsg, "Version request responded with error\n");
+            return 0;
+        } else if (buf[i] == CR && i == 5) {
+            // read the version
+            char hwStr[3] = { buf[1], buf[2], 0 },
+                 swStr[3] = { buf[3], buf[4], 0 };
+            hwVersion = atoi(hwStr);
+            swVersion = atoi(swStr);
+        }
+    }
+
+    if (hwVersion == 0 || swVersion == 0) {
+        sprintf(canbridge_errmsg, "Failed to get version info durig init\n");
+        return 0;
+    }
+
+    // set the speed
+    buf[0] = 'S'; buf[2] = CR;
+    switch (speed) {
+    case CAN_speed_10Kbit:  buf[1] = '0'; break;
+    case CAN_speed_20Kbit:  buf[1] = '1'; break;
+    case CAN_speed_50Kbit:  buf[1] = '2'; break;
+    case CAN_speed_100Kbit: buf[1] = '3'; break;
+    case CAN_speed_125Kbit: buf[1] = '4'; break;
+    case CAN_speed_250Kbit: buf[1] = '5'; break;
+    case CAN_speed_500Kbit: buf[1] = '6'; break;
+    case CAN_speed_800Kbit: buf[1] = '7'; break;
+    case CAN_speed_1Mbit:   buf[1] = '8'; break;
+    case CAN_speed_socketspeed: // fallthrough
+    default:
+        sprintf(canbridge_errmsg, "Unsupported CAN speed\n");
+        return 0;
+    }
+
+    if (!write_port(buf, 3, &nBytes, 10)) {
+        sprintf(canbridge_errmsg, "Failed to write speed cmd to serial\n");
+        return 0;
+    }
+    if (!read_port(buf, 1,&nBytes, 10)) {
+        sprintf(canbridge_errmsg, "Failed to read from speed cmd response from serial\n");
+        return 0;
+    }
+    if (buf[0] != CR) {
+        sprintf(canbridge_errmsg, "Set speed command failed in device\n");
+        return 0;
+    }
 
     return 1;
 }
@@ -327,10 +422,14 @@ int slcan_set_filter(uint32_t mask, uint32_t id)
     for(int i = 0; i < 2; ++i) {
         j = 0;
         buf[j++] = cmds[i]; // insert command
-        sprintf(&buf[j++],"%02X", code[i].b0); // lsb
-        sprintf(&buf[j++],"%02X", code[i].b1);
-        sprintf(&buf[j++],"%02X", code[i].b2);
-        sprintf(&buf[j++],"%02X", code[i].b3); // msb
+        sprintf(&buf[j],"%02X", code[i].b0); // lsb
+        j += 2; // adds 2 chars above ie: FF
+        sprintf(&buf[j],"%02X", code[i].b1);
+        j += 2;
+        sprintf(&buf[j],"%02X", code[i].b2);
+        j += 2;
+        sprintf(&buf[j],"%02X", code[i].b3); // msb
+        j += 2;
         buf[j++] = CR; // end marker
 
         if (!write_port(buf, j, &nBytes, 10)) {

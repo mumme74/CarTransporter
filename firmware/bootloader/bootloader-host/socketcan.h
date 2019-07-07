@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <linux/can.h>
 
+#include "types.h"
+
 typedef struct can_frame canframe_t;
 typedef struct can_filter can_filter_t;
 
@@ -11,9 +13,10 @@ typedef struct can_filter can_filter_t;
 /**
  * @brief socketcan_init, initializes, bur not open, socketcan
  * @param name, Interface to use, ie can0
+ * @param speed, the bitrate to use
  * @return 0 on error, 1 when ok
  */
-int socketcan_init(const char *name);
+int socketcan_init(const char *name, CAN_Speeds_t speed);
 
 /**
  * @brief socketcan_set_filter, sets a CAN filter

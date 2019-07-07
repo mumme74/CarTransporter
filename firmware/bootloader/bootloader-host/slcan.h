@@ -8,6 +8,7 @@
 #define SLCAN_H
 
 #include <stdint.h>
+#include "types.h"
 
 #ifdef BUILD_SOCKETCAN
 # include "socketcan.h" // for canframe_t
@@ -19,9 +20,10 @@
 /**
  * @brief slcan_init, initializes, bur not open, slcan
  * @param name, Interface to use, ie can0
+ * @param speed, the bitrate to use
  * @return 0 on error, 1 when ok
  */
-int slcan_init(const char *name);
+int slcan_init(const char *name, CAN_Speeds_t speed);
 
 /**
  * @brief slcan_set_filter, sets a CAN filter

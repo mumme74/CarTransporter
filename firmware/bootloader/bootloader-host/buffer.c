@@ -51,7 +51,7 @@ uint32_t buffer_available_sz(const Buffer_t *b)
         return (b->tail - b->head);
     else if (b->head > b->tail)
         return (b->size - b->head + b->tail);
-    return 0;
+    return b->size;
 }
 
 int buffer_put(Buffer_t *b, const char *srcbuf, uint32_t len)

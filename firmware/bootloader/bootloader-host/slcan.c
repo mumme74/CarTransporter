@@ -347,13 +347,17 @@ static int response_get_timeout(Buffer_t *b, char *resp, const char *cmds,
             if (nBytes == 0)
                 return 0; // nothing recived
 
+            buffer_put(b, buf, nBytes);
+
             // read from a potentially newly filled buffer
             crPos   = buffer_index_of(b, CR, startpos);
             bellPos = buffer_index_of(b, BELL, startpos);
         }
 
         // have we found a response? CR or BELL
-        if (crPos > -1 && bellPos > -1 && bellPos > crPos) {
+        if (crPos > -1 &&
+            (bellPos == -1 || (bellPos > -1 && bellPos > crPos)))
+        {
             *len = (uint32_t)crPos +1;
             peek = buffer_get(b, resp, *len);
 

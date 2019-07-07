@@ -1,4 +1,4 @@
-/**
+/*
  * canbridge.h, this file provides abstraction between socketcan and slcan drivers
  *
  *
@@ -9,6 +9,8 @@
 #ifndef CANBRIDGE_H
 #define CANBRIDGE_H
 
+#include "types.h"
+
 // include drivers
 #include "slcan.h" // lawcell protocol, over serialport
 
@@ -18,62 +20,18 @@
 # include "cantypes.h"
 #endif // BUILD_SOCKETCAN
 
-#ifdef _WIN32
-# if REG_DWORD == REG_DWORD_LITTLE_ENDIAN
-#  define IS_LITTLE_ENDIAN
-# endif
-#else // _WIN32
-# if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-#  define IS_LITTLE_ENDIAN
-# endif
-#endif
 
 // global defines
 #define CANBRIDGE_CLOSED 0
 #define CANBRIDGE_INIT 1
 #define CANBRIDGE_OPEN 2
 
-typedef union {
-    uint64_t vlu;
-    uint8_t  arr[8];
-    struct {
-#ifdef IS_LITTLE_ENDIAN
-      uint8_t b0, b1, b2, b3, b4, b5, b6, b7;
-#else
-      uint8_t b7, b6, b5, b4, b3, b2, b1, b0;
-#endif
-    };
-} byte8_t;
-
-typedef union {
-    uint32_t vlu;
-    uint8_t  arr[4];
-    struct {
-#ifdef IS_LITTLE_ENDIAN
-      uint8_t b0, b1, b2, b3;
-#else
-      uint8_t b3, b2, b1, b0;
-#endif
-    };
-} byte4_t;
-
-typedef union {
-    uint16_t vlu;
-    uint8_t  arr[2];
-    struct {
-#ifdef IS_LITTLE_ENDIAN
-      uint8_t b0, b1;
-#else
-      uint8_t b1, b0;
-#endif
-    };
-} byte2_t;
 
 /**
  * @brief CAN_Drivers_t, these are the available driver to choose from
  */
 typedef enum {
-    CAN_driver_invalid = 0,
+    _CAN_driver_start_marker,
 #ifdef __linux__
     CAN_driver_socketcan,
 #endif
@@ -82,7 +40,7 @@ typedef enum {
 
 
     // end marker
-    _CAN_driver_end // must be dead last in enum,
+    _CAN_driver_end_marker // must be dead last in enum,
                     // used at stop marker in for loop
 } CAN_Drivers_t;
 
@@ -95,7 +53,7 @@ extern char canbridge_errmsg[CANBRIDGE_ERRORMSG_SZ];
 
 
 /**
- * @brief canbridge_get_driverId, gets the currently used driver
+ * @brief canbridge_get_driver_id, gets the currently used driver
  * @return id of current driver
  */
 CAN_Drivers_t canbridge_get_driver_id(void);
@@ -107,20 +65,20 @@ CAN_Drivers_t canbridge_get_driver_id(void);
 void canbridge_set_driver_id(CAN_Drivers_t driverId);
 
 /**
- * @brief canbridge_get_driverName
+ * @brief canbridge_get_driver_name
  * @return get the string name for current driver
  */
 const char *canbridge_get_driver_name(void);
 
 /**
- * @brief canbridge_get_driverNameForId
- * @param driverId get name for driverId
- * @return the name the driver or NULL
+ * @brief canbridge_get_driver_name_for_id
+ * @param driverId, get str name for driverId
+ * @return the str name of driverId or NULL
  */
 const char *canbridge_get_driver_name_for_id(CAN_Drivers_t driverId);
 
 /**
- * @brief canbridge_set_driverFromName
+ * @brief canbridge_set_driver_from_name
  * @param name, driver to lookup
  * @return 1 on success, 0 = failure to find name
  */
@@ -133,11 +91,27 @@ int canbridge_set_driver_from_name(const char *name);
 uint8_t canbridge_get_driver_count(void);
 
 /**
+ * @brief canbridge_get_speed_name_from_id
+ * @param speedId, get the str name for speedId
+ * @return the str name of speedId or NULL
+ */
+const char *canbridge_get_speed_name_from_id(CAN_Speeds_t speedId);
+
+/**
+ * @brief canbridge_get_speed_id_from_speed_name
+ * @param name, get the ID for name
+ * @return the id on success, _CAN_speed_start_marker on failure
+ */
+CAN_Speeds_t canbridge_get_speed_id_from_speed_name(const char *name);
+
+
+/**
  * @brief socketcan_init, initializes, bur not open, socketcan
  * @param name, Interface to use, ie can0
+ * @param speed, the bitrate to use
  * @return 0 on error, 1 when ok
  */
-int canbridge_init(const char *idStr);
+int canbridge_init(const char *idStr, CAN_Speeds_t speed);
 
 /**
  * @brief socketcan_set_filter, sets a CAN filter

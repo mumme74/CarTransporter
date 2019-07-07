@@ -18,6 +18,8 @@
 // unix headers
 #include <getopt.h>
 #include <libgen.h>
+
+// project headers
 #include "can_protocol.h"
 #include "commands.h"
 #include "canbridge.h"
@@ -31,6 +33,8 @@
 // global vars
 int abortVar = 0;
 uint32_t canIdx = 0;
+
+static CAN_Speeds_t speed = CAN_speed_socketspeed;
 
 
 #ifdef _WIN32
@@ -49,7 +53,7 @@ char *basename(const char* filepath) {
 
 void setup_can_iface(char *name)
 {
-    if (!canbridge_init(name))
+    if (!canbridge_init(name, speed))
         errExit(canbridge_errmsg);
 
     // filter out all other messages
@@ -104,8 +108,12 @@ void print_usage(char *prg)
     fprintf(stderr, "                                       3-7=currently not used nodes\n");
     fprintf(stderr, "         -N <node>    nodename: parkbrakeNode | suspensionNode\n");
     fprintf(stderr, "         -i <ID>      CAN frameid to listen to in HEX\n");
+    fprintf(stderr, "         -b <baudID>  Use baudrate, some drivers need this\n");
+    fprintf(stderr, "                        baudID can be:\n");
+    for (CAN_Speeds_t s = _CAN_speed_start_marker +1; s < _CAN_speed_end_marker; ++s)
+        fprintf(stderr, "                           %s", canbridge_get_speed_name_from_id(s));
     fprintf(stderr, "         -d <driver>  what driver to use, ie:\n");
-    for(CAN_Drivers_t d = CAN_driver_invalid +1; d < _CAN_driver_end; ++d)
+    for (CAN_Drivers_t d = _CAN_driver_start_marker +1; d < _CAN_driver_end_marker; ++d)
         fprintf(stderr, "                            %s", canbridge_get_driver_name_for_id(d));
 
     fprintf(stderr, "\n");
@@ -228,12 +236,15 @@ int main(int argc, char *argv[])
             break;
         case 'd':
             if (!canbridge_set_driver_from_name(optarg)) {
-                fprintf(stderr, "**%s\navaliable:", canbridge_errmsg);
-                for (CAN_Drivers_t d = CAN_driver_invalid +1; d < _CAN_driver_end; ++d)
+                fprintf(stderr, "**%s\n avaliable:", canbridge_errmsg);
+                for (CAN_Drivers_t d = _CAN_driver_start_marker +1; d < _CAN_driver_end_marker; ++d)
                     fprintf(stderr, " %s", canbridge_get_driver_name_for_id(d));
+                fprintf(stderr, "\n\n");
                 errExit(0);
             }
             break;
+        case 'b':
+            speed = canbridge_get_speed_id_from_speed_name(optarg);
         case '?':
             fprintf(stderr, "unknown option char at index:%d\n", optind);
             errExit(0);
@@ -245,19 +256,28 @@ int main(int argc, char *argv[])
     }
 
     // driver check
-    if (canbridge_get_driver_id() == CAN_driver_invalid)
+    if (canbridge_get_driver_id() == _CAN_driver_start_marker)
         errExit("Must specify a driver to use\n\n");
 
+    if (speed <= _CAN_speed_start_marker || speed >= _CAN_speed_end_marker) {
+        fprintf(stderr, "**Invalid speed given\n");
+        for (CAN_Speeds_t i = _CAN_speed_start_marker +1; i < _CAN_speed_end_marker; ++i)
+            fprintf(stderr, "  %s\n", canbridge_get_speed_name_from_id(i));
+        errExit(0);
+    }
+
     // no options
-    if (optind == argc || canIdx <= 0) {
+    if (optind == argc) {
         fprintf(stderr, "Must give interface after options, ie.");
 #ifdef BUILD_SOCKETCAN
         fprintf(stderr, " can0 (driver=socketcan) or");
 #endif
         fprintf(stderr, " /dev/ttySerial (driver=slcan) etc.\n\n");
         errExit(0);
-    }
-    else {
+    } else if (canIdx <= 0) {
+        fprintf(stderr, "Node not selected, see: %s -h\n\n", basename(argv[0]));
+        errExit(0);
+    } else {
         // parse arguments
         // first argument should be interface ie. can0
         char *cansockname = argv[optind];

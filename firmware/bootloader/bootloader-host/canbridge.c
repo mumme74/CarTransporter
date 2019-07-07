@@ -11,12 +11,12 @@
 #include <stdio.h>
 #include "canbridge.h"
 
-static CAN_Drivers_t _driverId = CAN_driver_invalid;
+static CAN_Drivers_t _driverId = _CAN_driver_start_marker;
 
 #define MAXLEN_DRIVERNAME_STR 15
 // available drivers as string name
 // must be in the order they were entered in CAN_Drivers_t
-static const char CAN_Drivers[_CAN_driver_end][MAXLEN_DRIVERNAME_STR] = {
+static const char CAN_Drivers[_CAN_driver_end_marker][MAXLEN_DRIVERNAME_STR] = {
     { "invalid" },
 #ifdef BUILD_SOCKETCAN
     { "socketcan" },
@@ -24,6 +24,21 @@ static const char CAN_Drivers[_CAN_driver_end][MAXLEN_DRIVERNAME_STR] = {
     { "slcan" },
 };
 
+// available baudrates as string name
+#define MAXLEN_SPEEDNAME_STR  15
+static const char CAN_Speeds[_CAN_speed_end_marker][MAXLEN_SPEEDNAME_STR] = {
+    { "invalid" },
+    { "socketspeed" },
+    { "10Kbit" },
+    { "20Kbit" },
+    { "50Kbit" },
+    { "100Kbit" },
+    { "125Kbit" },
+    { "250Kbit" },
+    { "800Kbit" },
+    { "1Mbit" },
+    { "invalid" },
+};
 
 int setupDriver(CAN_Drivers_t driverId)
 {
@@ -90,8 +105,11 @@ const char *canbridge_get_driver_name(void)
  */
 const char *canbridge_get_driver_name_for_id(CAN_Drivers_t driverId)
 {
-    if (driverId < CAN_driver_invalid || driverId >= _CAN_driver_end)
+    if (driverId <= _CAN_driver_start_marker ||
+        driverId >= _CAN_driver_end_marker)
+    {
         return NULL;
+    }
     return CAN_Drivers[driverId];
 }
 
@@ -101,17 +119,17 @@ const char *canbridge_get_driver_name_for_id(CAN_Drivers_t driverId)
  */
 uint8_t canbridge_get_driver_count(void)
 {
-    return (uint8_t)_CAN_driver_end;
+    return (uint8_t)_CAN_driver_end_marker;
 }
 
 /**
- * @brief canbridge_set_driverFromName
+ * @brief canbridge_set_driver_from_name
  * @param name, driver to lookup
  * @return 1 on success, 0 = failure to find name
  */
 int canbridge_set_driver_from_name(const char *name)
 {
-    for(CAN_Drivers_t d = CAN_driver_invalid +1; d < _CAN_driver_end; ++d) {
+    for(CAN_Drivers_t d = _CAN_driver_start_marker +1; d < _CAN_driver_end_marker; ++d) {
         if (strncmp(name, CAN_Drivers[d], MAXLEN_DRIVERNAME_STR) == 0) {
             setupDriver(d);
             return 1;
@@ -122,18 +140,49 @@ int canbridge_set_driver_from_name(const char *name)
 }
 
 /**
+ * @brief canbridge_get_speed_id_from_speed_name
+ * @param name, get the ID for name
+ * @return the id on success, _CAN_speed_start_marker on failure
+ */
+CAN_Speeds_t canbridge_get_speed_id_from_speed_name(const char *name)
+{
+    for(CAN_Speeds_t s = _CAN_speed_start_marker; s < _CAN_speed_end_marker; ++s) {
+        if (strncmp(name, CAN_Speeds[s], MAXLEN_SPEEDNAME_STR) == 0)
+            return s;
+    }
+    // return invalid
+    return _CAN_speed_start_marker;
+}
+
+/**
+ * @brief canbridge_get_speed_name_from_id
+ * @param speedId, get the str name for speedId
+ * @return the str name of speedId or NULL
+ */
+const char *canbridge_get_speed_name_from_id(CAN_Speeds_t speedId)
+{
+    if (speedId <= _CAN_speed_start_marker ||
+        speedId >= _CAN_speed_end_marker)
+    {
+        return NULL;
+    }
+    return CAN_Speeds[speedId];
+}
+
+/**
  * @brief socketcan_init, initializes, bur not open, socketcan
  * @param name, Interface to use, ie can0
+ * @param speed, the bitrate to use
  * @return 0 on error, 1 when ok
  */
-int canbridge_init(const char *idStr)
+int canbridge_init(const char *idStr, CAN_Speeds_t speed)
 {
     switch (_driverId) {
     case CAN_driver_slcan:
-        return slcan_init(idStr); // FIXME
+        return slcan_init(idStr, speed); // FIXME
 #ifdef __linux__
     case CAN_driver_socketcan:
-        return socketcan_init(idStr);
+        return socketcan_init(idStr, speed);
 #endif
     default:
         sprintf(canbridge_errmsg, "Invalid CAN driver\n");
@@ -151,7 +200,7 @@ int canbridge_set_filter(canid_t mask, canid_t id)
 {
     switch (_driverId) {
     case CAN_driver_slcan:
-        return slcan_set_filter(mask, id); // FIXME
+        return slcan_set_filter(mask, id);
 #ifdef __linux__
     case CAN_driver_socketcan:
         return socketcan_set_filter(mask, id);
@@ -170,7 +219,7 @@ int canbridge_open(void)
 {
     switch (_driverId) {
     case CAN_driver_slcan:
-        return slcan_open(); // FIXME
+        return slcan_open();
 #ifdef __linux__
     case CAN_driver_socketcan:
         return socketcan_open();
@@ -189,7 +238,7 @@ int canbridge_status(void)
 {
     switch (_driverId) {
     case CAN_driver_slcan:
-        return slcan_status(); // FIXME
+        return slcan_status();
 #ifdef __linux__
     case CAN_driver_socketcan:
         return socketcan_status();
@@ -208,7 +257,7 @@ int canbridge_set_fd_mode(void)
 {
     switch (_driverId) {
     case CAN_driver_slcan:
-        return slcan_set_fd_mode(); // FIXME
+        return slcan_set_fd_mode();
 #ifdef __linux__
     case CAN_driver_socketcan:
         return socketcan_set_fd_mode();
@@ -227,7 +276,7 @@ int canbridge_close(void)
 {
     switch (_driverId) {
     case CAN_driver_slcan:
-        return slcan_close(); // FIXME
+        return slcan_close();
 #ifdef __linux__
     case CAN_driver_socketcan:
         return socketcan_close();
@@ -249,7 +298,7 @@ void canbridge_set_abortvariable(int *abortVar)
     switch (_driverId) {
     case CAN_driver_slcan:
         slcan_set_abortvariable(abortVar);
-        break; // FIXME
+        break;
 #ifdef __linux__
     case CAN_driver_socketcan:
         socketcan_set_abortvariable(abortVar);

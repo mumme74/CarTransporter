@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 
 
 #common driver sources
-set(DRIVER_SOURCES "slcan.c")
+set(DRIVER_SOURCES "slcan.c" "buffer.c")
 
 # user defined variables
 set(INCLUDEDIRS "" CACHE PATH "Add this include path")

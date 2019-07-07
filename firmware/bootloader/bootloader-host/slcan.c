@@ -7,7 +7,9 @@
 
 #include "slcan.h"
 #include "canbridge.h"
+#include "buffer.h"
 #include <stdio.h>
+
 
 
 // these are loop control variables that aborts a deep loop from sighandler
@@ -47,6 +49,7 @@ static int max_latency = 20; // FTDI chips has a default 16ms latency timer
                              // it waits for either 64bytes or 16ms
                              // it is changable through DLL, but not through serial (unless its a linux)
                              // linux does however let us set 1ms latency in ioctl
+
 
 // https://stackoverflow.com/questions/6947413/how-to-open-read-and-write-from-serial-port-in-c
 static int open_port(const char *portname)
@@ -312,13 +315,95 @@ static int close_port(void)
 */
 
 static int state = CANBRIDGE_CLOSED;
-static const char CR = '\r', BELL = 7;
+static const char CR = '\r', BELL = '\a';
 static int hwVersion = 0, swVersion = 0;
+
+
+// ----------------------- Responses Buffer ----------------------------------
+// it is a circular buffer
+#define RESPONSE_BUF_INITIAL_SZ 1024
+#define RESPONSE_MAX_SZ 20
+static Buffer_t readBuf;
+
+
+static int response_get_timeout(Buffer_t *b, char *resp, const char *cmds,
+                                uint32_t *len, int timeoutms)
+{
+    int crPos, bellPos, peek;
+    size_t cmdsLen = strnlen(cmds, 20);
+    uint32_t startpos = 0;
+
+    do {
+        peek = 0;
+
+        // first check if we have any response available
+        crPos   = buffer_index_of(b, CR, startpos);
+        bellPos = buffer_index_of(b, BELL, startpos);
+        if (crPos < 0 && bellPos < 0) {
+            // refresh
+            char buf[20];
+            uint32_t nBytes;
+            read_port(buf, 20, &nBytes, timeoutms);
+            if (nBytes == 0)
+                return 0; // nothing recived
+
+            // read from a potentially newly filled buffer
+            crPos   = buffer_index_of(b, CR, startpos);
+            bellPos = buffer_index_of(b, BELL, startpos);
+        }
+
+        // have we found a response? CR or BELL
+        if (crPos > -1 && bellPos > -1 && bellPos > crPos) {
+            *len = (uint32_t)crPos +1;
+            peek = buffer_get(b, resp, *len);
+
+        } else if (bellPos > -1) {
+            *len = (uint32_t)bellPos +1;
+            peek = buffer_get(b, resp, *len);
+        }
+
+        // if peek then we have a line end
+        if (peek > 0) {
+            // should we look for a specific response?
+            if (cmdsLen > 0) {
+                for (size_t i = 0; i < cmdsLen; ++i) {
+                    if (cmds[i] == resp[0]) {
+                        return 1; // found it!
+                    }
+                }
+                // loop again, try next response in buffer
+                startpos += (uint32_t)peek;
+            } else {
+                // don't filter on cmds, ie. we found it now!
+                return 1;
+            }
+        }
+    } while(startpos < buffer_available(b) && peek > 0);
+
+    return 0;
+}
+/**
+ * @brief response_get, gets a complete response from buffer
+ * @param b, ptr to buffer obj
+ * @param resp, store response into here, must be of size RESPONSE_MAX_SZ
+ * @param cmds, Look for the first response matching cmds, might be up to 20 chrs
+ * @param len, get set to number of chars in response
+ * @return 1 if a response could be found, 0 otherwise
+ */
+static int response_get(Buffer_t *b, char *resp, const char*cmds, uint32_t *len)
+{
+    return response_get_timeout(b, resp, cmds, len, 5);
+}
+
+// ---------------------end Responses Buffer ---------------------------------
+
 
 
 static int clear_pipeline(void) {
     // canusb.com states:
     // Always start each session (when your program starts) with sending 2-3 [CR]
+    buffer_clear(&readBuf);
+
     for(int i = 0; i < 3; ++i) {
         char ch = CR;
         uint32_t nBytes;
@@ -329,14 +414,14 @@ static int clear_pipeline(void) {
 
         // clear reponse buffer, 1char at a time until CR is recieved
         // we might have old responses in pipeline
-        do {
-            if (!read_port(&ch, 1, &nBytes, 5)) {
-                sprintf(canbridge_errmsg, "Failed to get response while clearing serial buffer\n");
-                return 0;
-            }
-
-        } while(ch != CR);
+        char buf[RESPONSE_MAX_SZ];
+        if (!response_get(&readBuf, buf, "\r\a", &nBytes)) {
+            sprintf(canbridge_errmsg, "Failed to get response while clearing serial buffer\n");
+            return 0;
+        }
     }
+
+    buffer_clear(&readBuf);
 
     return 1;
 }
@@ -352,6 +437,9 @@ static int clear_pipeline(void) {
  */
 int slcan_init(const char *name, CAN_Speeds_t speed)
 {
+    if (!buffer_init(&readBuf, RESPONSE_BUF_INITIAL_SZ))
+        return 0;
+
     // this driver needs a open
     if (open_port(name) < 1)
         return 0;
@@ -363,34 +451,32 @@ int slcan_init(const char *name, CAN_Speeds_t speed)
         return 0;
 
     // canusb states we must get version before anything else
-    const int bufSz = 6;
-    char buf[6] = { 'V', CR, 0, 0, 0, 0 };
+    char buf[RESPONSE_MAX_SZ] = { 'V', CR };
     uint32_t nBytes;
     if (!write_port(buf, 2, &nBytes, 5)) {
         sprintf(canbridge_errmsg, "Failed to send version request\n");
         return 0;
     }
 
-    for (int i = 0; i < bufSz; ++i){
-        if (!read_port(&buf[i], 1, &nBytes, 5)) {
-            sprintf(canbridge_errmsg, "Failed to read version response\n");
-            return 0;
-        } else if (buf[i] == BELL) {
-            sprintf(canbridge_errmsg, "Version request responded with error\n");
-            return 0;
-        } else if (buf[i] == CR && i == 5) {
-            // read the version
-            char hwStr[3] = { buf[1], buf[2], 0 },
-                 swStr[3] = { buf[3], buf[4], 0 };
-            hwVersion = atoi(hwStr);
-            swVersion = atoi(swStr);
-        }
-    }
-
-    if (hwVersion == 0 || swVersion == 0) {
-        sprintf(canbridge_errmsg, "Failed to get version info durig init\n");
+    if (!response_get(&readBuf, buf, "V", &nBytes)) {
+        sprintf(canbridge_errmsg, "Failed to read version response\n");
         return 0;
     }
+    if (buf[0] == BELL) {
+        sprintf(canbridge_errmsg, "Version request responded with error\n");
+        return 0;
+    }
+    const int versionSz = 6;
+    if (nBytes < versionSz) {
+        sprintf(canbridge_errmsg, "Wrong response from device version request\n");
+        return 0;
+    }
+    // read the version
+    char hwStr[3] = { buf[1], buf[2], 0 },
+         swStr[3] = { buf[3], buf[4], 0 };
+    hwVersion = atoi(hwStr);
+    swVersion = atoi(swStr);
+
 
     // set the speed
     buf[0] = 'S'; buf[2] = CR;
@@ -414,7 +500,8 @@ int slcan_init(const char *name, CAN_Speeds_t speed)
         sprintf(canbridge_errmsg, "Failed to write speed cmd to serial\n");
         return 0;
     }
-    if (!read_port(buf, 1,&nBytes, 5)) {
+
+    if (!response_get(&readBuf, buf, "\r\a", &nBytes)) {
         sprintf(canbridge_errmsg, "Failed to read from speed cmd response from serial\n");
         return 0;
     }
@@ -446,7 +533,7 @@ int slcan_set_filter(uint32_t mask, uint32_t id)
 
     // should send LSB first
     byte4_t code[] = { {id}, {mask} };
-    char buf[10];
+    char buf[RESPONSE_MAX_SZ];
     uint32_t nBytes = 0, j;
 
     for(int i = 0; i < 2; ++i) {
@@ -470,7 +557,7 @@ int slcan_set_filter(uint32_t mask, uint32_t id)
         }
 
         // get response
-        if (!read_port(buf, 1, &nBytes, 5)) {
+        if (!response_get(&readBuf, buf, "\r\a", &nBytes)) {
             sprintf(canbridge_errmsg, "Failed to set CAN filter, reponse timeout\n");
             return 0;
         }
@@ -499,14 +586,14 @@ int slcan_open(void)
 
     // open CAN channel
     uint32_t nBytes;
-    char buf[] = { 'O', CR };
+    char buf[RESPONSE_MAX_SZ] = { 'O', CR };
     if (!write_port(buf, 2, &nBytes, 10)) {
         sprintf(canbridge_errmsg, "Failed to send open cmd to serial");
         return 0;
     }
 
     // get response
-    if (!read_port(buf, 1, &nBytes, 5)) {
+    if (!response_get(&readBuf, buf, "\r\a", &nBytes)) {
         sprintf(canbridge_errmsg, "Failed to open CAN channel, reponse timeout\n");
         return 0;
     }
@@ -545,33 +632,44 @@ int slcan_set_fd_mode(void)
  */
 int slcan_close(void)
 {
+    int res = 1;
     if (state == CANBRIDGE_CLOSED) {
         sprintf(canbridge_errmsg, "Already closed!\n");
-        return 0;
+        res = 0;
+        goto cleanup;
     }
 
     // close possible CAN channel
     if (state == CANBRIDGE_OPEN) {
         // close CAN channel
+        // start with purging response buffer
+        buffer_clear(&readBuf);
+
         uint32_t nBytes;
-        char buf[] = { 'C', CR };
+        char buf[RESPONSE_MAX_SZ] = { 'C', CR };
         if (!write_port(buf, 2, &nBytes, 5)) {
             sprintf(canbridge_errmsg, "Failed to send close cmd to serial");
-            return 0;
+            res = 0;
+            goto cleanup;
         }
 
         // get response
-        if (!read_port(buf, 1, &nBytes, 5)) {
-            sprintf(canbridge_errmsg, "Failed to close CAN channel, reponse timeout\n");
-            return 0;
+        if (!response_get(&readBuf, buf, "\r\a", &nBytes)) {
+            sprintf(canbridge_errmsg, "Failed to close CAN channel, no response from device\n");
+            res = 0;
+            goto cleanup;
         }
         if (buf[0] != CR) {
-            sprintf(canbridge_errmsg, "Failed to open CAN channel\n");
-            return 0;
+            sprintf(canbridge_errmsg, "Failed to close CAN channel, device responded with error\n");
+            res = 0;
+            goto cleanup;
         }
     }
 
-    int res = close_port(); // close serial
+cleanup:
+    buffer_free(&readBuf);
+
+    res = close_port(); // close serial
     if (res)
         state = CANBRIDGE_CLOSED;
 
@@ -603,28 +701,28 @@ int slcan_send(canframe_t *frm, int timeoutms)
     }
 
     uint32_t pos = 0, nBytes;
-    char cmd[14];
+    char buf[RESPONSE_MAX_SZ];
     if (frm->can_id & CAN_RTR_FLAG) {
         // is a rtr frame
-        cmd[pos++] = (frm->can_id & CAN_EFF_FLAG) ? 'R' : 'r'; // 29bits vs 11bits
+        buf[pos++] = (frm->can_id & CAN_EFF_FLAG) ? 'R' : 'r'; // 29bits vs 11bits
     } else {
         // is a payload frame
-        cmd[pos++] = (frm->can_id & CAN_EFF_FLAG) ? 'T' : 't'; // 29bits vs 11bits
+        buf[pos++] = (frm->can_id & CAN_EFF_FLAG) ? 'T' : 't'; // 29bits vs 11bits
     }
 
     // first ID
     byte4_t id = { frm->can_id & CAN_EFF_MASK };
     if (frm->can_id & CAN_EFF_FLAG) {
-        sprintf(&cmd[pos++], "%01X", id.b3);
-        sprintf(&cmd[pos++], "%02X", id.b2);
-        sprintf(&cmd[pos++], "%02X", id.b1);
+        sprintf(&buf[pos++], "%01X", id.b3);
+        sprintf(&buf[pos++], "%02X", id.b2);
+        sprintf(&buf[pos++], "%02X", id.b1);
     } else
         // 11bits should only print 3chars
-        sprintf(&cmd[pos++], "%01X", id.b1);
-    sprintf(&cmd[pos++], "%02X", id.b0);
+        sprintf(&buf[pos++], "%01X", id.b1);
+    sprintf(&buf[pos++], "%02X", id.b0);
 
     // length of frame
-    sprintf(&cmd[pos++], "%01X", frm->can_dlc);
+    sprintf(&buf[pos++], "%01X", frm->can_dlc);
 
     // no payload on rtr frame
     if (frm->can_id & CAN_RTR_FLAG) {
@@ -634,45 +732,41 @@ int slcan_send(canframe_t *frm, int timeoutms)
             payload.arr[i] = frm->data[i];
 
         if (frm->can_dlc > 7)
-            sprintf(&cmd[pos++], "%02X", payload.b7);
+            sprintf(&buf[pos++], "%02X", payload.b7);
         if (frm->can_dlc > 6)
-            sprintf(&cmd[pos++], "%02X", payload.b6);
+            sprintf(&buf[pos++], "%02X", payload.b6);
         if (frm->can_dlc > 5)
-            sprintf(&cmd[pos++], "%02X", payload.b5);
+            sprintf(&buf[pos++], "%02X", payload.b5);
         if (frm->can_dlc > 4)
-            sprintf(&cmd[pos++], "%02X", payload.b4);
+            sprintf(&buf[pos++], "%02X", payload.b4);
         if (frm->can_dlc > 3)
-            sprintf(&cmd[pos++], "%02X", payload.b3);
+            sprintf(&buf[pos++], "%02X", payload.b3);
         if (frm->can_dlc > 2)
-            sprintf(&cmd[pos++], "%02X", payload.b2);
+            sprintf(&buf[pos++], "%02X", payload.b2);
         if (frm->can_dlc > 1)
-            sprintf(&cmd[pos++], "%02X", payload.b1);
+            sprintf(&buf[pos++], "%02X", payload.b1);
         if (frm->can_dlc > 0)
-            sprintf(&cmd[pos++], "%02X", payload.b0);
+            sprintf(&buf[pos++], "%02X", payload.b0);
     }
 
     // end string
-    cmd[pos++] = CR;
+    buf[pos++] = CR;
 
-    if (!write_port(cmd, pos, &nBytes, timeoutms)) {
+    if (!write_port(buf, pos, &nBytes, timeoutms)) {
         sprintf(canbridge_errmsg, "Failed to send to serial\nwritten:%d of %d", nBytes, pos);
         return 0; // send_cmd sets canbridge_errmsg
     }
 
     // get response
-    char buf[1];
-    if (!read_port(buf, 1, &nBytes, timeoutms)) {
+    char okCmds[2] = { (frm->can_id & CAN_EFF_FLAG) ? 'Z' : 'z', 0 };
+    if (!response_get_timeout(&readBuf, buf, okCmds, &nBytes, timeoutms)) {
         sprintf(canbridge_errmsg, "Failed to send to CAN channel, reponse timeout\n");
         return 0;
     }
-    char okCh = (frm->can_id & CAN_EFF_FLAG) ? 'Z' : 'z';
-    if (buf[0] != okCh) {
+    if (buf[1] != CR) {
         sprintf(canbridge_errmsg, "Failed to send to CAN channel\n");
         return 0;
     }
-
-    // success, but we need to grab the CR from input buffer
-    read_port(buf, 1, &nBytes, 5);
 
     return 1;
 }
@@ -685,5 +779,74 @@ int slcan_send(canframe_t *frm, int timeoutms)
  */
 int slcan_recv(canframe_t *frm, int timeoutms)
 {
+    if (state != CANBRIDGE_OPEN) {
+        sprintf(canbridge_errmsg, "Can't send on a non open driver\n");
+        return 0;
+    }
 
+    uint32_t pos = 0, nBytes;
+    char buf[RESPONSE_MAX_SZ];
+    if (!response_get_timeout(&readBuf, buf, "tTrR", &nBytes, timeoutms))
+        return 0;
+
+    if (nBytes < 5)
+        return 0;
+
+    memset(frm, 0, sizeof (*frm));
+
+    // parse id
+    if (buf[0] == 't' || buf[0] == 'r') {
+        // 11 bit ID
+        char id11[] = { buf[1], buf[2], buf[3], 0 };
+        frm->can_id = (uint32_t)strtol(id11, NULL, 16);
+        frm->can_dlc = (uint8_t)atoi(&buf[4]);
+        pos = 5;
+    } else {
+        // 29 bit id
+        char id29[] = { buf[1], buf[2], buf[3], buf[4],
+                        buf[5], buf[6], buf[7], buf[8], 0 };
+        frm->can_id = (uint32_t)strtol(id29, NULL, 16) | CAN_EFF_FLAG;
+        frm->can_dlc = (uint8_t)atoi(&buf[9]);
+        pos = 10;
+    }
+
+    // remote frame
+    if (buf[0] == 'r' || buf[0] == 'R')
+        frm->can_id |= CAN_RTR_FLAG;
+
+    char byteStr[3] = { 0 };
+    if (frm->can_dlc > 7) {
+        byteStr[0] = buf[pos++]; byteStr[1] = buf[pos++];
+        frm->data[7] = (uint8_t)strtol(byteStr, NULL, 16);
+    }
+    if (frm->can_dlc > 6) {
+        byteStr[0] = buf[pos++]; byteStr[1] = buf[pos++];
+        frm->data[6] = (uint8_t)strtol(byteStr, NULL, 16);
+    }
+    if (frm->can_dlc > 5) {
+        byteStr[0] = buf[pos++]; byteStr[1] = buf[pos++];
+        frm->data[5] = (uint8_t)strtol(byteStr, NULL, 16);
+    }
+    if (frm->can_dlc > 4) {
+        byteStr[0] = buf[pos++]; byteStr[1] = buf[pos++];
+        frm->data[4] = (uint8_t)strtol(byteStr, NULL, 16);
+    }
+    if (frm->can_dlc > 3) {
+        byteStr[0] = buf[pos++]; byteStr[1] = buf[pos++];
+        frm->data[3] = (uint8_t)strtol(byteStr, NULL, 16);
+    }
+    if (frm->can_dlc > 2) {
+        byteStr[0] = buf[pos++]; byteStr[1] = buf[pos++];
+        frm->data[2] = (uint8_t)strtol(byteStr, NULL, 16);
+    }
+    if (frm->can_dlc > 1) {
+        byteStr[0] = buf[pos++]; byteStr[1] = buf[pos++];
+        frm->data[1] = (uint8_t)strtol(byteStr, NULL, 16);
+    }
+    if (frm->can_dlc > 0) {
+        byteStr[0] = buf[pos++]; byteStr[1] = buf[pos++];
+        frm->data[0] = (uint8_t)strtol(byteStr, NULL, 16);
+    }
+
+    return 1;
 }

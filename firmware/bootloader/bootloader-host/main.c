@@ -38,6 +38,8 @@ static CAN_Speeds_t speed = CAN_speed_socketspeed;
 
 
 #ifdef _WIN32
+# include "win_getopt.h"
+
 char *basename(const char* filepath) {
     static char bname[100], ext[10];
     _splitpath_s(filepath,

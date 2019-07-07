@@ -11,8 +11,9 @@ option(COMPILE_FOR_RPI "Cross compile for Raspberry" OFF)
 option(SET_DEBUG_FLAG "Set preprocessor DEBUG=1" OFF)
 
 # architecture specific
-if(MSVC AND NOT COMPILE_FOR_RPI)
+if(WIN32 AND NOT COMPILE_FOR_RPI)
   add_compile_options(/W4 /WX)
+  set(WIN_FIXES "win_getopt.c")
 else()
   if (COMPILE_FOR_RPI)
     set(RPI_SYSROOT CACHE PATH "Sysroot for raspberrypi" "")
@@ -42,7 +43,9 @@ else()
   if(CMAKE_SYSTEM_NAME STREQUAL Linux)
       option(BUILD_SOCKETCAN_DRIVER "Build the socketcan driver (only on linux)" ON)
       add_definitions(-DBUILD_SOCKETCAN)
+
       set(DRIVER_SOURCES "socketcan.c" ${DRIVER_SOURCES})
+
   endif()
 
   add_compile_options(-Wall -Wextra -pedantic)
@@ -51,11 +54,19 @@ endif()
 
 # app sources
 set(SOURCES ${DRIVER_SOURCES}
+            ${WIN_FIXES}
             "commands.c"
             "canbridge.c"
             "main.c"
             "../node/crc32/crc32.c")
 
+# QTCREATOR fixes, find files not set by current configuration
+# such as conditional inclution windows, linux files
+FILE(GLOB_RECURSE HeadFiles "*.h")
+add_custom_target(headers SOURCES ${HeadFiles})
+FILE(GLOB_RECURSE CFiles "*.c")
+FILE(GLOB_RECURSE CppFiles "*.cpp")
+add_custom_target(srcs SOURCES ${CFiles} ${CppFiles})
 
 
 # setup for compile

@@ -36,6 +36,41 @@ uint32_t canIdx = 0;
 
 static CAN_Speeds_t speed = CAN_speed_socketspeed;
 
+typedef enum {
+    _CMDs_start_marker,
+    CMD_bootmode,
+    CMD_read,
+    CMD_write,
+    CMD_erase,
+    CMD_comparewithfile,
+    CMD_checksum,
+    CMD_checksumfile,
+    CMD_memoryinfo,
+    CMD_reset,
+    _CMDs_end_marker,
+} CMDs_t;
+#define CMDS_NAME_MAX_SZ 20
+static const char CMDs_name[_CMDs_end_marker][CMDS_NAME_MAX_SZ] = {
+    "invalid",
+    "bootmode",
+    "read",
+    "write",
+    "erase",
+    "comparewithfile",
+    "checksum",
+    "checksumfile",
+    "memoryinfo",
+    "reset"
+};
+CMDs_t cmd_from_str(const char *cmd) {
+    for (CMDs_t i = _CMDs_start_marker +1; i < _CMDs_end_marker; ++i) {
+        if (strncmp(cmd, CMDs_name[i], CMDS_NAME_MAX_SZ) == 0)
+            return i;
+    }
+
+    return _CMDs_start_marker;
+}
+
 
 #ifdef _WIN32
 # include "win_getopt.h"
@@ -134,6 +169,7 @@ void print_usage(char *prg)
     fprintf(stderr, "   write        new.bin      <optional memory region in hex>\n");
     fprintf(stderr, "                       Flashes new.bin to memory region\n");
     fprintf(stderr, "                       If no memory region given, use standard place\n\n");
+    fprintf(stderr, "   erase       <optional memory region in hex>\n");
     fprintf(stderr, "                       Erases flash memory in node.\n");
     fprintf(stderr, "                       If no memory region given, erase complete memory\n\n");
     fprintf(stderr, "   comparewithfile\n");
@@ -183,7 +219,7 @@ int main(int argc, char *argv[])
 
     abortVar = 0;
 
-    while ((opt = getopt(argc, argv, "i:n:N:d:h?")) != -1) {
+    while ((opt = getopt(argc, argv, "i:n:N:d:b:h?")) != -1) {
         switch (opt) {
         case 'i': {
             long idx = strtol(optarg, NULL, 16);
@@ -247,6 +283,7 @@ int main(int argc, char *argv[])
             break;
         case 'b':
             speed = canbridge_get_speed_id_from_speed_name(optarg);
+            break;
         case '?':
             fprintf(stderr, "unknown option char at index:%d\n", optind);
             errExit(0);
@@ -299,9 +336,9 @@ int main(int argc, char *argv[])
         for (int i = 0; i < argoptionsc; ++i)
             argoptions[i] = argv[optind + 1 + i];
 
-
         // start determine what to do
-        if (strcmp(cmd, "read") == 0) {
+        switch(cmd_from_str(cmd)) {
+        case CMD_read: {
             // read memory from node
             // split memory regions ie 0x800000:0x8000400
             memoptions_t mopt = {0, 0};
@@ -314,7 +351,8 @@ int main(int argc, char *argv[])
                 errExit("Must give a filename to save to");
             doReadCmd(&mopt, argoptions[1]);
 
-        } else if (strcmp(cmd, "checksum") == 0) {
+        } break;
+        case CMD_checksum: {
             // get memory checksum
             // split memory regions ie 0x800000:0x8000400
             memoptions_t mopt = {0, 0};
@@ -326,7 +364,8 @@ int main(int argc, char *argv[])
             }
             doChecksumCmd(&mopt);
 
-        } else if (strcmp(cmd, "erase") == 0) {
+        } break;
+        case CMD_erase: {
             // split memory regions ie 0x800000:0x8000400
             memoptions_t mopt = {0, 0};
             if (argoptionsc > 1) { // more arguments given
@@ -337,7 +376,8 @@ int main(int argc, char *argv[])
             }
             doEraseCmd(&mopt);
 
-        } else if (strcmp(cmd, "write") == 0) {
+        } break;
+        case CMD_write: {
             // write a bin file to node
             // split memory regions ie 0x800000:0x8000400
             memoptions_t mopt = {0, 0};
@@ -350,31 +390,35 @@ int main(int argc, char *argv[])
                 errExit("Must give a filename to save to");
             doWriteCmd(&mopt, argoptions[1]);
 
-        } else if (strcmp(cmd, "reset") == 0) {
+        } break;
+        case CMD_reset:
             // reset device
             doResetCmd();
-
-        } else if (strcmp(cmd, "checksumfile") == 0) {
+            break;
+        case CMD_checksumfile:
             // get the checksum of local file
             if (argoptionsc < 2)
                 errExit("Must give a binary filepath as argument");
             doChecksumLocalCmd(argoptions[1]);
-
-        } else if (strcmp(cmd, "comparewithfile") == 0) {
+            break;
+        case CMD_comparewithfile:
             // compares local bin with remote file
             if (argoptionsc < 2)
                 errExit("Must give a binary file path as argument");
             doCompareCmd(argoptions[1]);
-
-        } else if (strcmp(cmd, "memoryinfo") == 0) {
+            break;
+        case CMD_memoryinfo:
             doPrintMemorySetupCmd();
-
-        } else if (strcmp(cmd, "bootmode") == 0) {
+             break;
+        case CMD_bootmode:
             // reset node and trigger a cmd set hang it in bootloader mode
             doBootloaderModeCmd();
-
-        } else {
-            fprintf(stderr, "Unrecognized command '%s'\n\ntype %s -h for more info", cmd, argv[0]);
+            break;
+        default:
+            fprintf(stderr, "Unrecognized command '%s'\navailable:\n", cmd);
+            for(CMDs_t i = _CMDs_start_marker +1; i < _CMDs_end_marker; ++i)
+                fprintf(stderr, "  %s\n", CMDs_name[i]);
+            fprintf(stderr, " \ntype %s -h for more info\n", basename(argv[0]));
             ret = EXIT_FAILURE;
         }
     }

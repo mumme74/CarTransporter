@@ -91,7 +91,7 @@ static void nodeErrExit(const char *str, can_bootloaderErrs_e err)
 {
     char *errStr = bootloadErrToStr(err);
     char *chbuf = malloc(strlen(str) + strlen(errStr) + 2);
-    sprintf(chbuf, "%s %s", str, errStr);
+    sprintf(chbuf, "%s %s\n", str, errStr);
     fprintf(stdout, "%s", chbuf);
     free(chbuf);
     cleanup();

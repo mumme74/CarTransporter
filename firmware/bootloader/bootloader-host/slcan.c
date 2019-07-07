@@ -29,14 +29,24 @@ static int canfd = 0;
 #include <termios.h>
 #include <unistd.h>
 #include <sys/time.h>
+# include <sys/ioctl.h>
 
 #ifdef __APPLE__
 // for iotcl set serial speed to 1000000 baud
-# include <sys/ioctl.h>
 # include <IOKit/serial/ioss.h>
 #endif
 
+#ifdef __linux__
+// to set low latency mode, 1ms
+# include <linux/serial.h>
+#endif
+
 typedef struct timeval timeval_t;
+
+static int max_latency = 20; // FTDI chips has a default 16ms latency timer
+                             // it waits for either 64bytes or 16ms
+                             // it is changable through DLL, but not through serial (unless its a linux)
+                             // linux does however let us set 1ms latency in ioctl
 
 // https://stackoverflow.com/questions/6947413/how-to-open-read-and-write-from-serial-port-in-c
 static int open_port(const char *portname)
@@ -92,6 +102,20 @@ static int open_port(const char *portname)
         sprintf(canbridge_errmsg, "Error when setting serial speed to 1Mbaud\n");
         return 0;
     }
+
+#else // linux
+    // set latency to max 1ms
+    struct serial_struct kSerialSettings;
+
+    if (ioctl(canfd, TIOCGSERIAL, &kSerialSettings) > -1) {
+        kSerialSettings.flags |= ASYNC_LOW_LATENCY;
+        if (ioctl(canfd, TIOCSSERIAL, &kSerialSettings) < 0) {
+            sprintf(canbridge_errmsg,
+                    "Could not set low latency to serial driver\nreson%s\n",
+                    strerror(errno));
+        }
+        max_latency = 1;
+    }
 #endif
 
     return 1;
@@ -100,6 +124,8 @@ static int open_port(const char *portname)
 static int write_port(const char *buf, uint32_t len,
                       uint32_t *bytesWritten, int timeoutms)
 {
+    if (timeoutms < max_latency)
+        timeoutms = max_latency;
     *bytesWritten = 0;
 
     timeval_t timeoutAt, initial, now, add = { 0 , 1000 * timeoutms };
@@ -121,6 +147,8 @@ static int write_port(const char *buf, uint32_t len,
 static int read_port(char *buf, uint32_t len,
                      uint32_t *bytesRead, int timeoutms)
 {
+    if (timeoutms < max_latency)
+        timeoutms = max_latency;
     *bytesRead = 0;
 
     timeval_t timeoutAt, initial, now, add = { 0 , 1000 * timeoutms };
@@ -132,6 +160,8 @@ static int read_port(char *buf, uint32_t len,
         ssize_t res = read(canfd, buf, len);
         if (res > 0)
             *bytesRead += (uint32_t)res;
+        else if (res == -1 && errno != EAGAIN)
+            return 0; // read error
         gettimeofday(&now, NULL);
     } while(timercmp(&now, &timeoutAt, < ) &&
             *bytesRead < len && !*_abortLoop);
@@ -300,7 +330,7 @@ static int clear_pipeline(void) {
         // clear reponse buffer, 1char at a time until CR is recieved
         // we might have old responses in pipeline
         do {
-            if (!read_port(&ch, 1, &nBytes, 20)) {
+            if (!read_port(&ch, 1, &nBytes, 5)) {
                 sprintf(canbridge_errmsg, "Failed to get response while clearing serial buffer\n");
                 return 0;
             }
@@ -336,13 +366,13 @@ int slcan_init(const char *name, CAN_Speeds_t speed)
     const int bufSz = 6;
     char buf[6] = { 'V', CR, 0, 0, 0, 0 };
     uint32_t nBytes;
-    if (!write_port(buf, 2, &nBytes, 10)) {
+    if (!write_port(buf, 2, &nBytes, 5)) {
         sprintf(canbridge_errmsg, "Failed to send version request\n");
         return 0;
     }
 
     for (int i = 0; i < bufSz; ++i){
-        if (!read_port(&buf[i], 1, &nBytes, 15)) {
+        if (!read_port(&buf[i], 1, &nBytes, 5)) {
             sprintf(canbridge_errmsg, "Failed to read version response\n");
             return 0;
         } else if (buf[i] == BELL) {
@@ -380,11 +410,11 @@ int slcan_init(const char *name, CAN_Speeds_t speed)
         return 0;
     }
 
-    if (!write_port(buf, 3, &nBytes, 10)) {
+    if (!write_port(buf, 3, &nBytes, 5)) {
         sprintf(canbridge_errmsg, "Failed to write speed cmd to serial\n");
         return 0;
     }
-    if (!read_port(buf, 1,&nBytes, 10)) {
+    if (!read_port(buf, 1,&nBytes, 5)) {
         sprintf(canbridge_errmsg, "Failed to read from speed cmd response from serial\n");
         return 0;
     }
@@ -440,7 +470,7 @@ int slcan_set_filter(uint32_t mask, uint32_t id)
         }
 
         // get response
-        if (!read_port(buf, 1, &nBytes, 100)) {
+        if (!read_port(buf, 1, &nBytes, 5)) {
             sprintf(canbridge_errmsg, "Failed to set CAN filter, reponse timeout\n");
             return 0;
         }
@@ -476,7 +506,7 @@ int slcan_open(void)
     }
 
     // get response
-    if (!read_port(buf, 1, &nBytes, 100)) {
+    if (!read_port(buf, 1, &nBytes, 5)) {
         sprintf(canbridge_errmsg, "Failed to open CAN channel, reponse timeout\n");
         return 0;
     }
@@ -525,13 +555,13 @@ int slcan_close(void)
         // close CAN channel
         uint32_t nBytes;
         char buf[] = { 'C', CR };
-        if (!write_port(buf, 2, &nBytes, 10)) {
+        if (!write_port(buf, 2, &nBytes, 5)) {
             sprintf(canbridge_errmsg, "Failed to send close cmd to serial");
             return 0;
         }
 
         // get response
-        if (!read_port(buf, 1, &nBytes, 100)) {
+        if (!read_port(buf, 1, &nBytes, 5)) {
             sprintf(canbridge_errmsg, "Failed to close CAN channel, reponse timeout\n");
             return 0;
         }

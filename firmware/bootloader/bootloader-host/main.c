@@ -160,7 +160,7 @@ void print_usage(char *prg)
 #endif
     fprintf(stderr, " <serialport> (driver=slcan)\n");
     fprintf(stderr, "CAN ID in hexadecimal values, or nodename  must be given.\n\n");
-    fprintf(stderr, "Use interface name '%s' to receive from all CAN interfaces.\n", ANYDEV);
+    //fprintf(stderr, "Use interface name '%s' to receive from all CAN interfaces.\n", ANYDEV);
     fprintf(stderr, "\nActions:      arguments:   optional arguments:\n");
     fprintf(stderr, "   bootmode            Sets node i bootloader mode.\n\n");
     fprintf(stderr, "   read         backup.bin   <optional memory region in hex>\n");

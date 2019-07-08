@@ -789,7 +789,7 @@ void doEraseCmd(memoptions_t *mopt)
     const uint32_t timeout = 30000;
     if (canbridge_recv(&recvFrm, timeout) < 1) {
         printCanError();
-        fprintf(stderr, "**No repsonse from node, timeout after:%dms", timeout);
+        fprintf(stderr, "**No response from node, timeout after:%dms", timeout);
         errExit(0);
     }
 
@@ -797,7 +797,7 @@ void doEraseCmd(memoptions_t *mopt)
         errExit("Malformed response fron Node\n");
 
     if (recvFrm.data[0] != C_bootloaderEraseFlash)
-        errExit("Node reponded with wrong command\n");
+        errExit("Node responded with wrong command\n");
 
     if (recvFrm.data[1] != C_bootloaderErrOK)
         nodeErrExit("An error occured in node %s\n", recvFrm.data[1]);

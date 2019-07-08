@@ -5,6 +5,11 @@
  *      Author: jof
  */
 
+// This file contains both serialport stuff (Win, Macos and linux)
+// as well as a linked list implementation for responses
+// and of course also the driver for slcan
+//  ie. strings to/from can_frame
+
 #include "slcan.h"
 #include "canbridge.h"
 #include "buffer.h"
@@ -51,7 +56,6 @@ static int max_latency = 20; // FTDI chips has a default 16ms latency timer
                              // linux does however let us set 1ms latency in ioctl
 
 
-// https://stackoverflow.com/questions/6947413/how-to-open-read-and-write-from-serial-port-in-c
 static int open_port(const char *portname)
 {
     struct termios tty;
@@ -319,91 +323,318 @@ static const char CR = '\r', BELL = '\a';
 static int hwVersion = 0, swVersion = 0;
 
 
-// ----------------------- Responses Buffer ----------------------------------
-// it is a circular buffer
-#define RESPONSE_BUF_INITIAL_SZ 1024
+
+// ----------------------- Responses list -------------------------
+//  maximum nr of chars in a response
 #define RESPONSE_MAX_SZ 20
-static Buffer_t readBuf;
 
+typedef struct _response {
+    struct _response *prev, *next;
+    char *data ;
+    uint8_t len;
 
-/**
- * @brief response_get, gets a complete response from buffer
- * @param b, ptr to buffer obj
- * @param resp, store response into here, must be of size RESPONSE_MAX_SZ
- * @param cmds, Look for the first response matching cmds, might be up to 20 chrs
- * @param len, get set to number of chars in response
- * @param timeoutms, timeout a fetch in ms
- * @return 1 if a response could be found, 0 otherwise
- */
-static int response_get(Buffer_t *b, char *resp, const char *cmds,
-                                uint32_t *len, int timeoutms)
+    // pad struct (squelsh warnings)
+#ifdef __SIZEOF_POINTER__
+#if __SIZEOF_POINTER__  == 8u
+    uint8_t __pad[7];
+#elif __SIZEOF_POINTER__ == 4u
+    uint8_t __pad[3];
+#endif
+#elif defined(_WIN32) && defined(_W64)
+    uint8_t __pad[7];
+#elif defined(_WIN32)
+    uint8_t __pad[3];
+#endif
+
+} Response_t;
+
+typedef struct {
+    Response_t *first, *last;
+    uint32_t len;
+} ResponseList_t;
+
+static ResponseList_t responses;
+
+void responselist_init(ResponseList_t *lst)
 {
-    int crPos, bellPos, peek;
-    size_t cmdsLen = strnlen(cmds, 20);
-    uint32_t startpos = 0;
-
-    do {
-        peek = 0;
-
-        // first check if we have any response available
-        crPos   = buffer_index_of(b, CR, startpos);
-        bellPos = buffer_index_of(b, BELL, startpos);
-        if (crPos < 0 && bellPos < 0) {
-            // refresh
-            char buf[20];
-            uint32_t nBytes;
-            read_port(buf, 20, &nBytes, timeoutms);
-            if (nBytes == 0)
-                return 0; // nothing recived
-
-            buffer_put(b, buf, nBytes);
-
-            // read from a potentially newly filled buffer
-            crPos   = buffer_index_of(b, CR, startpos);
-            bellPos = buffer_index_of(b, BELL, startpos);
-        }
-
-        // have we found a response? CR or BELL
-        if (crPos > -1 &&
-            (bellPos == -1 || (bellPos > -1 && bellPos > crPos)))
-        {
-            *len = (uint32_t)crPos +1;
-            peek = buffer_get(b, resp, *len);
-
-        } else if (bellPos > -1) {
-            *len = (uint32_t)bellPos +1;
-            peek = buffer_get(b, resp, *len);
-        }
-
-        // if peek then we have a line end
-        if (peek > 0) {
-            // should we look for a specific response?
-            if (cmdsLen > 0) {
-                for (size_t i = 0; i < cmdsLen; ++i) {
-                    if (cmds[i] == resp[0]) {
-                        return 1; // found it!
-                    }
-                }
-                // loop again, try next response in buffer
-                startpos += (uint32_t)peek;
-            } else {
-                // don't filter on cmds, ie. we found it now!
-                return 1;
-            }
-        }
-    } while(startpos < buffer_available(b) && peek > 0);
-
-    return 0;
+    lst->first = lst->last = NULL;
+    lst->len = 0;
 }
 
-// ---------------------end Responses Buffer ---------------------------------
+/**
+ * @brief response_create, create a new response obj
+ *         must be deallocated using response_free(obj)
+ * @param data, the data to store
+ * @param len, how many bytes of data
+ * @return a newly malloc-ed response obj, must freed using response_free
+ */
+Response_t *response_create(const char *data, uint8_t len)
+{
+    if (len < 1)
+        return NULL;
+
+    Response_t *r = (Response_t*)malloc(sizeof (Response_t));
+    r->len = len;
+    r->prev = r->next = NULL;
+    r->data = (char*)malloc(sizeof (char) * len);
+    memcpy(r->data, data, len);
+
+    return r;
+}
+
+/**
+ * @brief response_insert, insert itm into lst
+ * @param lst, the list to store itm in
+ * @param prev, node directly previous to itm
+ * @param itm, a response obj created by response_create
+ * @return 1 on success else 0
+ */
+int response_insert(ResponseList_t *lst, Response_t *prev, Response_t *itm)
+{
+    if (!prev && !lst->first && itm) {
+        // very first insert
+        lst->first = lst->last = itm;
+        ++lst->len;
+    } else if (!prev && !itm) {
+        return 0; // invalid
+
+    } else if (prev->next == NULL) {
+        // insert as last element
+        prev->next = itm;
+        if (itm) {
+            itm->next = NULL;
+            lst->last = itm;
+            ++lst->len;
+        }
+    } else if (!prev) {
+        // insert as first element
+        lst->first->prev = itm;
+        lst->first = itm;
+        ++lst->len;
+    } else if(itm != NULL) {
+        // insert in the middle
+        itm->next = prev->next;
+        prev->next = itm;
+        itm->prev = prev;
+        ++lst->len;
+    } else {
+        return 0;
+    }
+
+    return 1;
+}
+
+/**
+ * @brief response_get_at, get the list item at index pos
+ * @param lst, the list to store it in
+ * @param idx, the place in list, same as lst[idx]
+ * @return the item or NULL
+ */
+Response_t *response_get_at(ResponseList_t *lst, uint32_t idx)
+{
+    if (idx >= lst->len)
+        return NULL;
+
+    Response_t *itm = NULL;
+    uint32_t stepsToMove = idx;
+    if (stepsToMove > lst->len / 2) {
+        // look from the end
+        stepsToMove = lst->len - stepsToMove;
+        itm = lst->last;
+
+        while (stepsToMove--)
+            itm = itm->prev;
+
+    } else {
+        // look from start
+        itm = lst->first;
+
+        while (stepsToMove--)
+            itm = itm->next;
+    }
+
+    return itm;
+}
+
+/**
+ * @brief response_take_at, same as response_get_at but also removes from list
+ * @param lst, the list to operate on
+ * @param idx, the indes pos
+ * @return the newly taken item on success or NULL
+ */
+Response_t *response_take_at(ResponseList_t *lst, uint32_t idx)
+{
+    Response_t *itm = response_get_at(lst, idx);
+    if (!itm)
+        return NULL;
+
+    // update lst pointers
+    if (itm == lst->first) {
+        lst->first = lst->first->next;
+    }
+    if (itm == lst->last) {
+        lst->last = itm->prev;
+    }
+
+    // re-wire other nodes in list
+    if (itm->prev)
+        itm->prev->next = itm->next;
+    if (itm->next)
+        itm->next->prev = itm->prev;
+
+    itm->prev = itm->next = NULL;
+
+    --lst->len;
+
+    return itm;
+}
+
+/**
+ * @brief response_free, deallocate data
+ * @param r, response struct to deallocate
+ */
+void response_free(Response_t *r)
+{
+    if (r == NULL)
+        return;
+
+    free(r->data);
+    free(r);
+}
+
+void response_clear_all(ResponseList_t *lst)
+{
+    if (!lst->first)
+        return;
+
+    Response_t *itm = lst->first, *next;
+    do {
+        next = itm->next;
+        response_free(itm);
+    } while(next != NULL);
+
+    lst->len = 0;
+    lst->last = lst->first = NULL;
+}
+
+/**
+ * @brief response_read_serial, reads from serialport, inserts responses into list
+ * @param lst, responses list to insert into
+ * @param timeoutms, timeout serialread in ms
+ * @return 1 on success or 0
+ */
+int response_read_serial(ResponseList_t *lst, const int timeoutms)
+{
+    enum { BUF_SZ = 1024 };
+    static char buf[BUF_SZ];
+    static uint32_t bufPos = 0;
+
+    uint32_t nBytes,
+            start = bufPos,
+            initialLen = lst->len;
+    Response_t *itm = NULL;
+
+    read_port(&buf[bufPos], BUF_SZ - bufPos - 1, &nBytes, timeoutms);
+
+    if (nBytes > 0) {
+        // parse the responses and insert into responses list
+        for(uint32_t i = bufPos; i < bufPos + nBytes; ++i) {
+            char ch = buf[i];
+            if (ch == CR || ch == BELL) {
+                // we have a complete response
+                itm = response_create(&buf[start], (uint8_t)(i - start) +1);
+                if (!itm) {
+                    sprintf(canbridge_errmsg, "Failed to allocate memory\n");
+                    goto cleanup;
+                }
+                if (!response_insert(lst, lst->last, itm)) {
+                    sprintf(canbridge_errmsg, "Failed to insert item into list\n");
+                    goto cleanup;
+                } else
+                    itm = NULL; // derefernce to avoid frring a inserted itm
+
+                start = i+1;
+            }
+        }
+
+        // we might have trailing bytes we need to store til next read_serial
+        // move to beginning of buffer
+        if (start < bufPos + nBytes) {
+            uint32_t len = (bufPos + nBytes) - start;
+            memmove(buf, &buf[start], len);
+            bufPos = len;
+        } else {
+            bufPos = 0;
+        }
+    }
+
+cleanup:
+    response_free(itm);
+
+    return initialLen != lst->len;
+}
+
+/**
+ * @brief response_find, looks up a certain response based on filter
+ * @param lst, list to search in
+ * @param cmdsFilter, filter commands against these, might be up to 20 cmds
+ * @param reversed, search from the back if non zero
+ * @param timeoutms, if > 0 and we hant found any we read serial port
+ * @return
+ */
+Response_t *response_find(ResponseList_t *lst, const char *cmdsFilter,
+                          uint8_t reversed, const int timeoutms)
+{
+    // if we are empty, read from serial, if none read then bail
+    if (!lst->len && timeoutms > 0)
+        if (!response_read_serial(lst, timeoutms))
+            return NULL;
+
+    Response_t *itm;
+    uint32_t idx;
+    int filterLen = (int)strnlen(cmdsFilter, 20);
+
+    if (reversed) {
+        itm = lst->last;
+        idx = lst->len -1;
+        do {
+            for(int i = 0; i < filterLen; ++i) {
+                if (itm->len && itm->data[0] == cmdsFilter[i])
+                    return response_take_at(lst, idx);
+            }
+            --idx;
+        } while((itm = itm->prev));
+    } else {
+        // non reversed
+        itm = lst->first;
+        idx = 0;
+        do {
+            for(int i = 0; i < filterLen; ++i) {
+                if (itm->len && itm->data[0] == cmdsFilter[i])
+                    return response_take_at(lst, idx);
+            }
+            ++idx;
+        } while((itm = itm->next));
+    }
+
+    // we have not found it, read from serial
+    if (timeoutms > 0 && response_read_serial(lst, timeoutms))
+        return response_find(lst, cmdsFilter, reversed, -1);
 
 
+    return NULL;
+}
+
+// ----------------------- END responses list ------------------------
+
+#define FUNC_HEADER int res = 1; Response_t *resp = NULL
+#define GOTO_CLEANUP_ERR { res = 0; goto cleanup; }
+#define GOTO_CLEAN_OK { res = 1; goto cleanup; }
 
 static int clear_pipeline(void) {
     // canusb.com states:
     // Always start each session (when your program starts) with sending 2-3 [CR]
-    buffer_clear(&readBuf);
+    response_clear_all(&responses);
 
     for(int i = 0; i < 3; ++i) {
         char ch = CR;
@@ -413,16 +644,17 @@ static int clear_pipeline(void) {
             return 0;
         }
 
-        // clear reponse buffer, 1char at a time until CR is recieved
+        // clear response buffer, 1char at a time until CR is recieved
         // we might have old responses in pipeline
-        char buf[RESPONSE_MAX_SZ];
-        if (!response_get(&readBuf, buf, "\r\a", &nBytes, 5)) {
+        Response_t *resp = response_find(&responses, "\r\n", 1, 5);
+        if (!resp) {
             sprintf(canbridge_errmsg, "Failed to get response while clearing serial buffer\n");
             return 0;
         }
+        response_free(resp);
     }
 
-    buffer_clear(&readBuf);
+    response_clear_all(&responses);
 
     return 1;
 }
@@ -438,43 +670,44 @@ static int clear_pipeline(void) {
  */
 int slcan_init(const char *name, CAN_Speeds_t speed)
 {
-    if (!buffer_init(&readBuf, RESPONSE_BUF_INITIAL_SZ))
-        return 0;
+    responselist_init(&responses);
+    FUNC_HEADER;
 
     // this driver needs a open
     if (open_port(name) < 1)
-        return 0;
+        GOTO_CLEANUP_ERR;
 
     state = CANBRIDGE_INIT;
 
     // clear old messages
     if (!clear_pipeline())
-        return 0;
+        GOTO_CLEANUP_ERR;
 
     // canusb states we must get version before anything else
-    char buf[RESPONSE_MAX_SZ] = { 'V', CR };
+    char buf[3] = { 'V', CR , 0 };
     uint32_t nBytes;
     if (!write_port(buf, 2, &nBytes, 5)) {
         sprintf(canbridge_errmsg, "Failed to send version request\n");
-        return 0;
+        GOTO_CLEANUP_ERR;
     }
 
-    if (!response_get(&readBuf, buf, "V", &nBytes, 5)) {
+    resp = response_find(&responses, "V", 0, 5);
+    if (!resp) {
         sprintf(canbridge_errmsg, "Failed to read version response\n");
-        return 0;
+        GOTO_CLEANUP_ERR;
     }
-    if (buf[0] == BELL) {
+    if (resp->data[0] == BELL) {
         sprintf(canbridge_errmsg, "Version request responded with error\n");
-        return 0;
+        GOTO_CLEANUP_ERR;
     }
     const int versionSz = 6;
-    if (nBytes < versionSz) {
+    if (resp->len < versionSz) {
         sprintf(canbridge_errmsg, "Wrong response from device version request\n");
-        return 0;
+        GOTO_CLEANUP_ERR;
     }
     // read the version
-    char hwStr[3] = { buf[1], buf[2], 0 },
-         swStr[3] = { buf[3], buf[4], 0 };
+    char hwStr[3] = { resp->data[1], resp->data[2], 0 },
+         swStr[3] = { resp->data[3], resp->data[4], 0 };
     hwVersion = atoi(hwStr);
     swVersion = atoi(swStr);
 
@@ -494,24 +727,28 @@ int slcan_init(const char *name, CAN_Speeds_t speed)
     case CAN_speed_socketspeed: // fallthrough
     default:
         sprintf(canbridge_errmsg, "Unsupported CAN speed\n");
-        return 0;
+        GOTO_CLEANUP_ERR;
     }
 
     if (!write_port(buf, 3, &nBytes, 5)) {
         sprintf(canbridge_errmsg, "Failed to write speed cmd to serial\n");
-        return 0;
+        GOTO_CLEANUP_ERR;
     }
 
-    if (!response_get(&readBuf, buf, "\r\a", &nBytes, 5)) {
+    resp = response_find(&responses, "\r\a", 1, 5);
+    if (!resp) {
         sprintf(canbridge_errmsg, "Failed to read from speed cmd response from serial\n");
-        return 0;
+        GOTO_CLEANUP_ERR;
     }
-    if (buf[0] != CR) {
+    if (resp->data[0] != CR) {
         sprintf(canbridge_errmsg, "Set speed command failed in device\n");
-        return 0;
+        GOTO_CLEANUP_ERR;
     }
 
-    return 1;
+cleanup:
+    response_free(resp);
+
+    return res;
 }
 
 /**
@@ -522,9 +759,11 @@ int slcan_init(const char *name, CAN_Speeds_t speed)
  */
 int slcan_set_filter(uint32_t mask, uint32_t id)
 {
+    FUNC_HEADER;
+
     if (state != CANBRIDGE_INIT) {
         sprintf(canbridge_errmsg, "Can only set filter in init mode\n");
-        return 0;
+        GOTO_CLEANUP_ERR;
     }
 
     char cmds[] = {
@@ -558,17 +797,21 @@ int slcan_set_filter(uint32_t mask, uint32_t id)
         }
 
         // get response
-        if (!response_get(&readBuf, buf, "\r\a", &nBytes, 5)) {
-            sprintf(canbridge_errmsg, "Failed to set CAN filter, reponse timeout\n");
-            return 0;
+        resp = response_find(&responses, "\r\a", 1, 5);
+        if (!resp) {
+            sprintf(canbridge_errmsg, "Failed to set CAN filter, response timeout\n");
+            GOTO_CLEANUP_ERR;
         }
-        if (buf[0] != CR) {
+        if (resp->data[0] != CR) {
             sprintf(canbridge_errmsg, "Failed to set CAN filter\n");
-            return 0;
+            GOTO_CLEANUP_ERR;
         }
     }
 
-    return 1;
+cleanup:
+    response_free(resp);
+
+    return res;
 }
 
 /**
@@ -577,12 +820,15 @@ int slcan_set_filter(uint32_t mask, uint32_t id)
  */
 int slcan_open(void)
 {
+    FUNC_HEADER;
+
     if (state == CANBRIDGE_CLOSED) {
         sprintf(canbridge_errmsg, "Can't open a closed comport\n");
-        return 0;
+        GOTO_CLEANUP_ERR
     } else if (state == CANBRIDGE_OPEN) {
         sprintf(canbridge_errmsg, "Already open comport\n");
-        return -1;
+        res = -1;
+        goto cleanup;
     }
 
     // open CAN channel
@@ -590,22 +836,27 @@ int slcan_open(void)
     char buf[RESPONSE_MAX_SZ] = { 'O', CR };
     if (!write_port(buf, 2, &nBytes, 10)) {
         sprintf(canbridge_errmsg, "Failed to send open cmd to serial");
-        return 0;
+        GOTO_CLEANUP_ERR
     }
 
     // get response
-    if (!response_get(&readBuf, buf, "\r\a", &nBytes, 5)) {
-        sprintf(canbridge_errmsg, "Failed to open CAN channel, reponse timeout\n");
-        return 0;
+    resp = response_find(&responses, "\r\a", 1, 5);
+    if (!resp) {
+        sprintf(canbridge_errmsg, "Failed to open CAN channel, response timeout\n");
+        GOTO_CLEANUP_ERR
     }
-    if (buf[0] != CR) {
+    if (resp->data[0] != CR) {
         sprintf(canbridge_errmsg, "Failed to open CAN channel\n");
-        return 0;
+        GOTO_CLEANUP_ERR
     }
 
     // success!
     state = CANBRIDGE_OPEN;
-    return 1;
+
+cleanup:
+    response_free(resp);
+
+    return res;
 }
 
 /**
@@ -633,46 +884,46 @@ int slcan_set_fd_mode(void)
  */
 int slcan_close(void)
 {
-    int res = 1;
+    FUNC_HEADER;
+
     if (state == CANBRIDGE_CLOSED) {
         sprintf(canbridge_errmsg, "Already closed!\n");
-        res = 0;
-        goto cleanup;
+        GOTO_CLEANUP_ERR
     }
 
     // close possible CAN channel
     if (state == CANBRIDGE_OPEN) {
         // close CAN channel
         // start with purging response buffer
-        buffer_clear(&readBuf);
+        response_clear_all(&responses);
 
         uint32_t nBytes;
         char buf[RESPONSE_MAX_SZ] = { 'C', CR };
         if (!write_port(buf, 2, &nBytes, 5)) {
             sprintf(canbridge_errmsg, "Failed to send close cmd to serial");
-            res = 0;
-            goto cleanup;
+            GOTO_CLEANUP_ERR
         }
 
         // get response
-        if (!response_get(&readBuf, buf, "\r\a", &nBytes, 5)) {
+        resp = response_find(&responses, "\r\a", 1, 5);
+        if (!resp) {
             sprintf(canbridge_errmsg, "Failed to close CAN channel, no response from device\n");
-            res = 0;
-            goto cleanup;
+            GOTO_CLEANUP_ERR
         }
-        if (buf[0] != CR) {
+        if (resp->data[0] != CR) {
             sprintf(canbridge_errmsg, "Failed to close CAN channel, device responded with error\n");
-            res = 0;
-            goto cleanup;
+            GOTO_CLEANUP_ERR
         }
     }
 
 cleanup:
-    buffer_free(&readBuf);
+    response_free(resp);
 
-    res = close_port(); // close serial
-    if (res)
+    // close serial
+    if (close_port())
         state = CANBRIDGE_CLOSED;
+    else
+        res = 0;
 
     return res;
 }
@@ -696,9 +947,11 @@ void slcan_set_abortvariable(int *abortVar)
  */
 int slcan_send(canframe_t *frm, int timeoutms)
 {
+    FUNC_HEADER;
+
     if (state != CANBRIDGE_OPEN) {
         sprintf(canbridge_errmsg, "Can't send on a non open driver\n");
-        return 0;
+        GOTO_CLEANUP_ERR
     }
 
     uint32_t pos = 0, nBytes;
@@ -755,21 +1008,25 @@ int slcan_send(canframe_t *frm, int timeoutms)
 
     if (!write_port(buf, pos, &nBytes, timeoutms)) {
         sprintf(canbridge_errmsg, "Failed to send to serial\nwritten:%d of %d", nBytes, pos);
-        return 0; // send_cmd sets canbridge_errmsg
+        GOTO_CLEANUP_ERR // send_cmd sets canbridge_errmsg
     }
 
     // get response
     char okCmds[2] = { (frm->can_id & CAN_EFF_FLAG) ? 'Z' : 'z', 0 };
-    if (!response_get(&readBuf, buf, okCmds, &nBytes, timeoutms)) {
-        sprintf(canbridge_errmsg, "Failed to send to CAN channel, reponse timeout\n");
-        return 0;
+    resp = response_find(&responses, okCmds, 1, timeoutms);
+    if (!resp) {
+        sprintf(canbridge_errmsg, "Failed to send to CAN channel, response timeout\n");
+        GOTO_CLEANUP_ERR
     }
-    if (buf[1] != CR) {
+    if (resp->data[1] != CR) {
         sprintf(canbridge_errmsg, "Failed to send to CAN channel\n");
-        return 0;
+        GOTO_CLEANUP_ERR
     }
 
-    return 1;
+cleanup:
+    response_free(resp);
+
+    return res;
 }
 
 /**
@@ -780,74 +1037,85 @@ int slcan_send(canframe_t *frm, int timeoutms)
  */
 int slcan_recv(canframe_t *frm, int timeoutms)
 {
+    FUNC_HEADER;
+
     if (state != CANBRIDGE_OPEN) {
         sprintf(canbridge_errmsg, "Can't send on a non open driver\n");
         return 0;
     }
 
-    uint32_t pos = 0, nBytes;
-    char buf[RESPONSE_MAX_SZ];
-    if (!response_get(&readBuf, buf, "tTrR", &nBytes, timeoutms))
-        return 0;
+    uint32_t pos = 0;
+    resp = response_find(&responses, "tTrR", 0, timeoutms);
+    if (!resp)
+        GOTO_CLEANUP_ERR
 
-    if (nBytes < 5)
-        return 0;
+    if (resp->len < 5)
+        GOTO_CLEANUP_ERR
 
     memset(frm, 0, sizeof (*frm));
 
     // parse id
-    if (buf[0] == 't' || buf[0] == 'r') {
+    if (resp->data[0] == 't' || resp->data[0] == 'r') {
         // 11 bit ID
-        char id11[] = { buf[1], buf[2], buf[3], 0 };
+        char id11[] = {
+            resp->data[1], resp->data[2], resp->data[3], 0
+        };
         frm->can_id = (uint32_t)strtol(id11, NULL, 16);
-        frm->can_dlc = (uint8_t)atoi(&buf[4]);
+        frm->can_dlc = (uint8_t)atoi(&resp->data[4]);
         pos = 5;
     } else {
         // 29 bit id
-        char id29[] = { buf[1], buf[2], buf[3], buf[4],
-                        buf[5], buf[6], buf[7], buf[8], 0 };
+        char id29[] = {
+            resp->data[1], resp->data[2], resp->data[3], resp->data[4],
+            resp->data[5], resp->data[6], resp->data[7], resp->data[8], 0
+        };
         frm->can_id = (uint32_t)strtol(id29, NULL, 16) | CAN_EFF_FLAG;
-        frm->can_dlc = (uint8_t)atoi(&buf[9]);
+        frm->can_dlc = (uint8_t)atoi(&resp->data[9]);
         pos = 10;
     }
 
     // remote frame
-    if (buf[0] == 'r' || buf[0] == 'R')
+    if (resp->data[0] == 'r' || resp->data[0] == 'R')
         frm->can_id |= CAN_RTR_FLAG;
 
     char byteStr[3] = { 0 };
     if (frm->can_dlc > 7) {
-        byteStr[0] = buf[pos++]; byteStr[1] = buf[pos++];
+        byteStr[0] = resp->data[pos++]; byteStr[1] = resp->data[pos++];
         frm->data[7] = (uint8_t)strtol(byteStr, NULL, 16);
     }
     if (frm->can_dlc > 6) {
-        byteStr[0] = buf[pos++]; byteStr[1] = buf[pos++];
+        byteStr[0] = resp->data[pos++]; byteStr[1] = resp->data[pos++];
         frm->data[6] = (uint8_t)strtol(byteStr, NULL, 16);
     }
     if (frm->can_dlc > 5) {
-        byteStr[0] = buf[pos++]; byteStr[1] = buf[pos++];
+        byteStr[0] = resp->data[pos++]; byteStr[1] = resp->data[pos++];
         frm->data[5] = (uint8_t)strtol(byteStr, NULL, 16);
     }
     if (frm->can_dlc > 4) {
-        byteStr[0] = buf[pos++]; byteStr[1] = buf[pos++];
+        byteStr[0] = resp->data[pos++]; byteStr[1] = resp->data[pos++];
         frm->data[4] = (uint8_t)strtol(byteStr, NULL, 16);
     }
     if (frm->can_dlc > 3) {
-        byteStr[0] = buf[pos++]; byteStr[1] = buf[pos++];
+        byteStr[0] = resp->data[pos++]; byteStr[1] = resp->data[pos++];
         frm->data[3] = (uint8_t)strtol(byteStr, NULL, 16);
     }
     if (frm->can_dlc > 2) {
-        byteStr[0] = buf[pos++]; byteStr[1] = buf[pos++];
+        byteStr[0] = resp->data[pos++]; byteStr[1] = resp->data[pos++];
         frm->data[2] = (uint8_t)strtol(byteStr, NULL, 16);
     }
     if (frm->can_dlc > 1) {
-        byteStr[0] = buf[pos++]; byteStr[1] = buf[pos++];
+        byteStr[0] = resp->data[pos++]; byteStr[1] = resp->data[pos++];
         frm->data[1] = (uint8_t)strtol(byteStr, NULL, 16);
     }
     if (frm->can_dlc > 0) {
-        byteStr[0] = buf[pos++]; byteStr[1] = buf[pos++];
+        byteStr[0] = resp->data[pos++]; byteStr[1] = resp->data[pos++];
         frm->data[0] = (uint8_t)strtol(byteStr, NULL, 16);
     }
 
-    return 1;
+    // TODO Timestamp code
+
+cleanup:
+    response_free(resp);
+
+    return res;
 }

@@ -326,7 +326,16 @@ static int hwVersion = 0, swVersion = 0;
 static Buffer_t readBuf;
 
 
-static int response_get_timeout(Buffer_t *b, char *resp, const char *cmds,
+/**
+ * @brief response_get, gets a complete response from buffer
+ * @param b, ptr to buffer obj
+ * @param resp, store response into here, must be of size RESPONSE_MAX_SZ
+ * @param cmds, Look for the first response matching cmds, might be up to 20 chrs
+ * @param len, get set to number of chars in response
+ * @param timeoutms, timeout a fetch in ms
+ * @return 1 if a response could be found, 0 otherwise
+ */
+static int response_get(Buffer_t *b, char *resp, const char *cmds,
                                 uint32_t *len, int timeoutms)
 {
     int crPos, bellPos, peek;
@@ -386,18 +395,6 @@ static int response_get_timeout(Buffer_t *b, char *resp, const char *cmds,
 
     return 0;
 }
-/**
- * @brief response_get, gets a complete response from buffer
- * @param b, ptr to buffer obj
- * @param resp, store response into here, must be of size RESPONSE_MAX_SZ
- * @param cmds, Look for the first response matching cmds, might be up to 20 chrs
- * @param len, get set to number of chars in response
- * @return 1 if a response could be found, 0 otherwise
- */
-static int response_get(Buffer_t *b, char *resp, const char*cmds, uint32_t *len)
-{
-    return response_get_timeout(b, resp, cmds, len, 5);
-}
 
 // ---------------------end Responses Buffer ---------------------------------
 
@@ -419,7 +416,7 @@ static int clear_pipeline(void) {
         // clear reponse buffer, 1char at a time until CR is recieved
         // we might have old responses in pipeline
         char buf[RESPONSE_MAX_SZ];
-        if (!response_get(&readBuf, buf, "\r\a", &nBytes)) {
+        if (!response_get(&readBuf, buf, "\r\a", &nBytes, 5)) {
             sprintf(canbridge_errmsg, "Failed to get response while clearing serial buffer\n");
             return 0;
         }
@@ -462,7 +459,7 @@ int slcan_init(const char *name, CAN_Speeds_t speed)
         return 0;
     }
 
-    if (!response_get(&readBuf, buf, "V", &nBytes)) {
+    if (!response_get(&readBuf, buf, "V", &nBytes, 5)) {
         sprintf(canbridge_errmsg, "Failed to read version response\n");
         return 0;
     }
@@ -505,7 +502,7 @@ int slcan_init(const char *name, CAN_Speeds_t speed)
         return 0;
     }
 
-    if (!response_get(&readBuf, buf, "\r\a", &nBytes)) {
+    if (!response_get(&readBuf, buf, "\r\a", &nBytes, 5)) {
         sprintf(canbridge_errmsg, "Failed to read from speed cmd response from serial\n");
         return 0;
     }
@@ -561,7 +558,7 @@ int slcan_set_filter(uint32_t mask, uint32_t id)
         }
 
         // get response
-        if (!response_get(&readBuf, buf, "\r\a", &nBytes)) {
+        if (!response_get(&readBuf, buf, "\r\a", &nBytes, 5)) {
             sprintf(canbridge_errmsg, "Failed to set CAN filter, reponse timeout\n");
             return 0;
         }
@@ -597,7 +594,7 @@ int slcan_open(void)
     }
 
     // get response
-    if (!response_get(&readBuf, buf, "\r\a", &nBytes)) {
+    if (!response_get(&readBuf, buf, "\r\a", &nBytes, 5)) {
         sprintf(canbridge_errmsg, "Failed to open CAN channel, reponse timeout\n");
         return 0;
     }
@@ -658,7 +655,7 @@ int slcan_close(void)
         }
 
         // get response
-        if (!response_get(&readBuf, buf, "\r\a", &nBytes)) {
+        if (!response_get(&readBuf, buf, "\r\a", &nBytes, 5)) {
             sprintf(canbridge_errmsg, "Failed to close CAN channel, no response from device\n");
             res = 0;
             goto cleanup;
@@ -763,7 +760,7 @@ int slcan_send(canframe_t *frm, int timeoutms)
 
     // get response
     char okCmds[2] = { (frm->can_id & CAN_EFF_FLAG) ? 'Z' : 'z', 0 };
-    if (!response_get_timeout(&readBuf, buf, okCmds, &nBytes, timeoutms)) {
+    if (!response_get(&readBuf, buf, okCmds, &nBytes, timeoutms)) {
         sprintf(canbridge_errmsg, "Failed to send to CAN channel, reponse timeout\n");
         return 0;
     }
@@ -790,7 +787,7 @@ int slcan_recv(canframe_t *frm, int timeoutms)
 
     uint32_t pos = 0, nBytes;
     char buf[RESPONSE_MAX_SZ];
-    if (!response_get_timeout(&readBuf, buf, "tTrR", &nBytes, timeoutms))
+    if (!response_get(&readBuf, buf, "tTrR", &nBytes, timeoutms))
         return 0;
 
     if (nBytes < 5)

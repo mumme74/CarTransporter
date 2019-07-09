@@ -135,7 +135,7 @@ int canbridge_set_driver_from_name(const char *name)
             return 1;
         }
     }
-    sprintf(canbridge_errmsg, "Driver '%s' not valid.\n", name);
+    CANBRIDGE_SET_ERRMSG("Driver '%s' not valid driver\n", name);
     return 0; // not set
 }
 
@@ -185,7 +185,7 @@ int canbridge_init(const char *idStr, CAN_Speeds_t speed)
         return socketcan_init(idStr, speed);
 #endif
     default:
-        sprintf(canbridge_errmsg, "Invalid CAN driver\n");
+        CANBRIDGE_SET_ERRMSG("Invalid CAN driver\n");
         return 0;
     }
 }
@@ -206,7 +206,7 @@ int canbridge_set_filter(canid_t mask, canid_t id)
         return socketcan_set_filter(mask, id);
 #endif
     default:
-        sprintf(canbridge_errmsg, "Invalid CAN driver\n");
+        CANBRIDGE_SET_ERRMSG("Invalid CAN driver\n");
         return 0;
     }
 }
@@ -225,7 +225,7 @@ int canbridge_open(void)
         return socketcan_open();
 #endif
     default:
-        sprintf(canbridge_errmsg, "Invalid CAN driver\n");
+        CANBRIDGE_SET_ERRMSG("Invalid CAN driver\n");
         return 0;
     }
 }
@@ -263,7 +263,7 @@ int canbridge_set_fd_mode(void)
         return socketcan_set_fd_mode();
 #endif
     default:
-        sprintf(canbridge_errmsg, "Invalid CAN driver\n");
+        CANBRIDGE_SET_ERRMSG("Invalid CAN driver\n");
         return 0;
     }
 }
@@ -282,7 +282,7 @@ int canbridge_close(void)
         return socketcan_close();
 #endif
     default:
-        sprintf(canbridge_errmsg, "Invalid CAN driver\n");
+        CANBRIDGE_SET_ERRMSG("Invalid CAN driver\n");
         return 0;
     }
 }

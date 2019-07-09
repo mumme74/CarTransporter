@@ -36,7 +36,7 @@ static int canfd = 0;
 #include <termios.h>
 #include <unistd.h>
 #include <sys/time.h>
-# include <sys/ioctl.h>
+#include <sys/ioctl.h>
 
 #ifdef __APPLE__
 // for iotcl set serial speed to 1000000 baud
@@ -62,17 +62,17 @@ static int open_port(const char *portname)
 
     canfd = open(portname, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (canfd < 0) {
-        sprintf(canbridge_errmsg, "Error opening %s: %s\n", portname, strerror(errno));
+        CANBRIDGE_SET_ERRMSG("Error opening %s: %s\n", portname, strerror(errno));
         return -errno;
     }
     if (!isatty(canfd)) {
-        sprintf(canbridge_errmsg, "%s is not a tty device\n", portname);
+        CANBRIDGE_SET_ERRMSG("%s is not a tty device\n", portname);
         return 0;
     }
 
     // get attributes for this tty
     if (tcgetattr(canfd, &tty) < 0) {
-        sprintf(canbridge_errmsg, "Error from tcgetattr: %s\n", strerror(errno));
+        CANBRIDGE_SET_ERRMSG("Error from tcgetattr: %s\n", strerror(errno));
         return -1;
     }
 
@@ -99,14 +99,14 @@ static int open_port(const char *portname)
     tty.c_cc[VTIME] = 0;
 
     if (tcsetattr(canfd, TCSANOW, &tty) != 0) {
-        sprintf(canbridge_errmsg, "Error from tcsetattr: %s\n", strerror(errno));
+        CANBRIDGE_SET_ERRMSG("Error from tcsetattr: %s\n", strerror(errno));
         return -1;
     }
 
 #ifdef __APPLE__
     speed_t speed = 1000000;
     if (ioctl(canfd, IOSSIOSPEED, &speed)) {
-        sprintf(canbridge_errmsg, "Error when setting serial speed to 1Mbaud\n");
+        CANBRIDGE_SET_ERRMSG("Error when setting serial speed to 1Mbaud\n");
         return 0;
     }
 
@@ -117,7 +117,7 @@ static int open_port(const char *portname)
     if (ioctl(canfd, TIOCGSERIAL, &kSerialSettings) > -1) {
         kSerialSettings.flags |= ASYNC_LOW_LATENCY;
         if (ioctl(canfd, TIOCSSERIAL, &kSerialSettings) < 0) {
-            sprintf(canbridge_errmsg,
+            CANBRIDGE_SET_ERRMSG(
                     "Could not set low latency to serial driver\nreson%s\n",
                     strerror(errno));
         }
@@ -179,12 +179,12 @@ static int read_port(char *buf, uint32_t len,
 static int close_port(void)
 {
     if (!canfd) {
-        sprintf(canbridge_errmsg, "tty already closed!\n");
+        CANBRIDGE_SET_ERRMSG("tty already closed!\n");
         return 0;
     }
 
     if (close(canfd) < 0) {
-        sprintf(canbridge_errmsg, "Error closing tty: %s\n", strerror(errno));
+        CANBRIDGE_SET_ERRMSG("Error closing tty: %s\n", strerror(errno));
         return 0;
     }
 
@@ -218,7 +218,7 @@ static int open_port(const char *port)
                         NULL);        // Null for Comm Devices
 
     if (canfd == INVALID_HANDLE_VALUE) {
-        sprintf(canbridge_errmsg, “Error in opening serial port\n”);
+        CANBRIDGE_SET_ERRMSG(“Error in opening serial port\n”);
         return 0;
     }
 
@@ -229,7 +229,7 @@ static int open_port(const char *port)
 
     // get current settings
     if (!GetCommState(canfd, &dcbSerialParams)) {
-        sprintf(canbridge_errmsg, "Couldn't get com parameters\n");
+        CANBRIDGE_SET_ERRMSG("Couldn't get com parameters\n");
         return 0;
     }
     // change settings
@@ -239,7 +239,7 @@ static int open_port(const char *port)
     dcbSerialParams.Parity   = NOPARITY;  // Setting Parity = None
     // set settings to port
     if (!SetCommState(canfd, &dcbSerialParams)) {
-        sprintf(canbridge_errmsg, "Failed to change port settings\n");
+        CANBRIDGE_SET_ERRMSG("Failed to change port settings\n");
         return 0;
     }
 
@@ -253,12 +253,12 @@ static int open_port(const char *port)
     timeouts.WriteTotalTimeoutMultiplier = 1; // in milliseconds
 
     if (!SetCommTimeouts(canfd, &timeouts)) {
-        sprintf(canbridge_errmsg, "Couldn't set COM timeouts.\n");
+        CANBRIDGE_SET_ERRMSG("Couldn't set COM timeouts.\n");
         return 0;
     }
 
     /*if (!SetCommMask(canfd, EV_RXCHAR | EV_TXEMPTY)) {
-        sprintf(canbridge_errmsg, "Couldn't set event flag rx (EV_RXCHAR | EV_TXEMPTY)\n");
+        CANBRIDGE_SET_ERRMSG("Couldn't set event flag rx (EV_RXCHAR | EV_TXEMPTY)\n");
         return 0;
     }*/
 
@@ -306,7 +306,7 @@ static int read_port(const char *buf, uint32_t len,
 static int close_port(void)
 {
     if (!CloseHandle(canfd)) {
-        sprintf(canbridge_errmsg, "Error closing port\n");
+        CANBRIDGE_SET_ERRMSG("Error closing port\n");
         return 0;
     }
     return 1;
@@ -547,11 +547,11 @@ int response_read_serial(ResponseList_t *lst, const int timeoutms)
                 // we have a complete response
                 itm = response_create(&buf[start], (uint8_t)(i - start) +1);
                 if (!itm) {
-                    sprintf(canbridge_errmsg, "Failed to allocate memory\n");
+                    CANBRIDGE_SET_ERRMSG("Failed to allocate memory\n");
                     goto cleanup;
                 }
                 if (!response_insert(lst, lst->last, itm)) {
-                    sprintf(canbridge_errmsg, "Failed to insert item into list\n");
+                    CANBRIDGE_SET_ERRMSG("Failed to insert item into list\n");
                     goto cleanup;
                 } else
                     itm = NULL; // derefernce to avoid frring a inserted itm
@@ -643,7 +643,7 @@ static int clear_pipeline(void) {
         char ch = CR;
         uint32_t nBytes;
         if (!write_port(&ch, 1, &nBytes, 10)) {
-            sprintf(canbridge_errmsg, "Failed to clear tranmitt buffer\n");
+            CANBRIDGE_SET_ERRMSG("Failed to clear tranmitt buffer\n");
             return 0;
         }
 
@@ -651,7 +651,7 @@ static int clear_pipeline(void) {
         // we might have old responses in pipeline
         Response_t *resp = response_find(&responses, "\r\n", 1, 5);
         if (!resp) {
-            sprintf(canbridge_errmsg, "Failed to get response while clearing serial buffer\n");
+            CANBRIDGE_SET_ERRMSG("Failed to get response while clearing serial buffer\n");
             return 0;
         }
         response_free(resp);
@@ -678,35 +678,35 @@ int slcan_init(const char *name, CAN_Speeds_t speed)
 
     // this driver needs a open
     if (open_port(name) < 1)
-        GOTO_CLEANUP_ERR;
+        GOTO_CLEANUP_ERR
 
     state = CANBRIDGE_INIT;
 
     // clear old messages
     if (!clear_pipeline())
-        GOTO_CLEANUP_ERR;
+        GOTO_CLEANUP_ERR
 
     // canusb states we must get version before anything else
     char buf[3] = { 'V', CR , 0 };
     uint32_t nBytes;
     if (!write_port(buf, 2, &nBytes, 5)) {
-        sprintf(canbridge_errmsg, "Failed to send version request\n");
-        GOTO_CLEANUP_ERR;
+        CANBRIDGE_SET_ERRMSG("Failed to send version request\n");
+        GOTO_CLEANUP_ERR
     }
 
     resp = response_find(&responses, "V", 0, 5);
     if (!resp) {
-        sprintf(canbridge_errmsg, "Failed to read version response\n");
-        GOTO_CLEANUP_ERR;
+        CANBRIDGE_SET_ERRMSG("Failed to read version response\n");
+        GOTO_CLEANUP_ERR
     }
     if (resp->data[0] == BELL) {
-        sprintf(canbridge_errmsg, "Version request responded with error\n");
-        GOTO_CLEANUP_ERR;
+        CANBRIDGE_SET_ERRMSG("Version request responded with error\n");
+        GOTO_CLEANUP_ERR
     }
     const int versionSz = 6;
     if (resp->len < versionSz) {
-        sprintf(canbridge_errmsg, "Wrong response from device version request\n");
-        GOTO_CLEANUP_ERR;
+        CANBRIDGE_SET_ERRMSG("Wrong response from device version request\n");
+        GOTO_CLEANUP_ERR
     }
     // read the version
     char hwStr[3] = { resp->data[1], resp->data[2], 0 },
@@ -731,19 +731,19 @@ int slcan_init(const char *name, CAN_Speeds_t speed)
     case CAN_speed_1Mbit:   buf[1] = '8'; break;
     case CAN_speed_socketspeed: // fallthrough
     default:
-        sprintf(canbridge_errmsg, "Unsupported CAN speed\n");
-        GOTO_CLEANUP_ERR;
+        CANBRIDGE_SET_ERRMSG("Unsupported CAN speed\n");
+        GOTO_CLEANUP_ERR
     }
 
     if (!write_port(buf, 3, &nBytes, 5)) {
-        sprintf(canbridge_errmsg, "Failed to write speed cmd to serial\n");
-        GOTO_CLEANUP_ERR;
+        CANBRIDGE_SET_ERRMSG("Failed to write speed cmd to serial\n");
+        GOTO_CLEANUP_ERR
     }
 
     resp = response_find(&responses, "\r\a", 1, 5);
     if (!resp) {
-        sprintf(canbridge_errmsg, "Failed to read from speed cmd response from serial\n");
-        GOTO_CLEANUP_ERR;
+        CANBRIDGE_SET_ERRMSG("Failed to read from speed cmd response from serial\n");
+        GOTO_CLEANUP_ERR
     }
     if (resp->data[0] != CR) {
         // maybe its just open
@@ -751,13 +751,13 @@ int slcan_init(const char *name, CAN_Speeds_t speed)
         if (++retryInit == 0) {
             if (slcan_close()) {
                 if (slcan_init(name, speed))
-                    GOTO_CLEAN_OK;
+                    GOTO_CLEAN_OK
             }
         }
 
         // else we failed with retry
-        sprintf(canbridge_errmsg, "Set speed command failed in device\n");
-        GOTO_CLEANUP_ERR;
+        CANBRIDGE_SET_ERRMSG("Set speed command failed in device\n");
+        GOTO_CLEANUP_ERR
     }
 
 cleanup:
@@ -777,8 +777,8 @@ int slcan_set_filter(uint32_t mask, uint32_t id)
     FUNC_HEADER;
 
     if (state != CANBRIDGE_INIT) {
-        sprintf(canbridge_errmsg, "Can only set filter in init mode\n");
-        GOTO_CLEANUP_ERR;
+        CANBRIDGE_SET_ERRMSG("Can only set filter in init mode\n");
+        GOTO_CLEANUP_ERR
     }
 
     char cmds[] = {
@@ -805,7 +805,7 @@ int slcan_set_filter(uint32_t mask, uint32_t id)
         buf[j++] = CR; // end marker
 
         if (!write_port(buf, j, &nBytes, 10)) {
-            sprintf(canbridge_errmsg,
+            CANBRIDGE_SET_ERRMSG(
                     "Failed to send CAN filter to serial\nwritten:%d of %d",
                     nBytes, j);
             return 0;
@@ -814,12 +814,12 @@ int slcan_set_filter(uint32_t mask, uint32_t id)
         // get response
         resp = response_find(&responses, "\r\a", 1, 5);
         if (!resp) {
-            sprintf(canbridge_errmsg, "Failed to set CAN filter, response timeout\n");
-            GOTO_CLEANUP_ERR;
+            CANBRIDGE_SET_ERRMSG("Failed to set CAN filter, response timeout\n");
+            GOTO_CLEANUP_ERR
         }
         if (resp->data[0] != CR) {
-            sprintf(canbridge_errmsg, "Failed to set CAN filter\n");
-            GOTO_CLEANUP_ERR;
+            CANBRIDGE_SET_ERRMSG("Failed to set CAN filter\n");
+            GOTO_CLEANUP_ERR
         }
     }
 
@@ -838,10 +838,10 @@ int slcan_open(void)
     FUNC_HEADER;
 
     if (state == CANBRIDGE_CLOSED) {
-        sprintf(canbridge_errmsg, "Can't open a closed comport\n");
+        CANBRIDGE_SET_ERRMSG("Can't open a closed comport\n");
         GOTO_CLEANUP_ERR
     } else if (state == CANBRIDGE_OPEN) {
-        sprintf(canbridge_errmsg, "Already open comport\n");
+        CANBRIDGE_SET_ERRMSG("Already open comport\n");
         res = -1;
         goto cleanup;
     }
@@ -850,18 +850,18 @@ int slcan_open(void)
     uint32_t nBytes;
     char buf[RESPONSE_MAX_SZ] = { 'O', CR };
     if (!write_port(buf, 2, &nBytes, 10)) {
-        sprintf(canbridge_errmsg, "Failed to send open cmd to serial");
+        CANBRIDGE_SET_ERRMSG("Failed to send open cmd to serial");
         GOTO_CLEANUP_ERR
     }
 
     // get response
     resp = response_find(&responses, "\r\a", 1, 5);
     if (!resp) {
-        sprintf(canbridge_errmsg, "Failed to open CAN channel, response timeout\n");
+        CANBRIDGE_SET_ERRMSG("Failed to open CAN channel, response timeout\n");
         GOTO_CLEANUP_ERR
     }
     if (resp->data[0] != CR) {
-        sprintf(canbridge_errmsg, "Failed to open CAN channel\n");
+        CANBRIDGE_SET_ERRMSG("Failed to open CAN channel\n");
         GOTO_CLEANUP_ERR
     }
 
@@ -902,7 +902,7 @@ int slcan_close(void)
     FUNC_HEADER;
 
     if (state == CANBRIDGE_CLOSED) {
-        sprintf(canbridge_errmsg, "Already closed!\n");
+        CANBRIDGE_SET_ERRMSG("Already closed!\n");
         GOTO_CLEANUP_ERR
     }
 
@@ -916,18 +916,18 @@ int slcan_close(void)
         uint32_t nBytes;
         char buf[RESPONSE_MAX_SZ] = { 'C', CR };
         if (!write_port(buf, 2, &nBytes, 5)) {
-            sprintf(canbridge_errmsg, "Failed to send close cmd to serial");
+            CANBRIDGE_SET_ERRMSG("Failed to send close cmd to serial");
             GOTO_CLEANUP_ERR
         }
 
         // get response
         resp = response_find(&responses, "\r\a", 1, 5);
         if (!resp) {
-            sprintf(canbridge_errmsg, "Failed to close CAN channel, no response from device\n");
+            CANBRIDGE_SET_ERRMSG("Failed to close CAN channel, no response from device\n");
             GOTO_CLEANUP_ERR
         }
         if (resp->data[0] != CR) {
-            sprintf(canbridge_errmsg, "Failed to close CAN channel, device responded with error\n");
+            CANBRIDGE_SET_ERRMSG("Failed to close CAN channel, device responded with error\n");
             GOTO_CLEANUP_ERR
         }
     }
@@ -966,7 +966,7 @@ int slcan_send(canframe_t *frm, int timeoutms)
     FUNC_HEADER;
 
     if (state != CANBRIDGE_OPEN) {
-        sprintf(canbridge_errmsg, "Can't send on a non open driver\n");
+        CANBRIDGE_SET_ERRMSG("Can't send on a non open driver\n");
         GOTO_CLEANUP_ERR
     }
 
@@ -1047,7 +1047,7 @@ int slcan_send(canframe_t *frm, int timeoutms)
     buf[pos++] = CR;
 
     if (!write_port(buf, pos, &nBytes, timeoutms)) {
-        sprintf(canbridge_errmsg, "Failed to send to serial\nwritten:%d of %d", nBytes, pos);
+        CANBRIDGE_SET_ERRMSG("Failed to send to serial\nwritten:%d of %d", nBytes, pos);
         GOTO_CLEANUP_ERR // send_cmd sets canbridge_errmsg
     }
 
@@ -1055,11 +1055,11 @@ int slcan_send(canframe_t *frm, int timeoutms)
     char okCmds[3] = { (frm->can_id & CAN_EFF_FLAG) ? 'Z' : 'z', BELL, 0 };
     resp = response_find(&responses, okCmds, 1, timeoutms);
     if (!resp) {
-        sprintf(canbridge_errmsg, "Failed to send to CAN channel, response timeout\n");
+        CANBRIDGE_SET_ERRMSG("Failed to send to CAN channel, response timeout\n");
         GOTO_CLEANUP_ERR
     }
     if (resp->data[1] != CR) {
-        sprintf(canbridge_errmsg, "Failed to send to CAN channel, device returned error\n");
+        CANBRIDGE_SET_ERRMSG("Failed to send to CAN channel, device returned error\n");
         GOTO_CLEANUP_ERR
     }
 
@@ -1080,7 +1080,7 @@ int slcan_recv(canframe_t *frm, int timeoutms)
     FUNC_HEADER;
 
     if (state != CANBRIDGE_OPEN) {
-        sprintf(canbridge_errmsg, "Can't send on a non open driver\n");
+        CANBRIDGE_SET_ERRMSG("Can't send on a non open driver\n");
         return 0;
     }
 

@@ -9,6 +9,7 @@
 #ifndef CANBRIDGE_H
 #define CANBRIDGE_H
 
+#include <stdio.h>
 #include "types.h"
 
 // include drivers
@@ -50,6 +51,11 @@ typedef enum {
  * @brief canbridge_errmsg, is set by last occured error in driver
  */
 extern char canbridge_errmsg[CANBRIDGE_ERRORMSG_SZ];
+#ifdef _WIN32
+# define CANBRIDGE_SET_ERRMSG(...) sprintf_s(canbridge_errmsg, CANBRIDGE_ERRORMSG_SZ, __VA_ARGS__)
+#else
+# define CANBRIDGE_SET_ERRMSG(...) snprintf(canbridge_errmsg, CANBRIDGE_ERRORMSG_SZ, __VA_ARGS__)
+#endif
 
 
 /**

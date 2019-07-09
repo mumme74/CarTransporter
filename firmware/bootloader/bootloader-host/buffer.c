@@ -18,7 +18,7 @@ int buffer_init(Buffer_t *b, uint32_t size)
     b->size = size;
     b->buf = (char*)malloc(size * sizeof (b->buf));
     if (b->buf == NULL) {
-        sprintf(canbridge_errmsg, "Failed to allocate memory\n");
+        CANBRIDGE_SET_ERRMSG("Failed to allocate memory\n");
         return 0;
     }
 

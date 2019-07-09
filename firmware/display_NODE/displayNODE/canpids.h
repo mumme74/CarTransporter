@@ -63,8 +63,8 @@ class CanPids : public QAbstractTableModel
     Q_OBJECT
     Q_PROPERTY(QQmlListProperty<CanPid> pids READ getPids)
 public:
-    explicit CanPids(QObject *parent = 0);
-    ~CanPids();
+    explicit CanPids(QObject *parent = nullptr);
+    virtual ~CanPids();
 
     // get pointer to the can pid
     Q_INVOKABLE CanPid *getPid(int idx) const;

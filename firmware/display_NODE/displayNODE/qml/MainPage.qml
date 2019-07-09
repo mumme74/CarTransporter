@@ -425,7 +425,13 @@ Page {
             btnText: "12:20"
             function timeUpdate() {
                 var date = new Date();
-                btnText = date.getHours() + ":" + date.getMinutes();
+                var hour = date.getHours();
+                var minute = date.getMinutes();
+                if (hour < 10)
+                    hour = "0" + hour;
+                if (minute < 10)
+                    minute = "0" + minute;
+                btnText = hour + ":" + minute;
             }
             Component.onCompleted: timeUpdate();
         }

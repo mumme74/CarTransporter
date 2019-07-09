@@ -1,8 +1,8 @@
 # for ubuntu
-ifneq ("$(wildcard $($HOME/arduino))","")
-ARDUINO_DIR="$(wildcard $($HOME/arduino))"
-else ifneq ("$(wildcard $(/Applications/arduino))","")
-ARDUINO_DIR="$(wildcard $(/Applications/arduino))"
+ifneq ($(wildcard $(HOME)/arduino),)
+ARDUINO_DIR=$(wildcard $(HOME)/arduino)
+else ifneq ($(wildcard /Applications/arduino),)
+ARDUINO_DIR=$(wildcard /Applications/arduino)
 endif
 
 ARDMK_DIR=${HOME}/elektronik/Arduino-Makefile

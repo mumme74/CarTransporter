@@ -49,7 +49,7 @@ int setupDriver(CAN_Drivers_t driverId)
         canbridge_send = &slcan_send;
         canbridge_recv = &slcan_recv;
         return 1; // FIXME
-#ifdef __linux__
+#ifdef BUILD_SOCKETCAN
     case CAN_driver_socketcan:
         canbridge_send = &socketcan_send;
         canbridge_recv = &socketcan_recv;
@@ -180,7 +180,7 @@ int canbridge_init(const char *idStr, CAN_Speeds_t speed)
     switch (_driverId) {
     case CAN_driver_slcan:
         return slcan_init(idStr, speed); // FIXME
-#ifdef __linux__
+#ifdef BUILD_SOCKETCAN
     case CAN_driver_socketcan:
         return socketcan_init(idStr, speed);
 #endif
@@ -201,7 +201,7 @@ int canbridge_set_filter(canid_t mask, canid_t id)
     switch (_driverId) {
     case CAN_driver_slcan:
         return slcan_set_filter(mask, id);
-#ifdef __linux__
+#ifdef BUILD_SOCKETCAN
     case CAN_driver_socketcan:
         return socketcan_set_filter(mask, id);
 #endif
@@ -220,7 +220,7 @@ int canbridge_open(void)
     switch (_driverId) {
     case CAN_driver_slcan:
         return slcan_open();
-#ifdef __linux__
+#ifdef BUILD_SOCKETCAN
     case CAN_driver_socketcan:
         return socketcan_open();
 #endif
@@ -239,7 +239,7 @@ int canbridge_status(void)
     switch (_driverId) {
     case CAN_driver_slcan:
         return slcan_status();
-#ifdef __linux__
+#ifdef BUILD_SOCKETCAN
     case CAN_driver_socketcan:
         return socketcan_status();
 #endif
@@ -258,7 +258,7 @@ int canbridge_set_fd_mode(void)
     switch (_driverId) {
     case CAN_driver_slcan:
         return slcan_set_fd_mode();
-#ifdef __linux__
+#ifdef BUILD_SOCKETCAN
     case CAN_driver_socketcan:
         return socketcan_set_fd_mode();
 #endif
@@ -277,7 +277,7 @@ int canbridge_close(void)
     switch (_driverId) {
     case CAN_driver_slcan:
         return slcan_close();
-#ifdef __linux__
+#ifdef BUILD_SOCKETCAN
     case CAN_driver_socketcan:
         return socketcan_close();
 #endif
@@ -299,7 +299,7 @@ void canbridge_set_abortvariable(int *abortVar)
     case CAN_driver_slcan:
         slcan_set_abortvariable(abortVar);
         break;
-#ifdef __linux__
+#ifdef BUILD_SOCKETCAN
     case CAN_driver_socketcan:
         socketcan_set_abortvariable(abortVar);
         break;

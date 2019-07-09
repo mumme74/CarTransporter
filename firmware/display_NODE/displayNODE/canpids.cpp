@@ -8,7 +8,7 @@ CanPid::CanPid() :
     m_key("invalid"),
     m_value("invalid"),
     m_unit("invalid"),
-    m_originNode(C_nodeInValid)
+    m_originNode(C_nodeInvalid)
 {
 }
 

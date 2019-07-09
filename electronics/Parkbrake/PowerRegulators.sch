@@ -594,4 +594,6 @@ Connection ~ 2700 2325
 Connection ~ 2700 2625
 Wire Wire Line
 	2475 2325 2475 2225
+Text Notes 1400 2550 0    60   ~ 0
+wrong tantal voltage
 $EndSCHEMATC

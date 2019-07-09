@@ -32,7 +32,7 @@
  */
 typedef enum {
     _CAN_driver_start_marker,
-#ifdef __linux__
+#ifdef BUILD_SOCKETCAN
     CAN_driver_socketcan,
 #endif
     CAN_driver_slcan,

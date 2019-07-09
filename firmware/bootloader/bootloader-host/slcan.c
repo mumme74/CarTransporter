@@ -403,6 +403,7 @@ int response_insert(ResponseList_t *lst, Response_t *prev, Response_t *itm)
         prev->next = itm;
         if (itm) {
             itm->next = NULL;
+            itm->prev = prev;
             lst->last = itm;
             ++lst->len;
         }
@@ -507,8 +508,10 @@ void response_clear_all(ResponseList_t *lst)
     if (!lst->first)
         return;
 
-    Response_t *itm = lst->first, *next;
+    Response_t *itm, *next;
+    next = lst->first;
     do {
+        itm = next;
         next = itm->next;
         response_free(itm);
     } while(next != NULL);
@@ -711,6 +714,8 @@ int slcan_init(const char *name, CAN_Speeds_t speed)
     hwVersion = atoi(hwStr);
     swVersion = atoi(swStr);
 
+    response_free(resp);
+
 
     // set the speed
     buf[0] = 'S'; buf[2] = CR;
@@ -741,6 +746,16 @@ int slcan_init(const char *name, CAN_Speeds_t speed)
         GOTO_CLEANUP_ERR;
     }
     if (resp->data[0] != CR) {
+        // maybe its just open
+        static uint8_t retryInit = 0xFF;
+        if (++retryInit == 0) {
+            if (slcan_close()) {
+                if (slcan_init(name, speed))
+                    GOTO_CLEAN_OK;
+            }
+        }
+
+        // else we failed with retry
         sprintf(canbridge_errmsg, "Set speed command failed in device\n");
         GOTO_CLEANUP_ERR;
     }
@@ -891,8 +906,9 @@ int slcan_close(void)
         GOTO_CLEANUP_ERR
     }
 
-    // close possible CAN channel
-    if (state == CANBRIDGE_OPEN) {
+    // close possible CAN channel, we must be able to do this even in INIT state
+    // to release a stuck device
+    if (state == CANBRIDGE_OPEN || state == CANBRIDGE_INIT) {
         // close CAN channel
         // start with purging response buffer
         response_clear_all(&responses);
@@ -955,6 +971,7 @@ int slcan_send(canframe_t *frm, int timeoutms)
     }
 
     uint32_t pos = 0, nBytes;
+    enum { SEND_BUF_MAXSZ = 30 }; // should be enough, extended frame 8bytes should be 27 with CR
     char buf[RESPONSE_MAX_SZ];
     if (frm->can_id & CAN_RTR_FLAG) {
         // is a rtr frame
@@ -967,40 +984,63 @@ int slcan_send(canframe_t *frm, int timeoutms)
     // first ID
     byte4_t id = { frm->can_id & CAN_EFF_MASK };
     if (frm->can_id & CAN_EFF_FLAG) {
-        sprintf(&buf[pos++], "%01X", id.b3);
-        sprintf(&buf[pos++], "%02X", id.b2);
-        sprintf(&buf[pos++], "%02X", id.b1);
-    } else
+        sprintf(&buf[pos], "%01X", id.b3);
+        pos += 1;
+        sprintf(&buf[pos], "%02X", id.b2);
+        pos += 2;
+        sprintf(&buf[pos], "%02X", id.b1);
+        pos += 2;
+    } else {
         // 11bits should only print 3chars
-        sprintf(&buf[pos++], "%01X", id.b1);
-    sprintf(&buf[pos++], "%02X", id.b0);
+        sprintf(&buf[pos], "%01X", id.b1);
+        pos += 1;
+    }
+    sprintf(&buf[pos], "%02X", id.b0);
+    pos += 2;
 
     // length of frame
-    sprintf(&buf[pos++], "%01X", frm->can_dlc);
+    sprintf(&buf[pos], "%01X", frm->can_dlc);
+    pos += 1;
 
     // no payload on rtr frame
-    if (frm->can_id & CAN_RTR_FLAG) {
+    if ((frm->can_id & CAN_RTR_FLAG) == 0) {
         // then payload
         byte8_t payload = { 0 };
         for(int i = 0; i < frm->can_dlc; ++i)
             payload.arr[i] = frm->data[i];
 
-        if (frm->can_dlc > 7)
-            sprintf(&buf[pos++], "%02X", payload.b7);
-        if (frm->can_dlc > 6)
-            sprintf(&buf[pos++], "%02X", payload.b6);
-        if (frm->can_dlc > 5)
-            sprintf(&buf[pos++], "%02X", payload.b5);
-        if (frm->can_dlc > 4)
-            sprintf(&buf[pos++], "%02X", payload.b4);
-        if (frm->can_dlc > 3)
-            sprintf(&buf[pos++], "%02X", payload.b3);
-        if (frm->can_dlc > 2)
-            sprintf(&buf[pos++], "%02X", payload.b2);
-        if (frm->can_dlc > 1)
-            sprintf(&buf[pos++], "%02X", payload.b1);
-        if (frm->can_dlc > 0)
-            sprintf(&buf[pos++], "%02X", payload.b0);
+        if (frm->can_dlc > 0) {
+            sprintf(&buf[pos], "%02X", payload.b0);
+            pos += 2;
+        }
+        if (frm->can_dlc > 1) {
+            sprintf(&buf[pos], "%02X", payload.b1);
+            pos += 2;
+        }
+        if (frm->can_dlc > 2) {
+            sprintf(&buf[pos], "%02X", payload.b2);
+            pos += 2;
+        }
+        if (frm->can_dlc > 3) {
+            sprintf(&buf[pos], "%02X", payload.b3);
+            pos += 2;
+        }
+        if (frm->can_dlc > 4) {
+            sprintf(&buf[pos], "%02X", payload.b4);
+            pos += 2;
+        }
+        if (frm->can_dlc > 5) {
+            sprintf(&buf[pos], "%02X", payload.b5);
+            pos += 2;
+        }
+        if (frm->can_dlc > 6) {
+            sprintf(&buf[pos], "%02X", payload.b6);
+            pos += 2;
+        }
+        if (frm->can_dlc > 7) {
+            sprintf(&buf[pos], "%02X", payload.b7);
+            pos += 2;
+        }
     }
 
     // end string
@@ -1012,14 +1052,14 @@ int slcan_send(canframe_t *frm, int timeoutms)
     }
 
     // get response
-    char okCmds[2] = { (frm->can_id & CAN_EFF_FLAG) ? 'Z' : 'z', 0 };
+    char okCmds[3] = { (frm->can_id & CAN_EFF_FLAG) ? 'Z' : 'z', BELL, 0 };
     resp = response_find(&responses, okCmds, 1, timeoutms);
     if (!resp) {
         sprintf(canbridge_errmsg, "Failed to send to CAN channel, response timeout\n");
         GOTO_CLEANUP_ERR
     }
     if (resp->data[1] != CR) {
-        sprintf(canbridge_errmsg, "Failed to send to CAN channel\n");
+        sprintf(canbridge_errmsg, "Failed to send to CAN channel, device returned error\n");
         GOTO_CLEANUP_ERR
     }
 
@@ -1060,8 +1100,9 @@ int slcan_recv(canframe_t *frm, int timeoutms)
         char id11[] = {
             resp->data[1], resp->data[2], resp->data[3], 0
         };
+        char lenStr[] = { resp->data[4], 0 };
         frm->can_id = (uint32_t)strtol(id11, NULL, 16);
-        frm->can_dlc = (uint8_t)atoi(&resp->data[4]);
+        frm->can_dlc = (uint8_t)strtol(lenStr, NULL, 16);
         pos = 5;
     } else {
         // 29 bit id
@@ -1079,37 +1120,37 @@ int slcan_recv(canframe_t *frm, int timeoutms)
         frm->can_id |= CAN_RTR_FLAG;
 
     char byteStr[3] = { 0 };
-    if (frm->can_dlc > 7) {
+    if (frm->can_dlc > 0) {
         byteStr[0] = resp->data[pos++]; byteStr[1] = resp->data[pos++];
-        frm->data[7] = (uint8_t)strtol(byteStr, NULL, 16);
-    }
-    if (frm->can_dlc > 6) {
-        byteStr[0] = resp->data[pos++]; byteStr[1] = resp->data[pos++];
-        frm->data[6] = (uint8_t)strtol(byteStr, NULL, 16);
-    }
-    if (frm->can_dlc > 5) {
-        byteStr[0] = resp->data[pos++]; byteStr[1] = resp->data[pos++];
-        frm->data[5] = (uint8_t)strtol(byteStr, NULL, 16);
-    }
-    if (frm->can_dlc > 4) {
-        byteStr[0] = resp->data[pos++]; byteStr[1] = resp->data[pos++];
-        frm->data[4] = (uint8_t)strtol(byteStr, NULL, 16);
-    }
-    if (frm->can_dlc > 3) {
-        byteStr[0] = resp->data[pos++]; byteStr[1] = resp->data[pos++];
-        frm->data[3] = (uint8_t)strtol(byteStr, NULL, 16);
-    }
-    if (frm->can_dlc > 2) {
-        byteStr[0] = resp->data[pos++]; byteStr[1] = resp->data[pos++];
-        frm->data[2] = (uint8_t)strtol(byteStr, NULL, 16);
+        frm->data[0] = (uint8_t)strtol(byteStr, NULL, 16);
     }
     if (frm->can_dlc > 1) {
         byteStr[0] = resp->data[pos++]; byteStr[1] = resp->data[pos++];
         frm->data[1] = (uint8_t)strtol(byteStr, NULL, 16);
     }
-    if (frm->can_dlc > 0) {
+    if (frm->can_dlc > 2) {
         byteStr[0] = resp->data[pos++]; byteStr[1] = resp->data[pos++];
-        frm->data[0] = (uint8_t)strtol(byteStr, NULL, 16);
+        frm->data[2] = (uint8_t)strtol(byteStr, NULL, 16);
+    }
+    if (frm->can_dlc > 3) {
+        byteStr[0] = resp->data[pos++]; byteStr[1] = resp->data[pos++];
+        frm->data[3] = (uint8_t)strtol(byteStr, NULL, 16);
+    }
+    if (frm->can_dlc > 4) {
+        byteStr[0] = resp->data[pos++]; byteStr[1] = resp->data[pos++];
+        frm->data[4] = (uint8_t)strtol(byteStr, NULL, 16);
+    }
+    if (frm->can_dlc > 5) {
+        byteStr[0] = resp->data[pos++]; byteStr[1] = resp->data[pos++];
+        frm->data[5] = (uint8_t)strtol(byteStr, NULL, 16);
+    }
+    if (frm->can_dlc > 6) {
+        byteStr[0] = resp->data[pos++]; byteStr[1] = resp->data[pos++];
+        frm->data[6] = (uint8_t)strtol(byteStr, NULL, 16);
+    }
+    if (frm->can_dlc > 7) {
+        byteStr[0] = resp->data[pos++]; byteStr[1] = resp->data[pos++];
+        frm->data[7] = (uint8_t)strtol(byteStr, NULL, 16);
     }
 
     // TODO Timestamp code

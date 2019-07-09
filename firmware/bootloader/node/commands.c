@@ -11,6 +11,7 @@
 
 #if defined(DEBUG) && defined(ARDUINO)
 # include <Arduino.h>
+# include <usb_serial.h>
 #else
 # define usb_serial_write(buf, len)
 # define usb_serial_putchar(n)
@@ -22,6 +23,7 @@
 #include "system.h"
 #include "crc32.h"
 #include <can_protocol.h>
+
 
 
 #define CAN_NEXT_MSG  while (canGet(msg) == false)  // blocks until rcv
@@ -74,7 +76,7 @@ static bool runCommand(canframe_t *msg)
   static byte4_t crc;
   static byte2_t canPageNr; // as in CAN page
   static uint8_t  frames, frameNr; //, *addr, *endAddr;
-
+usb_serial_write("rC\r\n", 5);
   switch(msg->data8[0]){
   case C_bootloaderReadFlash: {
     if (!getAndCheckAddress(msg))

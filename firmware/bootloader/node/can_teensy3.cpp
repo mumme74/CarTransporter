@@ -42,9 +42,15 @@ public:
   ~Listener() {}
   void gotFrame(CAN_message_t &frm, int mailbox)
   {
+    Serial.print("gotFrame\r\n");
     // check if we are full
     if (fifo_spaceleft(&can_rxqueue) < 2)// need 2 as 1 + 1 would reset (start over algorithm assumes empty)
        return;
+
+    for (int i = 0; i < frm.len; ++i) {
+      Serial.print(" b:");Serial.print(frm.buf[i], 16);
+    }
+    Serial.print("\r\n");
 
     canframe_t msg;
     msg.DLC = frm.len;

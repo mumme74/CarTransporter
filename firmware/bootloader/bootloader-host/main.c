@@ -24,8 +24,6 @@
 #include "commands.h"
 #include "canbridge.h"
 
-
-#define ANYDEV "any"  /* name of interface to receive from any CAN interface */
 #define MAX_NODENR 2
 #define DEBUG 1
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
@@ -103,8 +101,8 @@ void setup_can_iface(char *name)
         mask = 0x1FFFFFF8;
     }
     id = canIdx;
-    if (!canbridge_set_filter(mask, id))
-        errExit(canbridge_errmsg);
+    //if (!canbridge_set_filter(mask, id))
+    //    errExit(canbridge_errmsg);
 
     if (!canbridge_open())
         errExit(canbridge_errmsg);

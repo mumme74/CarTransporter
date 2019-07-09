@@ -3,7 +3,7 @@
  * Got it from https://gist.github.com/superwills/5815344
  */
 
-#include "getopt.h" // make sure you construct the header file as dictated above
+#include "win_getopt.h" // make sure you construct the header file as dictated above
 
 /*
 * Copyright (c) 1987, 1993, 1994

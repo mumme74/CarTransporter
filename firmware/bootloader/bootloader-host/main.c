@@ -15,9 +15,13 @@
 #include <time.h>
 #include <errno.h>
 
+#ifdef _WIN32
+# include "win_getopt.h"
+#else
 // unix headers
-#include <getopt.h>
-#include <libgen.h>
+# include <getopt.h>
+# include <libgen.h>
+#endif
 
 // project headers
 #include "can_protocol.h"
@@ -74,14 +78,15 @@ CMDs_t cmd_from_str(const char *cmd) {
 # include "win_getopt.h"
 
 char *basename(const char* filepath) {
-    static char bname[100], ext[10];
+    enum { BNAME_SZ = 100, EXT_SZ = 10 };
+    static char bname[BNAME_SZ], ext[EXT_SZ];
     _splitpath_s(filepath,
             NULL, 0, // drive
             NULL, 0, // dir
             bname, 88, // filename
             ext, 10);
-    strcat(bname, ".");
-    strcat(bname, ext);
+    strcat_s(bname, BNAME_SZ, ".");
+    strcat_s(bname, BNAME_SZ, ext);
     return bname;
 }
 #endif
@@ -112,10 +117,16 @@ bool parse_memoptions(memoptions_t *mopt, char *argoption)
 {
     char *ptok;
     mopt->lowerbound = mopt->upperbound = 0;
+#ifdef _WIN32
+    char *ctx = NULL;
+    if ((ptok = strtok_s(argoption, ":", &ctx)) != NULL) {
+        mopt->lowerbound = (uint32_t)strtol(ptok, NULL, 0);
+        if ((ptok = strtok_s(NULL, ":", &ctx)) != NULL)
+#else
     if ((ptok = strtok(argoption, ":")) != NULL) {
         mopt->lowerbound = (uint32_t)strtol(ptok, NULL, 0);
-
         if ((ptok = strtok(NULL, ":")) != NULL)
+#endif
             mopt->upperbound = (uint32_t)strtol(ptok, NULL, 0);
         else
             return false;
@@ -212,8 +223,10 @@ int main(int argc, char *argv[])
     int ret = EXIT_SUCCESS;
 
     signal(SIGTERM, sigterm);
-    signal(SIGHUP, sigterm);
     signal(SIGINT, sigterm);
+#ifndef _WIN32
+    signal(SIGHUP, sigterm);
+#endif
 
     abortVar = 0;
 
@@ -421,6 +434,8 @@ int main(int argc, char *argv[])
         }
     }
 
+    if (canbridge_errmsg[0] != 0)
+        fprintf(stdout, "\n %s\n", canbridge_errmsg);
     cleanup();
 
     return ret;

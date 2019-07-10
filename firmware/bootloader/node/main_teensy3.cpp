@@ -21,13 +21,14 @@ void setup() {
 }
 
 void loop() {
-  static uint32_t bootloaderWindow = millis() + WAIT_BEFORE_APPBOOT;
+  static uint32_t bootloaderWindow = millis() + WAIT_BEFORE_APPBOOT +10000;
   static uint32_t loopCnt = 0;
+  static bool toApplicationRunned = false;
 
   canframe_t msg;
 
   // notify master node that we can take a new firmware
-  if (loopCnt == 0) {
+  if (loopCnt++ == 0) {
     canInitFrame(&msg, canId);
     msg.data8[msg.DLC++] = C_bootloaderReset;
     canPost(&msg);
@@ -38,11 +39,13 @@ void loop() {
     if (canGet(&msg))
       commandsStart(&msg); // resets from within
 
-  } else {
+  } else if (!toApplicationRunned) {
     // timeout, we didn't have any bootloder requests from CAN
+    toApplicationRunned = true;
     systemDeinit();
     systemToApplication();
     systemReset();
   }
+  _canLoop();
 }
 

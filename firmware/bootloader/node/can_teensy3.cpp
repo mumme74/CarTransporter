@@ -105,6 +105,7 @@ int8_t _canPost(canframe_t *msg)
     memcpy(frm.buf, msg->data8, msg->DLC);
     if (Can0.write(frm)) {
       fifo_pop(&can_txqueue, msg);
+      Serial.print("post");Serial.print(frm.len);Serial.print("\r\n");
       return 1;
     }
   }
@@ -115,10 +116,36 @@ int8_t _canPost(canframe_t *msg)
 // should be called from teensy_main
 void _canLoop(void)
 {
+  // debug send
+  /*static uint16_t lGuard = 0;
+  if (lGuard++ == 0) {
+    Serial.print("_canLoop");Serial.print(lGuard);Serial.print("\r\n");
+    canframe_t m;
+    memset(&m, 0, sizeof(m));
+    m.IDE = canId;
+    m.DLC = 0;
+    m.data8[m.DLC++] = 1;
+    m.data8[m.DLC++] = 2;
+    m.data8[m.DLC++] = 3;
+    m.data8[m.DLC++] = 4;
+    m.data8[m.DLC++] = 5;
+    m.data8[m.DLC++] = 6;
+    m.data8[m.DLC++] = 7;
+    m.data8[m.DLC++] = 8;
+    fifo_push(&can_txqueue, &m);
+    Serial.print("Send can\r\n");
+  }*/
+
+
   if (!fifo_empty(&can_txqueue)) {
     canframe_t msg;
     _canPost(&msg);
   }
+
+
+  pinMode(6, OUTPUT);
+  digitalWrite(6, !digitalRead(6));
+  //delay(20);
 }
 
 } // extern "C"

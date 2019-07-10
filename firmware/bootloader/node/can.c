@@ -12,6 +12,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#ifdef ARDUINO
+#include <Arduino.h>
+#endif
+
 
 // private variables to this file
 static canframe_t rxbuf[BUFFER_SIZE];
@@ -46,6 +50,12 @@ void canInit(void)
  */
 bool canGet(canframe_t *msg)
 {
+#ifdef ARDUINO
+  yield();
+  _canLoop();
+  if (usb_serial_available())
+    usb_serial_flush_output();
+#endif
   return fifo_pop(&can_rxqueue, msg);
 }
 

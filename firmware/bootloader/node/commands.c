@@ -30,7 +30,6 @@
 #define CAN_POST_MSG  while ((canPost(msg) < 0))        // --""--       txv
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
-#define FLASH_WAIT while (FLASH_SR & FLASH_SR_BSY)
 
 
 // _appRomXXX from linkscript
@@ -148,6 +147,7 @@ readPageLoop:
   }  break;
 
   case C_bootloaderChecksum: {
+    usb_serial_write("chksum before\r\n", 16);
     if (!getAndCheckAddress(msg))
       break;
     crc.vlu = crc32(0, addr->ptr8, endAddr->vlu - addr->vlu);
@@ -157,6 +157,7 @@ readPageLoop:
     msg->data8[3] = crc.b2; //(crc & 0x00FF0000) >> 16;
     msg->data8[4] = crc.b3; //(crc & 0xFF000000) >> 24;
     CAN_POST_MSG; // if buffer full we bust out to main
+    usb_serial_write("checksum complete\r\n", 19);
   }  break;
 
   case C_bootloaderWriteFlash: {
@@ -349,8 +350,9 @@ bool commandsStart(canframe_t *msg)
         (msg->data8[0] & 0x80) == 0)
       return false;
     res = runCommand(msg);
-    usb_serial_write("bailing out\r\n", 14);
+    usb_serial_write("good cmd:", 14);
     usb_serial_putchar((uint8_t)res +48);
+    usb_serial_write("\r\n", 2);
     if (!res)
       break;
     usb_serial_write("wait for can\r\n", 15);

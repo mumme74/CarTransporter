@@ -200,6 +200,22 @@ static int close_port(void)
 
 static HANDLE canfd;
 
+// return last error as string
+char *ErrorAsString(const DWORD errCode)
+{
+    enum { BUF_SZ = 256 };
+    static char buf[BUF_SZ];
+    FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                   NULL,
+                   errCode,
+                   MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                   buf, // out string here
+                   BUF_SZ, // Size of buf
+                   NULL); // optional arguments
+
+    return buf;
+}
+
 static int open_port(const char *port)
 {
     enum { PORTNAME_SZ = 12 };
@@ -273,12 +289,18 @@ static int write_port(const char *buf, uint32_t len,
 {
     DWORD nBytesWritten = 0,
           timeoutAt = timeGetTime() + (uint32_t)timeoutms;
+    *written = 0;
 
     // continue until timeout is met
     do {
         // write to COM port
-        WriteFile(canfd, buf + *written, len - nBytesWritten, &nBytesWritten, NULL);
-        *written += nBytesWritten;
+        if (WriteFile(canfd, buf + *written, len - nBytesWritten, &nBytesWritten, NULL))
+            *written += nBytesWritten;
+        else {
+            DWORD errCode = GetLastError();
+            CANBRIDGE_SET_ERRMSG("Error writing to to serial, error: %lu %s\n", errCode, ErrorAsString(errCode));
+            return -1;
+        }
     } while((timeoutAt > timeGetTime()) &&
             (*written < len) && !(*_abortLoop));
 
@@ -290,6 +312,7 @@ static int read_port(char *buf, uint32_t len,
 {
     DWORD nBytesRead = 0,
           timeoutAt = timeGetTime() + (uint32_t)timeoutms;
+    *readBytes = 0;
 
     // continue until timeout is met
     do {
@@ -668,14 +691,18 @@ static int clear_pipeline(void) {
     for(int i = 0; i < 3; ++i) {
         char ch = CR;
         uint32_t nBytes;
-        if (!write_port(&ch, 1, &nBytes, 10)) {
+        int res = write_port(&ch, 1, &nBytes, 10);
+        if (res < 0) {
+            // errmsg already set
+            return 0;
+        } else if (res == 0) {
             CANBRIDGE_SET_ERRMSG("Failed to clear transmit buffer\n");
             return 0;
         }
 
         // clear response buffer, 1char at a time until CR is recieved
         // we might have old responses in pipeline
-        Response_t *resp = response_find(&responses, "\r\n", 1, 5);
+        Response_t *resp = response_find(&responses, "\r\a", 1, 5);
         if (!resp) {
             CANBRIDGE_SET_ERRMSG("Failed to get response while clearing serial buffer\n");
             return 0;
@@ -715,7 +742,11 @@ int slcan_init(const char *name, CAN_Speeds_t speed)
     // canusb states we must get version before anything else
     char buf[3] = { 'V', CR , 0 };
     uint32_t nBytes;
-    if (!write_port(buf, 2, &nBytes, 5)) {
+    int sRes = write_port(buf, 2, &nBytes, 5);
+    if (sRes < 0) {
+        // err msg already set
+        GOTO_CLEANUP_ERR
+    } else if (sRes == 0) {
         CANBRIDGE_SET_ERRMSG("Failed to send version request\n");
         GOTO_CLEANUP_ERR
     }
@@ -723,16 +754,16 @@ int slcan_init(const char *name, CAN_Speeds_t speed)
     resp = response_find(&responses, "V", 0, 5);
     if (!resp) {
         CANBRIDGE_SET_ERRMSG("Failed to read version response\n");
-        GOTO_CLEANUP_ERR
+        goto no_version;
     }
     if (resp->data[0] == BELL) {
         CANBRIDGE_SET_ERRMSG("Version request responded with error\n");
-        GOTO_CLEANUP_ERR
+        goto no_version;
     }
     const int versionSz = 6;
     if (resp->len < versionSz) {
         CANBRIDGE_SET_ERRMSG("Wrong response from device version request\n");
-        GOTO_CLEANUP_ERR
+        goto no_version;
     }
     // read the version
     char hwStr[3] = { resp->data[1], resp->data[2], 0 },
@@ -740,8 +771,10 @@ int slcan_init(const char *name, CAN_Speeds_t speed)
     hwVersion = atoi(hwStr);
     swVersion = atoi(swStr);
 
+// other devices such as CANTin does not handle 'V' cmd
+// we should be able to continue anyway
+no_version:
     response_free(resp);
-
 
     // set the speed
     buf[0] = 'S'; buf[2] = CR;
@@ -761,7 +794,11 @@ int slcan_init(const char *name, CAN_Speeds_t speed)
         GOTO_CLEANUP_ERR
     }
 
-    if (!write_port(buf, 3, &nBytes, 5)) {
+    sRes = write_port(buf, 3, &nBytes, 5);
+    if (sRes < 0) {
+        // err msg already set
+        GOTO_CLEANUP_ERR
+    } else if (sRes == 0) {
         CANBRIDGE_SET_ERRMSG("Failed to write speed cmd to serial\n");
         GOTO_CLEANUP_ERR
     }
@@ -830,11 +867,15 @@ int slcan_set_filter(uint32_t mask, uint32_t id)
         j += 2;
         buf[j++] = CR; // end marker
 
-        if (!write_port(buf, j, &nBytes, 10)) {
+        int sRes = write_port(buf, j, &nBytes, 10);
+        if (sRes < 0) {
+            // err msg already set
+            GOTO_CLEANUP_ERR
+        } else if (sRes == 0) {
             CANBRIDGE_SET_ERRMSG(
                     "Failed to send CAN filter to serial\nwritten:%d of %d",
                     nBytes, j);
-            return 0;
+            GOTO_CLEANUP_ERR
         }
 
         // get response
@@ -875,7 +916,11 @@ int slcan_open(void)
     // open CAN channel
     uint32_t nBytes;
     char buf[RESPONSE_MAX_SZ] = { 'O', CR };
-    if (!write_port(buf, 2, &nBytes, 10)) {
+    int sRes = write_port(buf, 2, &nBytes, 10);
+    if (sRes < 0) {
+        // err msg already set
+        GOTO_CLEANUP_ERR
+    } else if (sRes == 0) {
         CANBRIDGE_SET_ERRMSG("Failed to send open cmd to serial");
         GOTO_CLEANUP_ERR
     }
@@ -911,7 +956,11 @@ uint8_t slcan_geterrors(void)
     if (state == CANBRIDGE_OPEN) {
         char txChs[] = { 'F', CR };
         uint32_t nBytes;
-        if (!write_port(txChs, 2, &nBytes, 5)) {
+        int sRes = write_port(txChs, 2, &nBytes, 5);
+        if (sRes < 0) {
+            // err msg already set
+            goto cleanup;
+        } else if (sRes == 0) {
             CANBRIDGE_SET_ERRMSG("Could not send to serial when reading error message\n");
             goto cleanup;
         }
@@ -976,7 +1025,11 @@ int slcan_close(void)
 
         uint32_t nBytes;
         char buf[RESPONSE_MAX_SZ] = { 'C', CR };
-        if (!write_port(buf, 2, &nBytes, 5)) {
+        int sRes = write_port(buf, 2, &nBytes, 5);
+        if (sRes < 0) {
+            // err msg already set
+            GOTO_CLEANUP_ERR
+        } else if (sRes == 0) {
             CANBRIDGE_SET_ERRMSG("Failed to send close cmd to serial");
             GOTO_CLEANUP_ERR
         }
@@ -1107,7 +1160,11 @@ int slcan_send(canframe_t *frm, int timeoutms)
     // end string
     buf[pos++] = CR;
 
-    if (!write_port(buf, pos, &nBytes, timeoutms)) {
+    int sRes = write_port(buf, pos, &nBytes, timeoutms);
+    if (sRes < 0) {
+        // err msg already set
+        GOTO_CLEANUP_ERR
+    } else if (sRes == 0) {
         CANBRIDGE_SET_ERRMSG("Failed to send to serial\nwritten:%d of %d", nBytes, pos);
         GOTO_CLEANUP_ERR // send_cmd sets canbridge_errmsg
     }

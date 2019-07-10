@@ -434,6 +434,8 @@ int main(int argc, char *argv[])
         }
     }
 
+    if (canbridge_errmsg[0] != 0)
+        fprintf(stdout, "\n %s\n", canbridge_errmsg);
     cleanup();
 
     return ret;

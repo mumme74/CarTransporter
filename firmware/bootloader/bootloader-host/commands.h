@@ -13,7 +13,6 @@
 #include <stdbool.h>
 
 
-
 typedef struct {
     uint32_t lowerbound;
     uint32_t upperbound;
@@ -37,9 +36,16 @@ void doEraseCmd(memoptions_t *mopt);
 void doWriteCmd(memoptions_t *mopt, char *binName);
 void doBootloaderModeCmd(void);
 
-void errExit(char *errStr)  __attribute__ ((noreturn));
 void printCanError(void);
-void cleanExit(void) __attribute__ ((noreturn));
 void cleanup(void);
+
+
+#ifdef _WIN32
+__declspec(noreturn) void errExit(char *errStr);
+__declspec(noreturn) void cleanExit(void);
+#else
+void errExit(char *errStr)  __attribute__ ((noreturn));
+void cleanExit(void) __attribute__ ((noreturn));
+#endif
 
 #endif // COMMANDS_H

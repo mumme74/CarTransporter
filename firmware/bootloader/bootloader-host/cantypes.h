@@ -56,7 +56,7 @@ typedef struct {
     uint8_t __padding;
     uint8_t __reserved0;
     uint8_t __reserved1;
-    uint8_t data[CAN_MAX_DLEN] __attribute((aligned(8)));
+    uint8_t data[CAN_MAX_DLEN]; // __attribute((aligned(8)));
 } canframe_t;
 
 /**

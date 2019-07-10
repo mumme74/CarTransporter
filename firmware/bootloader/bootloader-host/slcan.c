@@ -21,7 +21,6 @@
 static int _abortVar = 0;
 static int *_abortLoop = &_abortVar;
 
-static int canfd = 0;
 
 /*
 ************** BEGIN serialport stuff ************************
@@ -55,6 +54,8 @@ static int max_latency = 20; // FTDI chips has a default 16ms latency timer
                              // it waits for either 64bytes or 16ms
                              // it is changable through DLL, but not through serial (unless its a linux)
                              // linux does however let us set 1ms latency in ioctl
+
+static int canfd = 0;
 
 
 static int open_port(const char *portname)
@@ -195,19 +196,20 @@ static int close_port(void)
 #else // _WIN32
 
 // based on https://www.xanthium.in/Serial-Port-Programming-using-Win32-API
-#include<windows.h>
+#include<Windows.h>
 
-HANDLE canfd
+static HANDLE canfd;
 
 static int open_port(const char *port)
 {
-    char portname[12]; // allows up to \\.\COM999
-    int len = strnlen(port, 20);
+    enum { PORTNAME_SZ = 12 };
+    char portname[PORTNAME_SZ]; // allows up to \\.\COM999
+    int len = (int)strnlen(port, 20);
     if (len < 5)
         /* ports COM1-9 doesnt need \\.\ */
-        sprintf(portname, "%s", port);
+        snprintf(portname, PORTNAME_SZ, "%s", port);
     else
-        sprintf(portname, "\\\\.\\%s", port);
+        snprintf(portname, PORTNAME_SZ, "\\\\.\\%s", port);
 
     canfd = CreateFileA(portname,                //port name
                         GENERIC_READ | GENERIC_WRITE, //Read/Write
@@ -218,7 +220,7 @@ static int open_port(const char *port)
                         NULL);        // Null for Comm Devices
 
     if (canfd == INVALID_HANDLE_VALUE) {
-        CANBRIDGE_SET_ERRMSG(“Error in opening serial port\n”);
+        CANBRIDGE_SET_ERRMSG("Error in opening serial port\n");
         return 0;
     }
 
@@ -267,7 +269,7 @@ static int open_port(const char *port)
 
 // len is how many bytes to write
 static int write_port(const char *buf, uint32_t len,
-                      int *written, int timeoutms)
+                      uint32_t *written, const int timeoutms)
 {
     DWORD nBytesWritten = 0,
           timeoutAt = timeGetTime() + (uint32_t)timeoutms;
@@ -275,15 +277,15 @@ static int write_port(const char *buf, uint32_t len,
     // continue until timeout is met
     do {
         // write to COM port
-        WriteFile(canfd, buf + written, len - nBytesWritten, NULL);
-        *written += nBytesWritten
+        WriteFile(canfd, buf + *written, len - nBytesWritten, &nBytesWritten, NULL);
+        *written += nBytesWritten;
     } while((timeoutAt > timeGetTime()) &&
             (*written < len) && !(*_abortLoop));
 
     return *written == len;
 }
 
-static int read_port(const char *buf, uint32_t len,
+static int read_port(char *buf, uint32_t len,
                      uint32_t *readBytes, int timeoutms)
 {
     DWORD nBytesRead = 0,
@@ -292,7 +294,7 @@ static int read_port(const char *buf, uint32_t len,
     // continue until timeout is met
     do {
         // read from COM port
-        while(ReadFile(canfd, buf, 1, &nBytesRead, NULL) &&
+        while(ReadFile(canfd, (LPVOID)buf, 1, &nBytesRead, NULL) &&
               nBytesRead > 0)
         {
             *readBytes += nBytesRead;
@@ -818,13 +820,13 @@ int slcan_set_filter(uint32_t mask, uint32_t id)
     for(int i = 0; i < 2; ++i) {
         j = 0;
         buf[j++] = cmds[i]; // insert command
-        sprintf(&buf[j],"%02X", code[i].b0); // lsb
+        snprintf(&buf[j], 2,"%02X", code[i].b0); // lsb
         j += 2; // adds 2 chars above ie: FF
-        sprintf(&buf[j],"%02X", code[i].b1);
+        snprintf(&buf[j], 2, "%02X", code[i].b1);
         j += 2;
-        sprintf(&buf[j],"%02X", code[i].b2);
+        snprintf(&buf[j], 2, "%02X", code[i].b2);
         j += 2;
-        sprintf(&buf[j],"%02X", code[i].b3); // msb
+        snprintf(&buf[j], 2, "%02X", code[i].b3); // msb
         j += 2;
         buf[j++] = CR; // end marker
 
@@ -1043,22 +1045,22 @@ int slcan_send(canframe_t *frm, int timeoutms)
     // first ID
     byte4_t id = { frm->can_id & CAN_EFF_MASK };
     if (frm->can_id & CAN_EFF_FLAG) {
-        sprintf(&buf[pos], "%01X", id.b3);
+        snprintf(&buf[pos], 2, "%01X", id.b3);
         pos += 1;
-        sprintf(&buf[pos], "%02X", id.b2);
+        snprintf(&buf[pos], 2, "%02X", id.b2);
         pos += 2;
-        sprintf(&buf[pos], "%02X", id.b1);
+        snprintf(&buf[pos], 2, "%02X", id.b1);
         pos += 2;
     } else {
         // 11bits should only print 3chars
-        sprintf(&buf[pos], "%01X", id.b1);
+        snprintf(&buf[pos], 2, "%01X", id.b1);
         pos += 1;
     }
-    sprintf(&buf[pos], "%02X", id.b0);
+    snprintf(&buf[pos], 2, "%02X", id.b0);
     pos += 2;
 
     // length of frame
-    sprintf(&buf[pos], "%01X", frm->can_dlc);
+    snprintf(&buf[pos], 2, "%01X", frm->can_dlc);
     pos += 1;
 
     // no payload on rtr frame
@@ -1069,35 +1071,35 @@ int slcan_send(canframe_t *frm, int timeoutms)
             payload.arr[i] = frm->data[i];
 
         if (frm->can_dlc > 0) {
-            sprintf(&buf[pos], "%02X", payload.b0);
+            snprintf(&buf[pos], 2, "%02X", payload.b0);
             pos += 2;
         }
         if (frm->can_dlc > 1) {
-            sprintf(&buf[pos], "%02X", payload.b1);
+            snprintf(&buf[pos], 2, "%02X", payload.b1);
             pos += 2;
         }
         if (frm->can_dlc > 2) {
-            sprintf(&buf[pos], "%02X", payload.b2);
+            snprintf(&buf[pos], 2, "%02X", payload.b2);
             pos += 2;
         }
         if (frm->can_dlc > 3) {
-            sprintf(&buf[pos], "%02X", payload.b3);
+            snprintf(&buf[pos], 2, "%02X", payload.b3);
             pos += 2;
         }
         if (frm->can_dlc > 4) {
-            sprintf(&buf[pos], "%02X", payload.b4);
+            snprintf(&buf[pos], 2, "%02X", payload.b4);
             pos += 2;
         }
         if (frm->can_dlc > 5) {
-            sprintf(&buf[pos], "%02X", payload.b5);
+            snprintf(&buf[pos], 2, "%02X", payload.b5);
             pos += 2;
         }
         if (frm->can_dlc > 6) {
-            sprintf(&buf[pos], "%02X", payload.b6);
+            snprintf(&buf[pos], 2, "%02X", payload.b6);
             pos += 2;
         }
         if (frm->can_dlc > 7) {
-            sprintf(&buf[pos], "%02X", payload.b7);
+            snprintf(&buf[pos], 2, "%02X", payload.b7);
             pos += 2;
         }
     }

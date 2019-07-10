@@ -4,22 +4,29 @@
  *  Created on: 29 jul 2018
  *      Author: jof
  */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <sys/time.h>
-#include <sys/uio.h>
-#include <net/if.h>
 
-//#include <linux/can.h>
-//#include <linux/can/raw.h>
-//#include <linux/can/bcm.h>
-//#include <linux/errno.h> // must be included before errno.h
+#ifdef _WIN32
+# include <Windows.h>
+#else
+# include <unistd.h>
+# include <sys/types.h>
+# include <sys/socket.h>
+# include <sys/ioctl.h>
+# include <sys/time.h>
+# include <sys/uio.h>
+# include <net/if.h>
+
+//# include <linux/can.h>
+//# include <linux/can/raw.h>
+//# include <linux/can/bcm.h>
+//# include <linux/errno.h> // must be included before errno.h
+#endif
+
 #include <errno.h>
 
 #include "crc32.h"
@@ -82,16 +89,21 @@ static char *bootloadErrToStr(can_bootloaderErrs_e err)
     }
 
     // we handle all other including ErrUnknown this way
-    sprintf(unknownErrbuf, "Unknown error:%x", err);
+    CANBRIDGE_SET_ERRMSG("Unknown error:%x", err);
     return unknownErrbuf;
 }
 
+#ifndef _WIN32
 static void nodeErrExit(const char *str, can_bootloaderErrs_e err) __attribute__((noreturn));
+#else
+__declspec(noreturn) static void nodeErrExit(const char *str, can_bootloaderErrs_e err);
+#endif
 static void nodeErrExit(const char *str, can_bootloaderErrs_e err)
 {
     char *errStr = bootloadErrToStr(err);
-    char *chbuf = malloc(strlen(str) + strlen(errStr) + 2);
-    sprintf(chbuf, "%s %s\n", str, errStr);
+    size_t bufSz = strlen(str) + strlen(errStr) + 2;
+    char *chbuf = malloc(bufSz);
+    snprintf(chbuf, bufSz, "%s %s\n", str, errStr);
     fprintf(stdout, "%s", chbuf);
     free(chbuf);
     cleanup();
@@ -255,9 +267,12 @@ static void checkMemOptWithinBounds(memoptions_t *mopt)
 // NOTE caller must free the returned memorybuffer
 static uint8_t *readLocalFile(const char *binName, long *sz)
 {
-
+#ifdef _WIN32
+    if (fopen_s(&binFile, binName, "r") != 0) {
+#else
     binFile = fopen(binName, "r");
     if (binFile == NULL) {
+#endif
         fprintf(stderr, "**Couldn't open binfile '%s'\n", binName);
         errExit(0);
     }
@@ -327,11 +342,11 @@ writeCanPageLoop:
     // we will eventually reach endAddr
     frameNr = 0;
     uint8_t *eAddr = MIN((addrAtMemPageStart + memory.pageSize +1), endAddr+1);
-    frames = MIN((eAddr - addr -1), ((BOOTLOADER_PAGE_SIZE+1) * 7)) / 7;
+    frames = (uint8_t)MIN((eAddr - addr -1), ((BOOTLOADER_PAGE_SIZE+1) * 7)) / 7;
     if ((MIN((eAddr - addr -1), ((BOOTLOADER_PAGE_SIZE+1) * 7)) % 7) > 0)
         frames += 1;
 
-    crc.vlu = crc32(0, addr, MIN(MIN((eAddr - addr -1), (frames * 7)),
+    crc.vlu = crc32(0, addr, MIN(MIN((size_t)(eAddr - addr -1), (frames * 7)),
                                  ((BOOTLOADER_PAGE_SIZE+1) * 7)));
     sendFrm->can_dlc = 8;
     sendFrm->data[0] = C_bootloaderWriteFlash;
@@ -351,8 +366,8 @@ writeCanPageLoop:
     // begin payload frames
     while (frameNr < frames) {
       sendFrm->data[0] = frameNr++;
-      uint8_t end = MIN(7, memory.pageSize -
-                            (addr - addrAtMemPageStart)) + 1;
+      uint8_t end = (uint8_t)MIN(7, memory.pageSize -
+                                 (addr - addrAtMemPageStart)) + 1;
       sendFrm->can_dlc = end;
       for (uint8_t i = 1; i < end; ++i) {
         sendFrm->data[i] = *addr;
@@ -557,25 +572,32 @@ void doReadCmd(memoptions_t *mopt, char *storeName)
 
     checkMemOptWithinBounds(mopt);
 
-    fileName = (char*)0xFFFFFFFF; // point to nonsence
+    char nonsenceChk = '\a';
+    enum { MAXFILENAME_LEN = 1024 };
+
+    fileName = &nonsenceChk; // point to nonsence
     // should we append .bin?
-    if (strlen(storeName) < 4)
-        fileName = malloc((strlen(storeName) + 4) * sizeof(char));
-    else if (strcmp(storeName + strlen(storeName) -4, ".bin") != 0)
-        fileName = malloc((strlen(storeName) + 4) * sizeof(char));
+    if (strnlen(storeName, MAXFILENAME_LEN) < 4)
+        fileName = malloc((strnlen(storeName, MAXFILENAME_LEN) + 4) * sizeof(char));
+    else if (strcmp(storeName + strnlen(storeName, MAXFILENAME_LEN) -4, ".bin") != 0)
+        fileName = malloc((strnlen(storeName, MAXFILENAME_LEN) + 4) * sizeof(char));
 
     if (fileName == NULL)
         errExit("Couldnt alllocate ram, space left?");
 
     // we already hava .bin on the end of file
-    if (fileName == (char*)0xFFFFFFFF)
+    if (fileName == &nonsenceChk)
         fileName = storeName;
 
     fprintf(stdout, "Using filename '%s'\n", fileName);
     bool errOccured = false; // used to notify cleanup label that we should exit
 
+#ifdef _WIN32
+    if (fopen_s(&binFile, fileName, "w") != 0) {
+#else
     binFile = fopen(fileName, "w"); // implicitly overwrite by design
     if (binFile == NULL) {
+#endif
         fprintf(stderr, "**Couldn't open '%s' for write operations\n", fileName);
         errOccured = true;
         goto readCleanup;

@@ -12,7 +12,7 @@ option(SET_DEBUG_FLAG "Set preprocessor DEBUG=1" OFF)
 
 # architecture specific
 if(WIN32 AND NOT COMPILE_FOR_RPI)
-  add_compile_options(/W4 /WX)
+  add_compile_options(/W3 /WX)
   set(WIN_FIXES "win_getopt.c")
 else()
   if (COMPILE_FOR_RPI)
@@ -73,7 +73,16 @@ add_custom_target(srcs SOURCES ${CFiles} ${CppFiles})
 project(bootloader-host)
 add_executable(${PROJECT_NAME} ${SOURCES})
 
-set(CMAKE_BUILD_TYPE Debug)
+
+if (WIN32 AND NOT COMPILE_FOR_RPI)
+    target_link_libraries(${PROJECT_NAME} winmm)
+endif()
+
+
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug)
+endif()
+
 if(SET_DEBUG_FLAG)
     add_definitions(-DDEBUG=1)
 endif(SET_DEBUG_FLAG)

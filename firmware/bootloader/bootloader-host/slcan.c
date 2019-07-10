@@ -554,7 +554,7 @@ int response_read_serial(ResponseList_t *lst, const int timeoutms)
                     CANBRIDGE_SET_ERRMSG("Failed to insert item into list\n");
                     goto cleanup;
                 } else
-                    itm = NULL; // derefernce to avoid frring a inserted itm
+                    itm = NULL; // derefernce to avoid freeing a inserted itm
 
                 start = i+1;
             }

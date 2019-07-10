@@ -6,6 +6,7 @@
  */
 
 #include "AirFeed.h"
+#include <Arduino.h>
 
 AirFeed::AirFeed (PID::State *pid, BTS6133D *compressorFanDrv, ITS5215L *airdryerDrv,
                   ITS5215L *compressorRelayDrv, PID::sensor_Pressure *systemPressurePID,

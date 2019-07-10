@@ -7,6 +7,7 @@
 
 #include "IOController.h"
 #include "Height.h"
+#include <Arduino.h>
 
 // defined in suspension_ECU.ino
 extern HeightController heightStateMachine;

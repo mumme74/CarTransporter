@@ -47,8 +47,12 @@ SRCS = can_stm32f373.c \
 #DEVICE = stm32f373rB
 
 
-
-OPENCM3_DIR = /Users/jof/Source/libopencm3
+# for ubuntu
+ifneq ($(wildcard $(HOME)/elektronik/libopencm3),)
+ OPENCM3_DIR=$(wildcard $(HOME)/elektronik/libopencm3)
+else ifneq ($(wildcard $(HOME)/Source/libopenmc3),)
+ OPENCM_DIR=$(wildcard $(HOME)/Source/libopencm3)
+endif
 
 
 include rules.mk

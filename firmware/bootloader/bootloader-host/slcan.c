@@ -26,20 +26,21 @@ static int canfd = 0;
 /*
 ************** BEGIN serialport stuff ************************
 */
-#ifndef _WIN32
-// posix comport here
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifndef _WIN32
+// posix comport here
 #include <termios.h>
 #include <unistd.h>
 #include <sys/time.h>
 #include <sys/ioctl.h>
 
 #ifdef __APPLE__
-// for iotcl set serial speed to 1000000 baud
+// for iotcl set serial speed to 3000000 baud
 # include <IOKit/serial/ioss.h>
 #endif
 
@@ -78,8 +79,8 @@ static int open_port(const char *portname)
 
 #ifndef __APPLE__
     // set speed to 1Mbit/s
-    cfsetospeed(&tty, B1000000);
-    cfsetispeed(&tty, B1000000);
+    cfsetospeed(&tty, B3000000);
+    cfsetispeed(&tty, B3000000);
 #endif
 
     tty.c_cflag |= (CLOCAL | CREAD);    /* ignore modem controls */
@@ -104,7 +105,7 @@ static int open_port(const char *portname)
     }
 
 #ifdef __APPLE__
-    speed_t speed = 1000000;
+    speed_t speed = 3000000;
     if (ioctl(canfd, IOSSIOSPEED, &speed)) {
         CANBRIDGE_SET_ERRMSG("Error when setting serial speed to 1Mbaud\n");
         return 0;
@@ -195,7 +196,6 @@ static int close_port(void)
 
 // based on https://www.xanthium.in/Serial-Port-Programming-using-Win32-API
 #include<windows.h>
-#include<stdio.h>
 
 HANDLE canfd
 
@@ -233,7 +233,7 @@ static int open_port(const char *port)
         return 0;
     }
     // change settings
-    dcbSerialParams.BaudRate = 1000000;  // Setting BaudRate
+    dcbSerialParams.BaudRate = 3000000;  // Setting BaudRate
     dcbSerialParams.ByteSize = 8;         // Setting ByteSize = 8
     dcbSerialParams.StopBits = ONESTOPBIT;// Setting StopBits = 1
     dcbSerialParams.Parity   = NOPARITY;  // Setting Parity = None
@@ -571,8 +571,12 @@ int response_read_serial(ResponseList_t *lst, const int timeoutms)
         }
     }
 
+    // we might have more than BUF_SZ to recieve
+    if (nBytes == BUF_SZ)
+        return response_read_serial(lst, timeoutms);
+
 cleanup:
-    response_free(itm);
+    //response_free(itm); // we should NOT free itm here asits deletes it from the list
 
     return initialLen != lst->len;
 }
@@ -586,8 +590,18 @@ cleanup:
  * @return
  */
 Response_t *response_find(ResponseList_t *lst, const char *cmdsFilter,
-                          uint8_t reversed, const int timeoutms)
+                          uint8_t reversed, int timeoutms)
 {
+
+#ifdef _WIN32
+    DWORD timeoutAt = timeGetTime() + (uint32_t)timeoutms;
+#else
+    // calculate when to bail out
+    timeval_t timeoutAt, initial, now, add = { 0 , 1000 * timeoutms };
+    gettimeofday(&initial, NULL);
+    timeradd(&initial, &add, &timeoutAt);
+#endif
+
     // if we are empty, read from serial, if none read then bail
     if (!lst->len && timeoutms > 0)
         if (!response_read_serial(lst, timeoutms))
@@ -620,9 +634,19 @@ Response_t *response_find(ResponseList_t *lst, const char *cmdsFilter,
         } while((itm = itm->next));
     }
 
-    // we have not found it, read from serial
-    if (timeoutms > 0 && response_read_serial(lst, timeoutms))
-        return response_find(lst, cmdsFilter, reversed, -1);
+
+    // we have not found it, read from serial again until we timeout
+    if (timeoutms > 0 && response_read_serial(lst, timeoutms)) {
+#ifdef _WIN32
+        timeoutms = (int)(timeoutAt - timeGetTime());
+#else
+        gettimeofday(&now, NULL);
+        timersub(&timeoutAt, &now, &add);
+        timeoutms = (int)((add.tv_sec * 10000) + (add.tv_usec / 1000));
+#endif
+        if (timeoutms > 0)
+            return response_find(lst, cmdsFilter, reversed, timeoutms);
+    }
 
 
     return NULL;
@@ -643,7 +667,7 @@ static int clear_pipeline(void) {
         char ch = CR;
         uint32_t nBytes;
         if (!write_port(&ch, 1, &nBytes, 10)) {
-            CANBRIDGE_SET_ERRMSG("Failed to clear tranmitt buffer\n");
+            CANBRIDGE_SET_ERRMSG("Failed to clear transmit buffer\n");
             return 0;
         }
 
@@ -868,11 +892,46 @@ int slcan_open(void)
     // success!
     state = CANBRIDGE_OPEN;
 
+    // clear any possible errors
+    slcan_geterrors();
+
 cleanup:
     response_free(resp);
 
     return res;
 }
+
+uint8_t slcan_geterrors(void)
+{
+    Response_t *resp = NULL;
+    uint8_t retVlu = 0;
+
+    if (state == CANBRIDGE_OPEN) {
+        char txChs[] = { 'F', CR };
+        uint32_t nBytes;
+        if (!write_port(txChs, 2, &nBytes, 5)) {
+            CANBRIDGE_SET_ERRMSG("Could not send to serial when reading error message\n");
+            goto cleanup;
+        }
+
+        resp = response_find(&responses, "F\a", 1, 5);
+        if (!resp) {
+            CANBRIDGE_SET_ERRMSG("No response from device when reading error message\n");
+            goto cleanup;
+        }
+        if (resp->len > 1 && resp->data[0] == 'F') {
+            // TODO should we set errormsg to user here?
+            retVlu = (uint8_t)resp->data[1];
+            goto cleanup;
+        }
+    }
+
+cleanup:
+    response_free(resp);
+
+    return retVlu;
+}
+
 
 /**
  * @brief slcan_status

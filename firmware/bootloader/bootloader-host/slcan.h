@@ -17,6 +17,18 @@
 #endif
 
 
+// return values from slcan_geterrors()
+// bitmask and against return value
+#define SLCAN_ERR_RX_BUF_FULL      0x01U;
+#define SLCAN_ERR_TX_BUF_FULL      0x02U;
+#define SLCAN_ERR_WARN_EI          0x04U;
+#define SLCAN_ERR_DOI_DATA_OVERRUN 0x08U;
+#define SLCAN_ERR_USUSED           0x10U;
+#define SLCAN_ERR_PASIVE_EPI       0x20U;
+#define SLCAN_ERR_ARBITRATION_LOST 0x40U;
+#define SLCAN_ERR_BUSS_ERR_BEI     0x80U;
+
+
 /**
  * @brief slcan_init, initializes, bur not open, slcan
  * @param name, Interface to use, ie can0
@@ -38,6 +50,12 @@ int slcan_set_filter(uint32_t mask, uint32_t id);
  * @return 0 on error, 1 when ok, -1 when already was opened
  */
 int slcan_open(void);
+
+/**
+ * @brief slcan_geterrors
+ * @return bit flags if errors returned by device
+ */
+uint8_t slcan_geterrors(void);
 
 /**
  * @brief slcan_status

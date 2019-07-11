@@ -444,7 +444,7 @@ readCanPageLoop:
 
     // loop to receive a complete canPage
     do {
-      if (canbridge_recv(recvFrm, 1000) < 1) {
+      if (canbridge_recv(recvFrm, 100) < 1) {
           printCanError();
           return C_bootloaderErrNoResponse;
       }

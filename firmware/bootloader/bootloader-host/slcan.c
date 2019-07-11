@@ -561,21 +561,24 @@ int response_read_serial(ResponseList_t *lst, const int timeoutms)
 
     uint32_t nBytes = 0,
             start = bufPos,
+            tmpBufPos = bufPos,
             initialLen = lst->len;
     Response_t *itm = NULL;
 
-    int res = read_port(&buf[bufPos], BUF_SZ - bufPos - 1, &nBytes, timeoutms);
+    int res = read_port(&buf[bufPos], BUF_SZ - bufPos, &nBytes, timeoutms);
     if (res < 0)
         CANBRIDGE_SET_ERRMSG("Failed to read from serial: %s\n", strerror(-res))
 
     if (nBytes > 0) {
         // parse the responses and insert into responses list
-        for(uint32_t i = bufPos; i < bufPos + nBytes; ++i) {
+        for(uint32_t i = bufPos; i < tmpBufPos + nBytes; ++i) {
             char ch = buf[i];
 
             if (ch == CR || ch == BELL) {
                 // we have a complete response
-                itm = response_create(&buf[start - bufPos], (uint8_t)(i - start) +1);
+                uint8_t len = (uint8_t)(i - (start - bufPos)) + 1;
+                itm = response_create(&buf[start - bufPos], len);
+                bufPos = 0; // we have now gotten the trailing chars from last read
                 if (!itm) {
                     CANBRIDGE_SET_ERRMSG("Failed to allocate memory\n")
                     goto cleanup;
@@ -592,16 +595,16 @@ int response_read_serial(ResponseList_t *lst, const int timeoutms)
 
         // we might have trailing bytes we need to store til next read_serial
         // move to beginning of buffer
-        if (start < bufPos + nBytes) {
+        if (start < tmpBufPos + nBytes) {
             // sometimes we get erronious null chars as back?
-            while (start < bufPos + nBytes && buf[start] == 0 &&
+            while (start < tmpBufPos + nBytes && buf[start] == 0 &&
                    start < BUF_SZ)
             {
                 ++start;
             }
 
-            if (start < bufPos + nBytes) {
-                uint32_t len = (bufPos + nBytes) - start;
+            if (start < tmpBufPos + nBytes) {
+                uint32_t len = (tmpBufPos + nBytes) - start;
                 memmove(buf, &buf[start], len);
                 bufPos = len;
             }
@@ -611,7 +614,7 @@ int response_read_serial(ResponseList_t *lst, const int timeoutms)
     }
 
     // we might have more than BUF_SZ to recieve
-    if (nBytes == BUF_SZ -1)
+    if (nBytes == BUF_SZ)
         return response_read_serial(lst, timeoutms);
 
 cleanup:

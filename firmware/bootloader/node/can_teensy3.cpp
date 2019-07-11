@@ -146,7 +146,7 @@ void _canLoop(void)
 static uint8_t i =0;
 if ((++i % 8) == 0)
   endl();
-  print_uint(fifo_empty(&can_rxqueue));
+  print_uint(fifo_empty(&can_txqueue));
     canframe_t msg;
     _canPost(&msg);
   }

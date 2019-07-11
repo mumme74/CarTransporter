@@ -19,8 +19,28 @@
 
 #define WAIT_BEFORE_APPBOOT 100
 
+
+
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+#ifdef ARDUINO
+# ifdef DEBUG
+
+void print_str(const char *str);
+void endl();
+void print_uint(uint32_t vlu);
+
+# else
+# define print_str(buf)
+# define print_uint(vlu)
+# define endl()
+# endif
+#else
+# define print_str(buf)
+# define print_uint(vlu)
+# define endl
 #endif
 
 extern const uint16_t canId;

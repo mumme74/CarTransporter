@@ -10,6 +10,8 @@
 
 #include "system.h"
 #include "can.h"
+#include <string.h>
+
 
 #ifdef __cplusplus
 extern "C" {

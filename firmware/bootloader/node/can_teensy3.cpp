@@ -6,6 +6,10 @@
  */
 
 
+#ifndef DEBUG
+#define DEBUG
+#endif
+
 #include "system.h"
 #include "can.h"
 #include "fifo.h"
@@ -32,6 +36,7 @@ void _canLoop(void);
 CAN_filter_t canFilter1 = { 0, 0, canId },
              canFilter2 = { 0, 0, ((uint32_t)canId | C_displayNode) };
 
+/*
 class Listener : public CANListener
 {
 public:
@@ -64,6 +69,7 @@ public:
 };
 
 Listener listener;
+*/
 
 
 // -----------------------------------------------------------
@@ -71,8 +77,8 @@ Listener listener;
 
 void canShutdown(void)
 {
-  listener.detachGeneralHandler();
-  Can0.detachObj(&listener);
+ // listener.detachGeneralHandler();
+ //Can0.detachObj(&listener);
   Can0.end();
 }
 
@@ -90,8 +96,8 @@ void _canInit(void)
     Can0.setFilter(canFilter1, i);
     Can0.setFilter(canFilter2, i);
   }
-  Can0.attachObj(&listener);
-  listener.attachGeneralHandler();
+  //Can0.attachObj(&listener);
+  //listener.attachGeneralHandler();
 }
 
 int8_t _canPost(canframe_t *msg)
@@ -136,10 +142,30 @@ void _canLoop(void)
     Serial.print("Send can\r\n");
   }*/
 
-
   if (!fifo_empty(&can_txqueue)) {
+static uint8_t i =0;
+if ((++i % 8) == 0)
+  endl();
+  print_uint(fifo_empty(&can_rxqueue));
     canframe_t msg;
     _canPost(&msg);
+  }
+
+  CAN_message_t frm;
+
+  if (Can0.read(frm)) {
+    // check if we are full
+    if (fifo_spaceleft(&can_rxqueue) < 2)// need 2 as 1 + 1 would reset (start over algorithm assumes empty)
+       return;
+
+    canframe_t msg;
+    msg.DLC = frm.len;
+    msg.EID = frm.id;
+    msg.ext = frm.ext != 0;
+    msg.rtr = frm.rtr != 0;
+    memcpy(msg.data8, frm.buf, msg.DLC);
+
+    fifo_push(&can_rxqueue, &msg);
   }
 
 

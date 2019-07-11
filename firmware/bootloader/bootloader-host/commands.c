@@ -147,13 +147,13 @@ static void initMemoryInfo(canframe_t *sendFrm, canframe_t *recvFrm)
     // send request
     sendFrm->can_dlc = 1;
     sendFrm->data[0] = C_bootloaderStartAddress;
-    if (canbridge_send(sendFrm, 1000) < 1) {
+    if (canbridge_send(sendFrm, 10) < 1) {
         printCanError();
         errExit("can't send\n");
     }
 
     // get result
-    if (!filteredRecv(recvFrm, 1000, 0, C_bootloaderStartAddress))
+    if (!filteredRecv(recvFrm, 10, 0, C_bootloaderStartAddress))
         errExit("No response from node\n");
 
     byte4_t addr;
@@ -168,13 +168,13 @@ static void initMemoryInfo(canframe_t *sendFrm, canframe_t *recvFrm)
     // get the rest
     sendFrm->can_dlc = 1;
     sendFrm->data[0] = C_bootloaderMemPageInfo;
-    if (canbridge_send((sendFrm), 1000) < 1) {
+    if (canbridge_send((sendFrm), 10) < 1) {
         printCanError();
         errExit("cant send\n");
     }
 
 
-    if (!filteredRecv(recvFrm, 1000, 0, C_bootloaderMemPageInfo))
+    if (!filteredRecv(recvFrm, 10, 0, C_bootloaderMemPageInfo))
         errExit("No response from node\n");
 
     byte2_t pgSz, nPg;
@@ -647,15 +647,17 @@ void doReadCmd(memoptions_t *mopt, char *storeName)
     can_bootloaderErrs_e err = recvFileFromNode(fileCache, &sendFrm, &recvFrm,
                                                 mopt->lowerbound, mopt->upperbound);
 
-    // release from blocking loop
-    sendFrm.can_dlc = 1;
-    sendFrm.data[0] = C_bootloaderUnblock;
-    if (canbridge_send(&sendFrm, 1000) < 1) {
-        printCanError();
-        errExit("Couldn't send unblock");
-    }
-
     if (err == C_bootloaderErrOK) {
+        // release from blocking loop
+        sendFrm.can_dlc = 1;
+        sendFrm.data[0] = C_bootloaderUnblock;
+        if (canbridge_send(&sendFrm, 1000) < 1) {
+            printCanError();
+            fprintf(stderr, "Couldn't send unblock\n");
+            errOccured = true;
+            goto readCleanup;
+        }
+
         // successfull
         if (fwrite(fileCache, sizeof(uint8_t), len, binFile) != len) {
             fprintf(stderr, "**Error when saving file to disk\n");

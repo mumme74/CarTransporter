@@ -111,13 +111,13 @@ static int wait_on_sock(int sock, long timeout, int r, int w)
     if (r) rfds = &fdset; else rfds = NULL;
     if (w) wfds = &fdset; else wfds = NULL;
 
-    TEMP_FAIL_RETRY (n = select (sock+1, rfds, wfds, NULL, &tv));
+    TEMP_FAIL_RETRY (n = select (sock+1, rfds, wfds, NULL, &tv))
     switch (n) {
     case 0:
-        CANBRIDGE_SET_ERRMSG("wait timed out\n");
+        CANBRIDGE_SET_ERRMSG("wait timed out\n")
         return -errno;
     case -1:
-        CANBRIDGE_SET_ERRMSG("error during wait\n");
+        CANBRIDGE_SET_ERRMSG("error during wait\n")
         return -errno;
     default:
         // select tell us that sock is ready, test it
@@ -127,7 +127,7 @@ static int wait_on_sock(int sock, long timeout, int r, int w)
         if (so_error == 0)
             return 0;
         errno = so_error;
-        CANBRIDGE_SET_ERRMSG("wait failed\n");
+        CANBRIDGE_SET_ERRMSG("wait failed\n")
         return -errno;
     }
 }
@@ -144,18 +144,18 @@ static int wait_on_sock(int sock, long timeout, int r, int w)
 int socketcan_init(const char *name, CAN_Speeds_t speed)
 {
     if (cansock != 0) {
-        CANBRIDGE_SET_ERRMSG("Already initialized\n");
+        CANBRIDGE_SET_ERRMSG("Already initialized\n")
         return 0;
     }
 
     if (speed != CAN_speed_socketspeed) {
-        CANBRIDGE_SET_ERRMSG("socketcan does not support setting bitrate\n");
+        CANBRIDGE_SET_ERRMSG("socketcan does not support setting bitrate\n")
         return 0;
     }
 
     cansock = socket(PF_CAN, SOCK_RAW, CAN_RAW);
     if (cansock < 0) {
-        CANBRIDGE_SET_ERRMSG("CAN socket failed to open");
+        CANBRIDGE_SET_ERRMSG("CAN socket failed to open")
         return 0;
     }
 
@@ -164,12 +164,12 @@ int socketcan_init(const char *name, CAN_Speeds_t speed)
     memset(&ifr.ifr_name, 0, sizeof(ifr.ifr_name));
     strncpy(ifr.ifr_name, name, strlen(name));
 
-    CANBRIDGE_SET_ERRMSG("Using interface name '%s'.\n", ifr.ifr_name);
+    CANBRIDGE_SET_ERRMSG("Using interface name '%s'.\n", ifr.ifr_name)
 
     // set can interface
     ifr.ifr_ifindex = (int)if_nametoindex(ifr.ifr_name);
     if (!ifr.ifr_ifindex) {
-        CANBRIDGE_SET_ERRMSG("Failed to open interface\n");
+        CANBRIDGE_SET_ERRMSG("Failed to open interface\n")
         close(cansock);
         cansock = 0;
         return 0;
@@ -187,7 +187,7 @@ int socketcan_init(const char *name, CAN_Speeds_t speed)
 int socketcan_set_filter(canid_t mask, canid_t id)
 {
     if (socketcan_status() != 1) {
-        CANBRIDGE_SET_ERRMSG("Not in initialized state\n");
+        CANBRIDGE_SET_ERRMSG("Not in initialized state\n")
         return 0;
     }
 
@@ -217,10 +217,10 @@ int socketcan_open(void)
 {
     int status = socketcan_status();
     if (status == 0) {
-        CANBRIDGE_SET_ERRMSG("cansock not initialized\n");
+        CANBRIDGE_SET_ERRMSG("cansock not initialized\n")
         return 0;
     } else if (status == 2) {
-        CANBRIDGE_SET_ERRMSG("Already open!\n");
+        CANBRIDGE_SET_ERRMSG("Already open!\n")
         return -1;
     }
 
@@ -229,7 +229,7 @@ int socketcan_open(void)
     addr.can_ifindex = ifr.ifr_ifindex;
 
     if (bind(cansock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-        CANBRIDGE_SET_ERRMSG("Cant't bind to socket");
+        CANBRIDGE_SET_ERRMSG("Cant't bind to socket")
         close(cansock);
         cansock = 0;
         return 0;
@@ -260,7 +260,7 @@ int socketcan_set_fd_mode(void)
 {
     int status = socketcan_status();
     if (status != 1) {
-        CANBRIDGE_SET_ERRMSG("Must be in init state\n");
+        CANBRIDGE_SET_ERRMSG("Must be in init state\n")
         return 0;
     }
 
@@ -269,7 +269,7 @@ int socketcan_set_fd_mode(void)
                          &canfd_on, sizeof(canfd_on));
 
     if (res != 0) {
-        CANBRIDGE_SET_ERRMSG("Couldn't set FD mode\n");
+        CANBRIDGE_SET_ERRMSG("Couldn't set FD mode\n")
         return 0;
     }
 
@@ -286,11 +286,11 @@ int socketcan_close()
     if (cansock) {
         if (!close(cansock)) {
             if (errno == EIO)
-                CANBRIDGE_SET_ERRMSG("An I/O error occurred while reading from or writing to socket");
+                CANBRIDGE_SET_ERRMSG("An I/O error occurred while reading from or writing to socket")
             else if (errno == EINTR)
-                CANBRIDGE_SET_ERRMSG("Close was interupted by signal");
+                CANBRIDGE_SET_ERRMSG("Close was interupted by signal")
             else {
-                CANBRIDGE_SET_ERRMSG("Invalid can socket when close");
+                CANBRIDGE_SET_ERRMSG("Invalid can socket when close")
             }
             ret = 0;
         }
@@ -327,7 +327,7 @@ int socketcan_send(canframe_t *frm, int timeoutms)
     }
 
     if (e != CAN_MTU) {
-        CANBRIDGE_SET_ERRMSG("write to CAN failed errno:%d\n", errno);
+        CANBRIDGE_SET_ERRMSG("write to CAN failed errno:%d\n", errno)
         return -e;
     }
     int res = wait_on_sock(cansock, timeoutms, 0, 1);
@@ -348,16 +348,16 @@ int socketcan_recv(canframe_t *frm, int timeoutms)
     tv.tv_usec = (timeoutms - tv.tv_sec) * 1000;
 
     int ret;
-    TEMP_FAIL_RETRY (ret = select(cansock +1, &rdfs, NULL, NULL, &tv));
+    TEMP_FAIL_RETRY (ret = select(cansock +1, &rdfs, NULL, NULL, &tv))
     /* Don't rely on the value of tv now! */
     if (ret == -1) {
-        CANBRIDGE_SET_ERRMSG("Failed to connect to CAN while receive");
+        CANBRIDGE_SET_ERRMSG("Failed to connect to CAN while receive")
         return 0;
     } else if (ret) {
         int nbytes;
         // Data is available now.
         if ((nbytes = read(cansock, frm, sizeof(*frm))) < 0) {
-            CANBRIDGE_SET_ERRMSG("CAN read from socket failed");
+            CANBRIDGE_SET_ERRMSG("CAN read from socket failed")
             return 0;
         }
         return 1;

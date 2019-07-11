@@ -334,8 +334,12 @@ int main(int argc, char *argv[])
         setup_can_iface(cansockname); // FIXME implement code to select driver
 
         // next comes the verb (what we should do)
-        if (optind + 1 == argc)
-            errExit("Must give a command after interface, ie read or chksum etc...");
+        if (optind + 1 == argc) {
+            fprintf(stderr, "Must give a command after interface, ie read or chksum etc...\navailable:\n");
+            for(CMDs_t i = _CMDs_start_marker +1; i < _CMDs_end_marker; ++i)
+                fprintf(stderr, "  %s\n", CMDs_name[i]);
+            errExit(0);
+        }
 
         char *cmd = argv[optind + 1];
 
@@ -359,7 +363,7 @@ int main(int argc, char *argv[])
                     errExit(0);
                 }
             } else if (argoptionsc < 2)
-                errExit("Must give a filename to save to");
+                errExit("Must give a filename to save to\n");
             doReadCmd(&mopt, argoptions[1]);
 
         } break;

@@ -9,15 +9,6 @@
 #define DEBUG
 #endif
 
-#if defined(DEBUG) && defined(ARDUINO)
-# include <Arduino.h>
-# include <usb_serial.h>
-#else
-# define usb_serial_write(buf, len)
-# define usb_serial_putchar(n)
-#endif
-
-
 
 #include "commands.h"
 #include "system.h"
@@ -42,28 +33,28 @@ static void sendErr(canframe_t *msg, can_bootloaderErrs_e err)
   CAN_POST_MSG;
 }
 
-static byte4_t *addr, *endAddr;
+static byte4_t addr, endAddr;
 
 // used by both readflash and writeflash
 static bool getAndCheckAddress(canframe_t *msg)
 {
-  addr->b0 = msg->data8[1];
-  addr->b1 = msg->data8[2];
-  addr->b2 = msg->data8[3];
-  addr->b3 = msg->data8[4];
-  endAddr->b0 = msg->data8[5];
-  endAddr->b1 = msg->data8[6];
-  endAddr->b2 = msg->data8[7];
-  endAddr->b3 = 0;
-  endAddr->vlu += addr->vlu;
+  addr.b0 = msg->data8[1];
+  addr.b1 = msg->data8[2];
+  addr.b2 = msg->data8[3];
+  addr.b3 = msg->data8[4];
+  endAddr.b0 = msg->data8[5];
+  endAddr.b1 = msg->data8[6];
+  endAddr.b2 = msg->data8[7];
+  endAddr.b3 = 0;
+  endAddr.vlu += addr.vlu;
 //  addr = (uint8_t*)((msg->data8[4] << 24) | (msg->data8[3] << 16) |
 //                    (msg->data8[2] << 8)  | (msg->data8[1])) ;
 //  endAddr = addr + ((msg->data8[7] << 16) | (msg->data8[6] << 8) |
 //                    (msg->data8[5]));
-  if (addr->ptr32 < &_appRomStart) {
+  if (addr.ptr32 < &_appRomStart) {
     sendErr(msg, C_bootloaderErrStartAddressOutOfRange);
     return false; // to commands loop
-  } else if (endAddr->ptr32 > &_appRomEnd) {
+  } else if (endAddr.ptr32 > &_appRomEnd) {
     sendErr(msg, C_bootloaderErrEndAddressOutOfRange);
     return false; // to commands loop
   }
@@ -75,7 +66,7 @@ static bool runCommand(canframe_t *msg)
   static byte4_t crc;
   static byte2_t canPageNr; // as in CAN page
   static uint8_t  frames, frameNr; //, *addr, *endAddr;
-usb_serial_write("rC\r\n", 5);
+  print_str("rC\r\n");
   switch(msg->data8[0]){
   case C_bootloaderReadFlash: {
     if (!getAndCheckAddress(msg))
@@ -90,16 +81,17 @@ usb_serial_write("rC\r\n", 5);
 
 readPageLoop:
     // begin header
+print_str("read n frm\r\n");
     frameNr = 0;
-    addrAtCanPageStart = addr->ptr8;
+    addrAtCanPageStart = addr.ptr8;
     // concept here is that addr advances in send loop with nr bytes written
     // we will eventually reach endAddr
     // also when reading memory we don't need that 2K memory page restriction that we need when writing to memory
-    frames = MIN(((endAddr->vlu - addr->vlu -1) / 7 + (endAddr->vlu - addr->vlu -1) % 7),
+    frames = MIN(((endAddr.vlu - addr.vlu -1) / 7 + (endAddr.vlu - addr.vlu -1) % 7),
                  BOOTLOADER_PAGE_SIZE+1);
 
-    crc.vlu = crc32(0, addr->ptr8 + (frameNr * 7),
-                    MIN(endAddr->vlu - addr->vlu -1, ((BOOTLOADER_PAGE_SIZE+1) * 7)));
+    crc.vlu = crc32(0, addr.ptr8 + (frameNr * 7),
+                    MIN(endAddr.vlu - addr.vlu -1, ((BOOTLOADER_PAGE_SIZE+1) * 7)));
     msg->DLC = 8;
     msg->data8[0] = C_bootloaderReadFlash;
     msg->data8[1] = crc.b0; // (crc & 0x000000FF);
@@ -118,8 +110,8 @@ readPageLoop:
     while (frameNr < frames) {
       msg->data8[0] = frameNr++;
       for (uint8_t i = 1; i < 8; ++i) {
-        msg->data8[i] = *addr->ptr8;
-        if (++addr->vlu >= endAddr->vlu) {
+        msg->data8[i] = *addr.ptr8;
+        if (++addr.vlu >= endAddr.vlu) {
           msg->DLC = i;
           break; // frameId should now be frameId == frames
         }
@@ -129,6 +121,9 @@ readPageLoop:
 
     // wait for remote to Ack this page
     do {
+	    print_str("after ack adr:");print_uint(addr.vlu);
+	    print_str(" eAdr:");print_uint(endAddr.vlu);endl();
+	    delay(100);
       CAN_NEXT_MSG;
       if (msg->DLC > 0 && msg->data8[0] == C_bootloaderReset)
         systemReset();
@@ -139,31 +134,29 @@ readPageLoop:
       ++canPageNr.vlu;
     else {
       // resend
-      addr->ptr8 = addrAtCanPageStart;
+      addr.ptr8 = addrAtCanPageStart;
     }
-    if (addr->vlu >= endAddr->vlu)
+    if (addr.vlu >= endAddr.vlu)
       return true; // finished!, to commands loop
     goto readPageLoop;
   }  break;
 
   case C_bootloaderChecksum: {
-    usb_serial_write("chksum before\r\n", 16);
     if (!getAndCheckAddress(msg))
       break;
-    crc.vlu = crc32(0, addr->ptr8, endAddr->vlu - addr->vlu);
+    crc.vlu = crc32(0, addr.ptr8, endAddr.vlu - addr.vlu);
     msg->DLC = 5;
     msg->data8[1] = crc.b0; //(crc & 0x000000FF);
     msg->data8[2] = crc.b1; //(crc & 0x0000FF00) >> 8;
     msg->data8[3] = crc.b2; //(crc & 0x00FF0000) >> 16;
     msg->data8[4] = crc.b3; //(crc & 0xFF000000) >> 24;
     CAN_POST_MSG; // if buffer full we bust out to main
-    usb_serial_write("checksum complete\r\n", 19);
   }  break;
 
   case C_bootloaderWriteFlash: {
     if (!getAndCheckAddress(msg))
       break;
-    uint16_t memPages = ((endAddr->vlu - addr->vlu) / pageSize);
+    uint16_t memPages = ((endAddr.vlu - addr.vlu) / pageSize);
 
     uint16_t memPagesWritten = 0 -1;
 
@@ -264,13 +257,13 @@ writeCanPageLoop:
     }
 
     // write flashpage to rom
-    err = systemFlashWritePage((uint16_t*)buf, addr->ptr16);
+    err = systemFlashWritePage((uint16_t*)buf, addr.ptr16);
     if (err != C_bootloaderErrOK) {
       sendErr(msg, err);
       break;
     } else {
       // advance addr to save in next memorypage next time
-      addr->vlu += pageSize;
+      addr.vlu += pageSize;
     }
 
     // a *.bin might span over many memPages
@@ -288,17 +281,17 @@ writeCanPageLoop:
     canPageNr.b0 = msg->data8[1];
     canPageNr.b1 = msg->data8[2];
     //canPageNr = (msg->data8[2] >> 8 | msg->data8[1]);
-    addr->ptr8 = ((uint8_t*)&_appRomStart) + (canPageNr.vlu * pageSize);
-    if (addr->ptr32 > &_appRomEnd) {
+    addr.ptr8 = ((uint8_t*)&_appRomStart) + (canPageNr.vlu * pageSize);
+    if (addr.ptr32 > &_appRomEnd) {
       sendErr(msg, C_bootloaderErrStartPageOutOfRange);
       break;
     }
     byte2_t pgCnt;
     pgCnt.b0 = msg->data8[3];
     pgCnt.b1 = msg->data8[4];
-    endAddr->vlu = addr->vlu + (pgCnt.vlu * pageSize);
+    endAddr.vlu = addr.vlu + (pgCnt.vlu * pageSize);
     //endAddr = addr + ((msg->data8[4] << 8 | msg->data8[3]) * pageSize);
-    if (endAddr->ptr32 > &_appRomEnd) {
+    if (endAddr.ptr32 > &_appRomEnd) {
       sendErr(msg, C_bootloaderErrPageLenOutOfRange);
       break;
     }
@@ -306,7 +299,7 @@ writeCanPageLoop:
     // is within appRom boundaries
 
     // do architecture dependent stuff in system module
-    sendErr(msg, systemFlashErase(addr->ptr8, endAddr->ptr8));
+    sendErr(msg, systemFlashErase(addr.ptr8, endAddr.ptr8));
   }  break;
 
   case C_bootloaderStartAddress: {
@@ -350,14 +343,14 @@ bool commandsStart(canframe_t *msg)
         (msg->data8[0] & 0x80) == 0)
       return false;
     res = runCommand(msg);
-    usb_serial_write("good cmd:", 14);
+    print_str("good cmd:");
     usb_serial_putchar((uint8_t)res +48);
-    usb_serial_write("\r\n", 2);
+    print_str("\r\n");
     if (!res)
       break;
-    usb_serial_write("wait for can\r\n", 15);
+    print_str("wait for can\r\n");
     CAN_NEXT_MSG;
-    usb_serial_write("got from can\r\n", 15);
+    print_str("got from can\r\n");
   }
 
   return res;

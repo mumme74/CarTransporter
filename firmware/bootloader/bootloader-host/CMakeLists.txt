@@ -67,6 +67,7 @@ add_custom_target(headers SOURCES ${HeadFiles})
 FILE(GLOB_RECURSE CFiles "*.c")
 FILE(GLOB_RECURSE CppFiles "*.cpp")
 add_custom_target(srcs SOURCES ${CFiles} ${CppFiles})
+add_custom_target(other SOURCES qtcreator_debugger_helper.py)
 
 
 # setup for compile

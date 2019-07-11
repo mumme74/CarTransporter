@@ -5,12 +5,49 @@
  *      Author: jof
  */
 
+#ifndef DEBUG
+#define DEBUG
+#endif
+
 
 #include "system.h"
 #include "can.h"
 #include "commands.h"
 #include <Arduino.h>
 #include <kinetis.h>
+
+#ifdef ARDUINO
+# include <Arduino.h>
+# ifdef DEBUG
+#  include <usb_serial.h>
+void print_str(const char *str) {
+  uint8_t i =0;
+  for(; i < 30 && str[i] != 0; ++i) ;
+  usb_serial_write(str, i);
+  usb_serial_flush_output();
+}
+void endl() {
+  print_str("\r\n");
+}
+
+void print_uint(uint32_t vlu) {
+  for (int i = 7; i >= 0; --i) {
+      uint8_t c = (vlu & (0xF << (i * 4))) >> (i * 4);
+      if (c > 9) c += 7; // to get to alphabet
+      usb_serial_putchar(c + 48);
+  }
+  usb_serial_flush_output();
+}
+# else
+# define print_str(buf)
+# define print_uint(vlu)
+# define endl()
+# endif
+#else
+# define print_str(buf)
+# define print_uint(vlu)
+# define endl()
+#endif
 
 
 // from https://github.com/alex-Arc/FirmwareFlasher/blob/master/FirmwareFlasher.h

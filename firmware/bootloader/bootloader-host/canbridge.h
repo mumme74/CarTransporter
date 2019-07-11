@@ -51,11 +51,13 @@ typedef enum {
  * @brief canbridge_errmsg, is set by last occured error in driver
  */
 extern char canbridge_errmsg[CANBRIDGE_ERRORMSG_SZ];
-//#ifdef _WIN32
-//# define CANBRIDGE_SET_ERRMSG(...) sprintf_s(canbridge_errmsg, CANBRIDGE_ERRORMSG_SZ, __VA_ARGS__)
-//#else
-# define CANBRIDGE_SET_ERRMSG(...) snprintf(canbridge_errmsg, CANBRIDGE_ERRORMSG_SZ, __VA_ARGS__)
-//#endif
+
+#define CANBRIDGE_SET_ERRMSG(...) {\
+    snprintf(&canbridge_errmsg[ strnlen(canbridge_errmsg, CANBRIDGE_ERRORMSG_SZ)], CANBRIDGE_ERRORMSG_SZ, "\n"); \
+    snprintf(&canbridge_errmsg[ strnlen(canbridge_errmsg, CANBRIDGE_ERRORMSG_SZ)], CANBRIDGE_ERRORMSG_SZ, __VA_ARGS__); \
+}
+
+#define CANBRIDGE_CLEAR_ERRMSG canbridge_errmsg[0] = 0
 
 
 /**

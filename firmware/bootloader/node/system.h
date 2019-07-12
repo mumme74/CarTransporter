@@ -25,22 +25,17 @@
 extern "C" {
 #endif
 
-#ifdef ARDUINO
-# ifdef DEBUG
-
-void print_str(const char *str);
-void endl();
-void print_uint(uint32_t vlu);
-
-# else
-# define print_str(buf)
-# define print_uint(vlu)
-# define endl()
-# endif
+#if defined(ARDUINO) && defined(DEBUG_PRINT)
+  // for cfiles in teensy
+  void print_str(const char *str);
+  void endl();
+  void print_uint(uint32_t vlu);
+# define Sprt(...) Serial.print(__VA_ARGS__)
 #else
 # define print_str(buf)
 # define print_uint(vlu)
-# define endl
+# define endl()
+# define Sprt(...)
 #endif
 
 extern const uint16_t canId;
@@ -53,7 +48,7 @@ void systemDeinit(void);
 void systickInit(void);
 void systickShutdown(void);
 void systemToApplication(void);
-void systemReset(void);
+void systemReset(void) __attribute__((noreturn));
 
 can_bootloaderErrs_e systemFlashErase(uint8_t *startAddr, uint8_t *endAddr);
 can_bootloaderErrs_e systemFlashWritePage(uint16_t *memPageBuf,

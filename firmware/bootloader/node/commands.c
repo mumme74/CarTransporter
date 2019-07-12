@@ -5,10 +5,6 @@
  *      Author: jof
  */
 
-#ifndef DEBUG
-#define DEBUG
-#endif
-
 
 #include "commands.h"
 #include "system.h"
@@ -121,13 +117,13 @@ print_str("read n frm\r\n");
 
     // wait for remote to Ack this page
     do {
-	    print_str("after ack adr:");print_uint(addr.vlu);
-	    print_str(" eAdr:");print_uint(endAddr.vlu);endl();
-	    delay(100);
       CAN_NEXT_MSG;
       if (msg->DLC > 0 && msg->data8[0] == C_bootloaderReset)
         systemReset();
     } while(msg->DLC != 2 && msg->data8[0] != C_bootloaderReadFlash);
+
+    print_str("after ack adr:");print_uint(addr.vlu);
+    print_str(" eAdr:");print_uint(endAddr.vlu);endl();
 
     // check if we should resend
     if (msg->data8[1] == C_bootloaderErrOK)
@@ -344,7 +340,7 @@ bool commandsStart(canframe_t *msg)
       return false;
     res = runCommand(msg);
     print_str("good cmd:");
-    usb_serial_putchar((uint8_t)res +48);
+    print_uint((uint8_t)res +48);
     print_str("\r\n");
     if (!res)
       break;

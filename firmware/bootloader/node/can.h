@@ -17,19 +17,19 @@ extern "C" {
 #endif
 
 typedef struct {
-  uint8_t DLC;
   union {
-    uint16_t IDE;
-    uint32_t EID;
-  };
-  bool ext;
-  bool rtr;
-  union {
-    uint8_t data8[8];
+    uint8_t  data8[8];
     uint16_t data16[4];
     uint32_t data32[2];
     uint64_t data64;
   };
+  union {
+    uint16_t IDE;
+    uint32_t EID;
+  };
+  uint8_t DLC;
+  bool ext;
+  bool rtr;
 } canframe_t;
 
 

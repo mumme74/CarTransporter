@@ -5,11 +5,6 @@
  *      Author: jof
  */
 
-
-#ifndef DEBUG
-#define DEBUG
-#endif
-
 #include "system.h"
 #include "can.h"
 #include "fifo.h"
@@ -108,10 +103,11 @@ int8_t _canPost(canframe_t *msg)
     frm.ext = msg->ext;
     frm.rtr = msg->rtr;
     frm.len = msg->DLC;
-    memcpy(frm.buf, msg->data8, msg->DLC);
+    for(uint8_t i = 0; i < msg->DLC; ++i)
+      frm.buf[i] = msg->data8[i];
     if (Can0.write(frm)) {
       fifo_pop(&can_txqueue, msg);
-      Serial.print("post");Serial.print(frm.len);Serial.print("\r\n");
+      Sprt("post");Sprt(frm.len);Sprt("\r\n");
       return 1;
     }
   }
@@ -163,13 +159,13 @@ if ((++i % 8) == 0)
     msg.EID = frm.id;
     msg.ext = frm.ext != 0;
     msg.rtr = frm.rtr != 0;
-    memcpy(msg.data8, frm.buf, msg.DLC);
+    for (uint8_t i = 0; i< msg.DLC; ++i)
+      msg.data8[i] = frm.buf[i];
 
     fifo_push(&can_rxqueue, &msg);
   }
 
 
-  pinMode(6, OUTPUT);
   digitalWrite(6, !digitalRead(6));
   //delay(20);
 }

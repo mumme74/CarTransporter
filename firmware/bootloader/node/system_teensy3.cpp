@@ -5,11 +5,6 @@
  *      Author: jof
  */
 
-#ifndef DEBUG
-#define DEBUG
-#endif
-
-
 #include "system.h"
 #include "can.h"
 #include "commands.h"
@@ -18,35 +13,28 @@
 
 #ifdef ARDUINO
 # include <Arduino.h>
-# ifdef DEBUG
+# ifdef DEBUG_PRINT
 #  include <usb_serial.h>
-void print_str(const char *str) {
-  uint8_t i =0;
-  for(; i < 30 && str[i] != 0; ++i) ;
-  usb_serial_write(str, i);
-  usb_serial_flush_output();
-}
-void endl() {
-  print_str("\r\n");
-}
-
-void print_uint(uint32_t vlu) {
-  for (int i = 7; i >= 0; --i) {
-      uint8_t c = (vlu & (0xF << (i * 4))) >> (i * 4);
-      if (c > 9) c += 7; // to get to alphabet
-      usb_serial_putchar(c + 48);
+  void print_str(const char *str) {
+    uint8_t i =0;
+    for(; i < 30 && str[i] != 0; ++i) ;
+    usb_serial_write(str, i);
+    usb_serial_flush_output();
   }
-  usb_serial_flush_output();
-}
-# else
-# define print_str(buf)
-# define print_uint(vlu)
-# define endl()
+  void endl() {
+    print_str("\r\n");
+  }
+
+  void print_uint(uint32_t vlu) {
+    for (int i = 7; i >= 0; --i) {
+	uint8_t c = (vlu & (0xF << (i * 4))) >> (i * 4);
+	if (c > 9) c += 7; // to get to alphabet
+	else if(c == 0 && i > 0) continue;
+	usb_serial_putchar(c + 48);
+    }
+    usb_serial_flush_output();
+  }
 # endif
-#else
-# define print_str(buf)
-# define print_uint(vlu)
-# define endl()
 #endif
 
 
@@ -194,8 +182,10 @@ void systemToApplication(void)
 void systemReset() {
   // from arm documentation, page 4-17
   //http://infocenter.arm.com/help/topic/com.arm.doc.dui0553b/DUI0553.pdf
+  //http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0552a/Cihehdge.html
   // and https://mcuoneclipse.com/2015/07/01/how-to-reset-an-arm-cortex-m-with-software/
-  SCB_AIRCR |= (0x5FA << 16) | (1 << 2);
+  // 6.2.2.8 in kinetis K20 manual
+  SCB_AIRCR = (0x5FA << 16) | (1 << 2);
 
   // wait forever until reset is done in hardware
   for(;;)

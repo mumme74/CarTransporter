@@ -22,6 +22,10 @@ endif
 
 USER_DEFINES += -DNODE_ID=$(NODE_ID)
 
+ifdef DEBUG_PRINT
+	USER_DEFINES += -DDEBUG_PRINT
+endif
+
 # name resulting bin correctly
 TARGET=$(BINARY)
 

@@ -18,6 +18,7 @@ extern void _canLoop(void);
 void setup() {
   systemInit();
   canInit();
+  pinMode(6, OUTPUT);
 }
 
 void loop() {

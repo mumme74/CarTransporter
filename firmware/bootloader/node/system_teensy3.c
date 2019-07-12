@@ -1,5 +1,5 @@
 /*
- * system_teensy3.cpp
+ * system_teensy3.c
  *
  *  Created on: 2 jul 2019
  *      Author: jof
@@ -23,6 +23,8 @@
   }
   void endl() {
     print_str("\r\n");
+    yield();
+    usb_serial_flush_output();
   }
 
   void print_uint(uint32_t vlu) {
@@ -107,13 +109,23 @@ volatile uint32_t globalMsSinceStartup;
 // ------------- Begin public functions ------------------------------
 
 void systemInit(void) {
-  Serial.begin(115200);
+  //Serial.begin(115200); // actually does nothing in teensy
   globalMsSinceStartup = -1; // invalidate
+
+  // FIXME ONLY for debuging
+  pinMode(6, OUTPUT);
 }
 
 void systemDeinit(void) {
-  Serial.end();
+  //Serial.end(); // actually does nothing in teensy
 }
+
+// abstraction to make code portable
+uint32_t systemMillis(void) {
+  return millis();
+}
+
+
 
 void systickInit(void) {} /* stub */
 void systickShutdown(void) {} /* stub */
@@ -145,7 +157,7 @@ void systemToApplication(void)
       commandsStart(&msg);
     }
   }
-  Serial.print("after");
+  print_str("after");
 
 
   /* get jump address from application vector table */

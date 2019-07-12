@@ -48,7 +48,6 @@ bool canGet(canframe_t *msg)
 {
 #ifdef ARDUINO
   extern void _canLoop(void);
-  yield();
   _canLoop();
 #endif
   return fifo_pop(&can_rxqueue, msg);

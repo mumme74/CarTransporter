@@ -44,7 +44,14 @@ const uint16_t canId = CAN_MSG_TYPE_COMMAND | C_suspensionCmdBootloader | C_susp
 const uint16_t pageSize = 2048; // 2kb
 
 
-volatile uint32_t globalMsSinceStartup = 0;
+volatile uint32_t msSinceStartup = 0;
+
+void hard_fault_handler(void)
+{
+    while(1); // debug
+    //systemReboot();
+}
+
 
 void systemInit(void)
 {
@@ -55,6 +62,10 @@ void systemDeinit(void)
 {
   // Can't figure out this one , continue on ext oscillator and hope for the best..
   // rcc_clock_setup_pll(&rcc_configs[RCC_CLOCK_HSI_64MHZ]);
+}
+
+uint32_t systemMillis() {
+  return msSinceStartup;
 }
 
 void systickInit(void)
@@ -87,7 +98,7 @@ void systickShutdown(void)
 
 void sys_tick_handler(void)
 {
-  ++globalMsSinceStartup;
+  ++msSinceStartup;
 }
 
 

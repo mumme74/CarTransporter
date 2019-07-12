@@ -30,21 +30,19 @@ extern "C" {
   void print_str(const char *str);
   void endl();
   void print_uint(uint32_t vlu);
-# define Sprt(...) Serial.print(__VA_ARGS__)
 #else
 # define print_str(buf)
 # define print_uint(vlu)
 # define endl()
-# define Sprt(...)
 #endif
 
 extern const uint16_t canId;
-extern volatile uint32_t globalMsSinceStartup;
 
 extern const uint16_t pageSize;
 
 void systemInit(void);
 void systemDeinit(void);
+uint32_t systemMillis(void);
 void systickInit(void);
 void systickShutdown(void);
 void systemToApplication(void);

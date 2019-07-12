@@ -9,13 +9,7 @@
 #include "can.h"
 #include "commands.h"
 #include <stddef.h>
-#include <libopencm3/cm3/nvic.h>
 
-void hard_fault_handler(void)
-{
-    while(1); // debug
-    //systemReboot();
-}
 
 int main(void)
 {
@@ -28,7 +22,7 @@ int main(void)
     msg.data8[msg.DLC++] = C_bootloaderReset;
     canPost(&msg);
 
-    while (globalMsSinceStartup < WAIT_BEFORE_APPBOOT){
+    while (systemMillis() < WAIT_BEFORE_APPBOOT){
       if (canGet(&msg))
         commandsStart(&msg); // resets from within
     }

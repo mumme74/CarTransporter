@@ -1,5 +1,5 @@
 /*
- * main_teensy.cpp
+ * main_teensy.c
  *
  *  Created on: 2 jul 2019
  *      Author: jof
@@ -11,10 +11,34 @@
 #include <commands.h>
 #include <can.h>
 
-extern "C" {
+//extern "C" {
 extern void _canLoop(void);
-} // extern "C"
+//} // extern "C"
 
+
+int main(){
+  systemInit();
+  canInit(); // canId from system.c
+  systickInit();
+
+  canframe_t msg;
+  canInitFrame(&msg, canId);
+  msg.data8[msg.DLC++] = C_bootloaderReset;
+  canPost(&msg);
+
+  while (systemMillis() < WAIT_BEFORE_APPBOOT){
+    if (canGet(&msg))
+      commandsStart(&msg); // resets from within
+    _canLoop();
+  }
+
+  systemDeinit();
+  canShutdown();
+  systickShutdown();
+  systemToApplication();
+}
+
+/*
 void setup() {
   systemInit();
   canInit();
@@ -22,9 +46,10 @@ void setup() {
 }
 
 void loop() {
-  static uint32_t bootloaderWindow = millis() + WAIT_BEFORE_APPBOOT +10000;
+  static uint32_t bootloaderWindow;
   static uint32_t loopCnt = 0;
   static bool toApplicationRunned = false;
+  bootloaderWindow = millis() + WAIT_BEFORE_APPBOOT +10000;
 
   canframe_t msg;
 
@@ -49,4 +74,4 @@ void loop() {
   }
   _canLoop();
 }
-
+*/

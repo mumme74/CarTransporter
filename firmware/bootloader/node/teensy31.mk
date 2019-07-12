@@ -32,10 +32,11 @@ TARGET=$(BINARY)
 
 
 # C files for this project
-LOCAL_C_SRCS = $(SRCS_common)
-LOCAL_CPP_SRCS = system_teensy3.cpp \
-                 can_teensy3.cpp \
-                 main_teensy3.cpp
+LOCAL_C_SRCS = $(SRCS_common) \
+				system_teensy3.c\
+				main_teensy3.c
+				
+LOCAL_CPP_SRCS = can_teensy3.cpp \
 
 
 # user settings

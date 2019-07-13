@@ -42,7 +42,7 @@ LDLIBS += -lc -lgcc -lnosys
 LDSCRIPT = stm32f373xRB.ld
 SRCS = can_stm32f373.c \
        system_stm32f373.c \
-	   main_opencm3.c \
+	   main.c \
        $(SRCS_common) 
 #DEVICE = stm32f373rB
 

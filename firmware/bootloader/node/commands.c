@@ -77,7 +77,6 @@ static bool runCommand(canframe_t *msg)
 
 readPageLoop:
     // begin header
-print_str("read n frm\r\n");
     frameNr = 0;
     addrAtCanPageStart = addr.ptr8;
     // concept here is that addr advances in send loop with nr bytes written
@@ -85,6 +84,7 @@ print_str("read n frm\r\n");
     // also when reading memory we don't need that 2K memory page restriction that we need when writing to memory
     frames = MIN(((endAddr.vlu - addr.vlu -1) / 7 + (endAddr.vlu - addr.vlu -1) % 7),
                  BOOTLOADER_PAGE_SIZE+1);
+print_str("read fn:");print_uint(frames);endl();
 
     crc.vlu = crc32(0, addr.ptr8 + (frameNr * 7),
                     MIN(endAddr.vlu - addr.vlu -1, ((BOOTLOADER_PAGE_SIZE+1) * 7)));

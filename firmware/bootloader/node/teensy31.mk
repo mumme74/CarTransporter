@@ -10,7 +10,7 @@ USER_LIB_PATH := $(realpath ../../system_headers)
 
 BOARD_TAG    = teensy31
 LINKER_SCRIPTS := -T$(realpath ./mk20dx256.ld) 
-ARDUINO_LIBS = FlexCAN
+ARDUINO_LIBS = #FlexCAN
 F_CPU=96000000
 MONITOR_BAUDRATE = 115200
 
@@ -33,10 +33,11 @@ TARGET=$(BINARY)
 
 # C files for this project
 LOCAL_C_SRCS = $(SRCS_common) \
-				system_teensy3.c\
-				main_teensy3.c
+				system_teensy3.c \
+				can_teensy3.c \
+				main.c 
 				
-LOCAL_CPP_SRCS = can_teensy3.cpp \
+LOCAL_CPP_SRCS = 
 
 
 # user settings

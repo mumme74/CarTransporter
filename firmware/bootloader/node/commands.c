@@ -13,7 +13,6 @@
 
 
 
-#define CAN_NEXT_MSG  while (canGet(msg) == false)  // blocks until rcv
 #define CAN_POST_MSG  while ((canPost(msg) < 0))        // --""--       txv
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
@@ -117,7 +116,7 @@ print_str("read fn:");print_uint(frames);endl();
 
     // wait for remote to Ack this page
     do {
-      CAN_NEXT_MSG;
+      canWaitRecv(msg);
       if (msg->DLC > 0 && msg->data8[0] == C_bootloaderReset)
         systemReset();
     } while(msg->DLC != 2 && msg->data8[0] != C_bootloaderReadFlash);
@@ -175,7 +174,7 @@ writeCanPageLoop:
 
     // loop to receive a complete canPage
     do {
-      CAN_NEXT_MSG;
+      canWaitRecv(msg);
       if ((msg->data8[0] & 0x80)) {
         if (msg->data8[0] != C_bootloaderWriteFlash)
           return true; // stuck in loop, we should probably abort
@@ -340,12 +339,12 @@ bool commandsStart(canframe_t *msg)
       return false;
     res = runCommand(msg);
     print_str("good cmd:");
-    print_uint((uint8_t)res +48);
+    print_uint((uint8_t)res + 48);
     print_str("\r\n");
     if (!res)
       break;
     print_str("wait for can\r\n");
-    CAN_NEXT_MSG;
+    canWaitRecv(msg);
     print_str("got from can\r\n");
   }
 

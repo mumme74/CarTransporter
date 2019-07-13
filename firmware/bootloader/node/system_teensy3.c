@@ -5,11 +5,11 @@
  *      Author: jof
  */
 
+#include <Arduino.h>
+#include <kinetis.h>
 #include "system.h"
 #include "can.h"
 #include "commands.h"
-#include <Arduino.h>
-#include <kinetis.h>
 
 #ifdef ARDUINO
 # include <Arduino.h>
@@ -19,21 +19,26 @@
     uint8_t i =0;
     for(; i < 30 && str[i] != 0; ++i) ;
     usb_serial_write(str, i);
-    usb_serial_flush_output();
+    //usb_serial_flush_output();
   }
   void endl() {
     print_str("\r\n");
     yield();
-    usb_serial_flush_output();
+    //usb_serial_flush_output();
   }
 
   void print_uint(uint32_t vlu) {
+    int begin = 1;
     for (int i = 7; i >= 0; --i) {
 	uint8_t c = (vlu & (0xF << (i * 4))) >> (i * 4);
 	if (c > 9) c += 7; // to get to alphabet
-	else if(c == 0 && i > 0) continue;
+	else if(c == 0 && i > 0 && begin) continue;
+	begin = 0;
 	usb_serial_putchar(c + 48);
     }
+    //usb_serial_flush_output();
+  }
+  void print_flush() {
     usb_serial_flush_output();
   }
 # endif
@@ -104,16 +109,21 @@ const uint16_t canId = CAN_MSG_TYPE_COMMAND | C_suspensionCmdBootloader | C_susp
 
 const uint16_t pageSize = 2048; // 2kb
 
-volatile uint32_t globalMsSinceStartup;
+void hard_fault_isr(void) {
+  digitalWrite(10, !digitalRead(10));
+}
 
 // ------------- Begin public functions ------------------------------
 
 void systemInit(void) {
   //Serial.begin(115200); // actually does nothing in teensy
-  globalMsSinceStartup = -1; // invalidate
+  delay(50); // allow usb to settle
 
   // FIXME ONLY for debuging
   pinMode(6, OUTPUT);
+  pinMode(8, OUTPUT);
+  pinMode(9, OUTPUT);
+  pinMode(10, OUTPUT);
 }
 
 void systemDeinit(void) {
@@ -146,6 +156,16 @@ void systemToApplication(void)
     canInitFrame(&msg, canId);
     systemInit(); // set up clock
     canInit();// need to reactivate
+
+    /*
+    // for debug make sure it transmits in correct byte order
+    canInitFrame(&msg, canId);
+    for(int i = 0; i < 8; ++i)
+      msg.data8[msg.DLC++] = i;
+    canPost(&msg);
+    // end debug
+    */
+
     while (1) {
       msg.DLC = 2;
       msg.data8[0] = C_bootloaderReset;

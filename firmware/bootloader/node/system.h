@@ -17,8 +17,9 @@
 #include <stdint.h>
 #include <can_protocol.h>
 
+// these are in milliseconds
 #define WAIT_BEFORE_APPBOOT 100
-
+#define WAIT_UNRESPONSE_CAN_BEFORE_RESET 60000
 
 
 #ifdef __cplusplus
@@ -28,12 +29,14 @@ extern "C" {
 #if defined(ARDUINO) && defined(DEBUG_PRINT)
   // for cfiles in teensy
   void print_str(const char *str);
-  void endl();
+  void endl(void);
   void print_uint(uint32_t vlu);
+  void print_flush(void);
 #else
 # define print_str(buf)
 # define print_uint(vlu)
 # define endl()
+# define print_flush()
 #endif
 
 extern const uint16_t canId;

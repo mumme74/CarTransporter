@@ -16,6 +16,7 @@
 #include <string.h>
 
 typedef volatile uint32_t vuint32_t;
+typedef volatile uint8_t  vuint8_t;
 
 #define IRQ_PRIORITY    64 //0 = highest, 255 = lowest
 
@@ -54,6 +55,7 @@ typedef volatile uint32_t vuint32_t;
 #define FLEXCAN_MCR_FRZ_ACK            (0x01000000)
 #define FLEXCAN_MCR_SOFT_RST           (0x02000000)
 #define FLEXCAN_CTRL_CLK_SRC           (0x00002000)
+#define FLEXCAN_CTRL_BOFF_MSK          (0x00008000)
 #define FLEXCAN_MCR_FRZ                (0x40000000)
 #define FLEXCAN_MCR_MDIS               (0x80000000)
 #define FLEXCAN_MCR_LPM_ACK            (0x00100000)
@@ -67,6 +69,7 @@ typedef volatile uint32_t vuint32_t;
 #define FLEXCAN_MB_CODE_RX_OVERRUN		(6)
 #define FLEXCAN_MB_CODE_TX_INACTIVE	(8)
 #define FLEXCAN_MB_CODE_TX_ABORT		(9)
+#define FLEXCAN_MB_CODE_RX_EMPTY		(4)
 #define FLEXCAN_MB_CODE_TX_ONCE			(0x0C)
 #define FLEXCAN_MB_ID_STD_MASK		   (0x1FFC0000L)
 #define FLEXCAN_MB_ID_EXT_MASK		   (0x1FFFFFFFL)
@@ -111,20 +114,21 @@ int8_t _canPost(canframe_t *msg);
 void _canInit(void);
 void _canLoop(void);
 
-enum mailboxes {
+typedef enum {
   _RX_start,
   RX0 = _RX_start,
   RX1,
   RX2,
   RX3,
-  _RX_enc = RX3,
+  _RX_end = RX3,
   _TX_start,
   TX0 = _TX_start,
-  TX1,
-  TX2,
-  TX3,
-  _TX_end = TX3
-};
+  _TX_end = TX0 // only 1 tx box so we dont get race issues
+  //TX1,
+  //TX2,
+  //TX3,
+  //_TX_end = TX3
+} mailboxes_t;
 
 uint32_t canFilter = 0, //(canId | C_displayNode),
          canMask   = 0;
@@ -140,10 +144,21 @@ void canShutdown(void)
     ;
 }
 
+void canDisableIRQ(void)
+{
+  NVIC_DISABLE_IRQ(IRQ_CAN_MESSAGE);
+}
+void canEnableIRQ(void)
+{
+  NVIC_ENABLE_IRQ(IRQ_CAN_MESSAGE);
+}
+
 
 
 // -----------------------------------------------------------
 // architecture specific from here on, treat as private
+static void writeTx(const canframe_t *frm, uint8_t buffer);
+
 void _canInit(void)
 {
 //  const uint8_t CAN_TX_BOX_CNT = 2;
@@ -185,10 +200,11 @@ void _canInit(void)
   // 16_000_000 hz / 250_000 / 4 = 16
   // {2,7,3}, //16 // from FlexCAN.cpp bittimingtable
   FLEXCANb_CTRL1(FLEXCAN0_BASE) = (FLEXCAN_CTRL_PROPSEG(2) |
-				FLEXCAN_CTRL_RJW(1) |
-				FLEXCAN_CTRL_PSEG1(7) |
-				FLEXCAN_CTRL_PSEG2(3) |
-				FLEXCAN_CTRL_PRESDIV(4));
+                                FLEXCAN_CTRL_BOFF_MSK |
+                                FLEXCAN_CTRL_RJW(1) |
+                                FLEXCAN_CTRL_PSEG1(7) |
+                                FLEXCAN_CTRL_PSEG2(3) |
+                                FLEXCAN_CTRL_PRESDIV(3));
 
   // enable per-mailbox filtering
   FLEXCANb_MCR(FLEXCAN0_BASE) |= FLEXCAN_MCR_IRMQ;
@@ -212,35 +228,69 @@ void _canInit(void)
   // wait till ready
   while(FLEXCANb_MCR(FLEXCAN0_BASE) & FLEXCAN_MCR_NOT_RDY);
 
-  // assumes
+  // set up mailboxes
+  //Inialize RX
+  for (mailboxes_t mb = _RX_start; mb <= _RX_end; ++mb)
+      FLEXCANb_MBn_CS(FLEXCAN0_BASE, mb) = FLEXCAN_MB_CS_CODE(FLEXCAN_MB_CODE_RX_EMPTY);
+
+  //Initialize TX
+  for (mailboxes_t mb  = _TX_start; mb <= _TX_end; ++mb)
+      FLEXCANb_MBn_CS(FLEXCAN0_BASE, mb) = FLEXCAN_MB_CS_CODE(FLEXCAN_MB_CODE_TX_INACTIVE);
+
+
+#ifdef __MK20DX256__
+  // teensy3.2
   NVIC_SET_PRIORITY(IRQ_CAN_MESSAGE, IRQ_PRIORITY);
   NVIC_ENABLE_IRQ(IRQ_CAN_MESSAGE);
+#else
+  // teensy 3.5 - 3.6?
+  NVIC_SET_PRIORITY(IRQ_CAN0_MESSAGE, IRQ_PRIORITY);
+  NVIC_ENABLE_IRQ(IRQ_CAN0_MESSAGE);
+#endif
 
 
   FLEXCANb_IMASK1(FLEXCAN0_BASE) = 0xFFFF; //enable interrupt masks for all m.boxes
+}
+
+bool _canGet(void)
+{
+  digitalWrite(6, !digitalRead(6));
+  if (usb_serial_available())
+    usb_serial_flush_output();
+  return false;
 }
 
 
 // check if we have any available mailboxes already
 int8_t _canPost(canframe_t *msg)
 {
-  for (int i = _TX_start; i <= _TX_end; ++i) {
+  canDisableIRQ();
+  for (uint8_t i = _TX_start; i <= _TX_end; ++i) {
       uint32_t code = FLEXCAN_get_code(FLEXCANb_MBn_CS(FLEXCAN0_BASE, i));
-      if (code == FLEXCAN_MB_CODE_TX_INACTIVE ||
-          code == FLEXCAN_MB_CODE_TX_ABORT)
-      {
+      //print_uint(code);endl();
+      switch(code) {
+      //case FLEXCAN_MB_CODE_TX_ABORT:
+      case FLEXCAN_MB_CODE_RX_EMPTY: // fallthrough
+      case FLEXCAN_MB_CODE_TX_INACTIVE: {
+	 writeTx(msg, i);
 	 // generate a software interupt
-	 NVIC_STIR =  CAN0_MSG_ISRn | NVIC_STIR_INTID_Msk;
+	 //NVIC_STIR =  CAN0_MSG_ISRn | NVIC_STIR_INTID_Msk;
+	 canEnableIRQ();
 	 return 1;
+      } break;
+      default: ;
       }
   }
-
+  //print_str("tx failed\n");
+  //print_flush();
+  canEnableIRQ();
   return 0;
 }
 
 // NOTE !! this is called from isr, not used by normal code
 static void readMB(canframe_t *frm, uint8_t buffer, fifo_t *queue)
 {
+  digitalWrite(9, !digitalRead(9));
   // get identifier and dlc
   frm->DLC = FLEXCAN_get_length(FLEXCANb_MBn_CS(FLEXCAN0_BASE, buffer));
   frm->ext = (FLEXCANb_MBn_CS(FLEXCAN0_BASE, buffer) & FLEXCAN_MB_CS_IDE)? 1:0;
@@ -249,19 +299,27 @@ static void readMB(canframe_t *frm, uint8_t buffer, fifo_t *queue)
   if(!frm->ext)
     frm->EID >>= FLEXCAN_MB_ID_STD_BIT_NO;
 
-
-  // get the message, these are big endian
-  uint8_t *MBdata = ((uint8_t*)FLEXCANb_MBn_WORD0(FLEXCAN0_BASE, buffer));
-  for (int s = 0, e = 7; s < 8; ++s, --e) {
-      if (frm->DLC <= s)
-	frm->data8[s] = 0; // not used
-      else
-	frm->data8[s] = MBdata[e];
-  }
+  // get the message
+  // these are big endian in register, byte trickery to reverse them
+  u32to8_t w0 = { FLEXCANb_MBn_WORD0(FLEXCAN0_BASE, buffer) },
+	   w1 = { FLEXCANb_MBn_WORD1(FLEXCAN0_BASE, buffer) };
+  for (int s = 0, e = 3; s < 4 && frm->DLC > s; ++s, --e)
+      frm->data8[s] = w0.v8[e];
+  for (int s = 4, e = 3; s < 8 && frm->DLC > s; ++s, --e)
+      frm->data8[s] = w1.v8[e];
+  FLEXCANb_MBn_WORD0(FLEXCAN0_BASE, buffer) = w0.v32;
+  FLEXCANb_MBn_WORD1(FLEXCAN0_BASE, buffer) = w1.v32;
 
   // check if we are full
   if (fifo_spaceleft(queue) < 2)// need 2 as 1 + 1 would reset (start over algorithm assumes empty)
     return;
+
+  print_str("rcv dlc=");
+  print_uint(frm->DLC);print_str(" ");
+  for(int i = 0; i < frm->DLC; ++i)
+    print_uint(frm->data8[i]);
+  endl();
+  print_flush();
 
   fifo_push(queue, frm);
 }
@@ -282,18 +340,26 @@ static void writeTx(const canframe_t *frm, uint8_t buffer)
     FLEXCANb_MBn_ID(FLEXCAN0_BASE, buffer) = FLEXCAN_MB_ID_IDSTD(frm->IDE);
   }
 
-  // insert data to transmitt Mailbox, its big endian
-  uint8_t *MBdata = ((uint8_t*)FLEXCANb_MBn_WORD0(FLEXCAN0_BASE, buffer));
-  for (int s = 0, e = 7; s < 8; ++s, --e)
-    MBdata[e] = frm->data8[s];
+  // insert data to transmit Mailbox, its big endian
+  // these are big endian in register, byte trickery to reverse them
+  u32to8_t w0, w1;
+  for (int s = 0, e = 3; s < 4; ++s, --e)
+    w0.v8[e] = frm->data8[s];
+  for (int s = 4, e = 3; s < 8; ++s, --e)
+    w1.v8[e] = frm->data8[s];
+  FLEXCANb_MBn_WORD0(FLEXCAN0_BASE, buffer) = w0.v32;
+  FLEXCANb_MBn_WORD1(FLEXCAN0_BASE, buffer) = w1.v32;
+
+  //print_str("post");
+  print_uint(frm->data8[0]);endl();
+  digitalWrite(8, !digitalRead(8));
 
   uint32_t flags = FLEXCAN_MB_CS_CODE(FLEXCAN_MB_CODE_TX_ONCE) |
                                          FLEXCAN_MB_CS_LENGTH(frm->DLC);
   if (frm->ext)
     flags |= FLEXCAN_MB_CS_IDE | FLEXCAN_MB_CS_SRR;
-  if (frm->ext)
+  if (frm->rtr)
     flags |= FLEXCAN_MB_CS_RTR;
-
   // set the flags and be done
   FLEXCANb_MBn_CS(FLEXCAN0_BASE, buffer) = flags;
 }

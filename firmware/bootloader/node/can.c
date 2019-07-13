@@ -12,7 +12,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-
 // private variables to this file
 static canframe_t rxbuf[BUFFER_SIZE];
 static canframe_t txbuf[BUFFER_SIZE];
@@ -21,6 +20,7 @@ static canframe_t txbuf[BUFFER_SIZE];
 // architecture specific
 extern int8_t _canPost(canframe_t *msg);
 extern void _canInit(void);
+extern bool _canGet(void);
 
 
 // global variables
@@ -38,6 +38,30 @@ void canInit(void)
   _canInit();
 }
 
+void canWaitRecv(canframe_t *msg) {
+  uint32_t resetAt = systemMillis() + WAIT_UNRESPONSE_CAN_BEFORE_RESET;
+  while(!canGet(msg)) {
+      if (systemMillis() > resetAt)
+	systemReset();
+#ifdef DEBUG_PRINT
+      if (systemMillis() % 100 && usb_serial_available())
+	print_flush();
+#endif
+  }
+}
+
+void canWaitSend(canframe_t *msg) {
+  uint32_t resetAt = systemMillis() + WAIT_UNRESPONSE_CAN_BEFORE_RESET;
+  while(!canPost(msg) != 1) {
+      if (systemMillis() > resetAt)
+	systemReset();
+#ifdef DEBUG_PRINT
+      if (systemMillis() % 100 && usb_serial_available())
+	print_flush();
+#endif
+  }
+}
+
 /**
  * @brief get the first received msg from fifo
  * returns: false if empty
@@ -46,7 +70,9 @@ void canInit(void)
  */
 bool canGet(canframe_t *msg)
 {
-  return fifo_pop(&can_rxqueue, msg);
+  if (fifo_pop(&can_rxqueue, msg))
+    return true;
+  return _canGet();
 }
 
 /**
@@ -60,11 +86,14 @@ int8_t canPost(canframe_t *msg)
   // notify which node sends this msg
   msg->IDE &= (CAN_MSG_TYPE_MASK | CAN_MSG_ID_MASK | NODE_ID);
 
-  // buffer full?
-  if (!fifo_push(&can_txqueue, msg))
-    return -1;
+  if (!_canPost(msg)) {
+      // buffer full?
+      if (!fifo_push(&can_txqueue, msg))
+	return -1;
+      return 0;
+  }
 
-  return _canPost(msg);
+  return 1;
 }
 
 void canInitFrame(canframe_t *msg, uint32_t id)

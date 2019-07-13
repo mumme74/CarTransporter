@@ -112,6 +112,6 @@ SECTIONS
 	_estack = ORIGIN(RAM) + LENGTH(RAM) -4;
 	_stack  = _estack;
 	_appRomStart = ORIGIN(rom);
-	_appRomEnd   = ORIGIN(rom) + LENGTH(rom);
+	_appRomEnd   = ORIGIN(rom) + LENGTH(rom) -4;
 	_bootRom     = ORIGIN(bootrom);
 }

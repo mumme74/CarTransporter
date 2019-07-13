@@ -22,7 +22,7 @@ int main(void)
     msg.data8[msg.DLC++] = C_bootloaderReset;
     canPost(&msg);
 
-    while (systemMillis() < WAIT_BEFORE_APPBOOT){
+    while (systemMillis() < WAIT_BEFORE_APPBOOT + 7000){
       if (canGet(&msg))
         commandsStart(&msg); // resets from within
     }

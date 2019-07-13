@@ -123,15 +123,30 @@ void canShutdown(void)
   can_reset(CAN1);
 }
 
+void canDisableIRQ(void)
+{
+  nvic_disable_irq(NVIC_USB_HP_CAN1_TX_IRQ);
+  nvic_disable_irq(NVIC_USB_LP_CAN1_RX0_IRQ);
+  nvic_disable_irq(NVIC_CAN1_RX1_IRQ);
+}
+void canEnableIRQ(void)
+{
+  nvic_enable_irq(NVIC_USB_HP_CAN1_TX_IRQ);
+  nvic_enable_irq(NVIC_USB_LP_CAN1_RX0_IRQ);
+  nvic_enable_irq(NVIC_CAN1_RX1_IRQ);
+}
 
 // --------------------------------------------------------------------
 // implementation specific here on, treat as private
 
 int8_t _canPost(canframe_t *msg)
 {
-  (void)msg;
   // should we send immediately?
   if (can_available_mailbox(CAN1)) {
+    uint16_t guard = 0;
+    while (!fifo_push(&can_txqueue, msg) && ++guard)
+      nvic_generate_software_interrupt(NVIC_USB_HP_CAN1_TX_IRQ);
+
     nvic_generate_software_interrupt(NVIC_USB_HP_CAN1_TX_IRQ);
     return 1;
   }

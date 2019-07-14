@@ -313,13 +313,14 @@ static void readMB(canframe_t *frm, uint8_t buffer, fifo_t *queue)
   // check if we are full
   if (fifo_spaceleft(queue) < 2)// need 2 as 1 + 1 would reset (start over algorithm assumes empty)
     return;
-
-  print_str("rcv dlc=");
+  /*
+  print_str("rcv isr dlc=");
   print_uint(frm->DLC);print_str(" ");
   for(int i = 0; i < frm->DLC; ++i)
     print_uint(frm->data8[i]);
   endl();
   print_flush();
+  */
 
   fifo_push(queue, frm);
 }
@@ -349,10 +350,11 @@ static void writeTx(const canframe_t *frm, uint8_t buffer)
     w1.v8[e] = frm->data8[s];
   FLEXCANb_MBn_WORD0(FLEXCAN0_BASE, buffer) = w0.v32;
   FLEXCANb_MBn_WORD1(FLEXCAN0_BASE, buffer) = w1.v32;
-
-  //print_str("post");
+/*
+  print_str("post isr");
   print_uint(frm->data8[0]);endl();
   digitalWrite(8, !digitalRead(8));
+  */
 
   uint32_t flags = FLEXCAN_MB_CS_CODE(FLEXCAN_MB_CODE_TX_ONCE) |
                                          FLEXCAN_MB_CS_LENGTH(frm->DLC);

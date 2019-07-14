@@ -46,9 +46,9 @@ void canWaitRecv(canframe_t *msg) {
       if (now > resetAt)
 	systemReset();
 #ifdef DEBUG_PRINT
-      if (now > 1000 && now % 1000)
-	  print_uint(sizeof(rxbuf) / sizeof(msg) - fifo_spaceleft(&can_rxqueue));endl();
-      if (now % 100 && print_available())
+//      if (now > 1000 && (now % 1000) == 0)
+//	  print_uint(sizeof(rxbuf) / sizeof(msg) - fifo_spaceleft(&can_rxqueue));endl();
+      if ((now % 100) == 0 && print_available())
 	print_flush();
 #endif
   }
@@ -67,7 +67,7 @@ void canWaitSend(canframe_t *msg) {
           systemReset();
       }
 #ifdef DEBUG_PRINT
-      if (now % 100 && print_available()) {
+      if ((now % 100) == 0 && print_available()) {
 	print_flush();
       }
 #endif

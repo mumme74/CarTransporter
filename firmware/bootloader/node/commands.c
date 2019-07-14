@@ -61,6 +61,7 @@ static bool runCommand(canframe_t *msg)
   static byte4_t crc;
   static byte2_t canPageNr; // as in CAN page
   static uint8_t  frames, frameNr; //, *addr, *endAddr;
+rescan:
   print_str("rC\r\n");
   switch(msg->data8[0]){
   case C_bootloaderReadFlash: {
@@ -83,7 +84,7 @@ readPageLoop:
     // also when reading memory we don't need that 2K memory page restriction that we need when writing to memory
     frames = MIN(((endAddr.vlu - addr.vlu -1) / 7 + (endAddr.vlu - addr.vlu -1) % 7),
                  BOOTLOADER_PAGE_SIZE+1);
-print_str("read fn:");print_uint(frames);endl();
+print_str("read frames:");print_uint(frames);endl();
 
     crc.vlu = crc32(0, addr.ptr8 + (frameNr * 7),
                     MIN(endAddr.vlu - addr.vlu -1, ((BOOTLOADER_PAGE_SIZE+1) * 7)));
@@ -106,7 +107,7 @@ print_str("read fn:");print_uint(frames);endl();
       msg->data8[0] = frameNr++;
       for (uint8_t i = 1; i < 8; ++i) {
         msg->data8[i] = *addr.ptr8;
-        if (++addr.vlu >= endAddr.vlu) {
+        if (addr.vlu++ >= endAddr.vlu) {
           msg->DLC = i;
           break; // frameId should now be frameId == frames
         }
@@ -115,11 +116,16 @@ print_str("read fn:");print_uint(frames);endl();
     }
 
     // wait for remote to Ack this page
+
+    print_str("wait ack adr:");print_uint(addr.vlu);
     do {
       canWaitRecv(msg);
-      if (msg->DLC > 0 && msg->data8[0] == C_bootloaderReset)
-        systemReset();
-    } while(msg->DLC != 2 && msg->data8[0] != C_bootloaderReadFlash);
+      print_str("got can");endl();
+      if (msg->DLC != 2 || msg->data8[0] != C_bootloaderReadFlash)
+        goto rescan;
+      if (msg->IDE != (canId & (CAN_MSG_ID_MASK | CAN_MSG_TYPE_MASK )))
+	continue;
+    } while(msg->data8[0] != C_bootloaderReadFlash);
 
     print_str("after ack adr:");print_uint(addr.vlu);
     print_str(" eAdr:");print_uint(endAddr.vlu);endl();

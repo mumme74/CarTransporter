@@ -20,6 +20,7 @@
 # include <sys/time.h>
 # include <sys/uio.h>
 # include <net/if.h>
+# include "unix_common.h"
 
 //# include <linux/can.h>
 //# include <linux/can/raw.h>
@@ -56,12 +57,21 @@ static byte4_t  nodeCrc,
                 binCrc;
 
 
-void printProgress (double percentage)
+void printProgress (double vlu, int frames)
 {
-    int val = (int) (percentage * 100);
+    static const char spinCh[8] = { '|', '/', '-', '\\', '|', '/', '-', '\\' };
+    static double percentage = 0.0;
+    if (vlu > 0)
+        percentage = vlu;
+    int val = (int)(percentage * 100);
+    int spin = frames % 8;
     int lpad = (int) (percentage * PBWIDTH);
     int rpad = PBWIDTH - lpad;
-    printf ("\r%3d%% [%.*s%*s]", val, lpad, PBSTR, rpad, "");
+    if (val > 0 && val < 100) {
+        --rpad;
+        printf ("\r%3d%% [%.*s%c%*s]", val, lpad, PBSTR, spinCh[spin], rpad, "");
+    } else
+        printf ("\r%3d%% [%.*s%*s]", val, lpad, PBSTR, rpad, "");
     fflush (stdout);
 }
 
@@ -372,7 +382,7 @@ writeCanPageLoop:
       for (uint8_t i = 1; i < end; ++i) {
         sendFrm->data[i] = *addr;
         if (memPageGuard++ >= memory.pageSize) {
-          // break at 2048 bits for a stm32
+          // break at 2048 bytes for a stm32
           // should never arrive here!
           return C_bootloaderErrMemoryPageViolation;
         }
@@ -385,6 +395,8 @@ writeCanPageLoop:
           printCanError();
           return C_bootloaderErrSendFailed;
       }
+
+      printProgress(-1.0, frameNr);
     }
 
     // wait for remote to Ack this page
@@ -393,7 +405,7 @@ writeCanPageLoop:
         uint32_t total = (uint32_t)(endAddr - fileCache),
                  diff = total - (uint32_t)(endAddr - addr);
         double progress = (double)diff / total;
-        printProgress(progress);
+        printProgress(progress, 0);
 
         // get response from node
         if (canbridge_recv(recvFrm, 1000) < 1) {
@@ -431,12 +443,13 @@ static can_bootloaderErrs_e recvFileFromNode(uint8_t *fileCache, canframe_t *sen
 {
     uint16_t canPageNr;
     uint8_t frames, frameNr, retryCnt = 0;
+    uint32_t totalFrames = ((endAddr - startAddr) / 7) / (BOOTLOADER_PAGE_SIZE -1);
     byte4_t crc = { 0 };
 
     uint32_t lastStoredIdx = 0,
              previousStoredIndex = 0;
     // for debug
-    uint32_t reqs = 1, revcs = 0;
+//    uint32_t reqs = 1, revcs = 0;
 
     canPageNr = 0;
 
@@ -446,7 +459,9 @@ readCanPageLoop:
 
     // loop to receive a complete canPage
     do {
+      //printf("\nRecv start at %u frameNr:%u\n", timeGetTime(), frameNr);
       if (canbridge_recv(recvFrm, 1000) < 1) {
+          //printf("Recv failed at %u\n", timeGetTime());
           if (frames == 0 && retryCnt < 5) {
             printCanError();
             usleep(100000);
@@ -462,15 +477,12 @@ readCanPageLoop:
         crc.b2 = recvFrm->data[3];
         crc.b3 = recvFrm->data[4];
 
-        revcs++;
+ //       revcs++;
 
-        //crc = (uint32_t)(recvFrm->data[4] << 24 | recvFrm->data[3] << 16 |
-        //                 recvFrm->data[2] << 8  | recvFrm->data[1]);
         frames = recvFrm->data[5];
         byte2_t pgNr;
         pgNr.b0 = recvFrm->data[6];
         pgNr.b1 = recvFrm->data[7];
-        //if (canPageNr != (recvFrm->data[7] << 8 | recvFrm->data[6])) {
         if (canPageNr != pgNr.vlu) {
             return C_bootloaderErrCanPageOutOfOrder;
         }
@@ -484,6 +496,8 @@ readCanPageLoop:
           fileCache[cPage + fOffset + i -1] = recvFrm->data[i];
         }
         ++frameNr;
+        if (((totalFrames / 8) % frameNr) == 0)
+            printProgress(-1.0, frameNr);
         //printf("at idx:%u cPage:%u fOffset:%u\n", cPage + fOffset + recvFrm->can_dlc -1, cPage, fOffset);
       }
 
@@ -492,7 +506,7 @@ readCanPageLoop:
     // progressbar
     uint32_t total = (uint32_t)(endAddr - startAddr -1);
     double progress = (double)lastStoredIdx / total;
-    printProgress(progress);
+    printProgress(progress, 0);
 
     // check canPage
     // pointer buf[0] advance to start of canPage.
@@ -502,6 +516,7 @@ readCanPageLoop:
     if (crc.vlu != recvCrc) {
       // notify node that we need this canPage retransmitted
 resend:
+      //printf("Resend start at %u frameNr:%u\n", timeGetTime(), frameNr);
       sendFrm->can_dlc = 2;
       sendFrm->data[0] = C_bootloaderReadFlash;
       sendFrm->data[1] = C_bootloaderErrResend;
@@ -523,20 +538,17 @@ resend:
       sendFrm->can_dlc = 2;
       sendFrm->data[0] = C_bootloaderReadFlash;
       sendFrm->data[1] = C_bootloaderErrOK;
+      //printf("Request start at %d", timeGetTime());
       if (canbridge_send(sendFrm, 100) < 1) {
           printCanError();
           return C_bootloaderErrSendFailed;
       }
-      // for debug
-      reqs++;
-      struct timeval timeVal;
-      gettimeofday(&timeVal, NULL);
-      char sec[9], usec[7];
-      snprintf(sec, 9, "%08lu", timeVal.tv_sec);
-      snprintf(usec, 7, "%06lu", timeVal.tv_usec);
-      fprintf(stdout, "request at [%s:%s] frameNr:%u\n", sec, usec, frameNr);
 
-      // end debug
+//      // for debug
+//      reqs++;
+//      fprintf(stdout, "request at %u frameNr:%u\n", timeGetTime(), frameNr);
+//      // end debug
+
       previousStoredIndex = lastStoredIdx;
       goto readCanPageLoop;
     }

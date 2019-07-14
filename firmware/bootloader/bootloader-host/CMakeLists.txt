@@ -15,6 +15,7 @@ if(WIN32 AND NOT COMPILE_FOR_RPI)
   add_compile_options(/W3 /WX)
   set(WIN_FIXES "win_getopt.c")
 else()
+  set(UNIX_FIXES "unix_common.c")
   if (COMPILE_FOR_RPI)
     set(RPI_SYSROOT CACHE PATH "Sysroot for raspberrypi" "")
     set(RPI_STAGING_PREFIX CACHE PATH "Install to" "")
@@ -55,6 +56,7 @@ endif()
 # app sources
 set(SOURCES ${DRIVER_SOURCES}
             ${WIN_FIXES}
+            ${UNIX_FIXES}
             "commands.c"
             "canbridge.c"
             "main.c"

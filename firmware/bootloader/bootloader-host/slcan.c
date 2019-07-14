@@ -37,6 +37,7 @@ static int *_abortLoop = &_abortVar;
 #include <unistd.h>
 #include <sys/time.h>
 #include <sys/ioctl.h>
+#include "unix_common.h"
 
 #ifdef __APPLE__
 // for iotcl set serial speed to 3000000 baud
@@ -50,12 +51,13 @@ static int *_abortLoop = &_abortVar;
 
 typedef struct timeval timeval_t;
 
-static int min_latency = 20; // FTDI chips has a default 16ms latency timer
+static uint16_t min_latency = 20; // FTDI chips has a default 16ms latency timer
                              // it waits for either 64bytes or 16ms
                              // it is changable through DLL, but not through serial (unless its a linux)
                              // linux does however let us set 1ms latency in ioctl
 
 static int canfd = 0;
+
 
 
 static int open_port(const char *portname)
@@ -160,40 +162,56 @@ static int write_port(const char *buf, uint32_t len,
     return *bytesWritten == len;
 }
 
-static int read_port(char *buf, uint32_t len,
-                     uint32_t *bytesRead, int timeoutms)
+static int read_port(char *buf, uint32_t maxLen, uint32_t minLen,
+                     uint32_t *bytesRead, uint16_t timeoutms)
 {
     if (timeoutms < min_latency)
         timeoutms = min_latency;
     *bytesRead = 0;
-    uint32_t retries = 0;
+    uint32_t timeoutAt = timeGetTime() + timeoutms;
 
-    timeval_t timeoutAt, initial, now, add = { timeoutms / 1000 , 1000 * timeoutms };
-    gettimeofday(&initial, NULL);
+    fd_set set;
+    struct timeval timeout;
+    int rv;
 
-    // calculate when to bail out
-    timeradd(&initial, &add, &timeoutAt);
+    FD_ZERO(&set); /* clear the set */
+    FD_SET(canfd, &set); /* add our file descriptor to the set */
+
+    timeout.tv_sec = timeoutms / 1000;
+    timeout.tv_usec = timeoutms * 1000;
+
     do {
-        ssize_t res = read(canfd, &buf[*bytesRead], len - *bytesRead);
-        if (res > 0) {
-            *bytesRead += (uint32_t)res;
-            retries = 0;
-        } else if (res == -1 && errno != EAGAIN) {
-                return -errno; // read error
-        } else {
-            // can we safely break?
-            if (++retries > 10 && *bytesRead > 0) {
-                //for(int32_t i = (int32_t)*bytesRead -1; i >= 0; --i)
-                 //   if (buf[i] == '\r')
-                        break;
-            }
-        }
-        usleep(1000);
-        gettimeofday(&now, NULL);
-    } while(timercmp(&now, &timeoutAt, < ) &&
-            *bytesRead < len && !*_abortLoop);
+        rv = select(canfd + 1, &set, NULL, NULL, &timeout);
+        if(rv == -1) {
+          CANBRIDGE_SET_ERRMSG("select failed while read serial: %s\n", strerror(errno))
+          return -errno;
+        } else if(rv > 0) {
+             ssize_t res = read(canfd, &buf[*bytesRead], maxLen - *bytesRead);
+             if (res > 0) {
+                 *bytesRead += (uint32_t)res;
+             } else if (res == -1 && errno != EAGAIN)
+                 return -errno; // read error
+         }
+     } while((timeoutAt > timeGetTime()) &&
+              *bytesRead < minLen && !*_abortLoop);
 
-    return *bytesRead == len;
+//    do {
+//        ssize_t res = read(canfd, &buf[*bytesRead], maxLen - *bytesRead);
+//        if (res > 0) {
+//            *bytesRead += (uint32_t)res;
+//            retries = 0;
+//        } else if (res == -1 && errno != EAGAIN) {
+//            return -errno; // read error
+//        }else if (*bytesRead > minLen && ++retries > 10) {
+//            // can we safely break now?
+//            break;
+//        }
+//        usleep(5000);
+
+//    } while((timeoutAt > timeGetTime()) &&
+//            *bytesRead < maxLen && !*_abortLoop);
+
+    return *bytesRead == maxLen;
 }
 
 static void flush_port(int rx, int tx)
@@ -222,12 +240,6 @@ static int close_port(void)
     return 1;
 }
 
-uint32_t timeGetTime()
-{
-    timeval_t now;
-    gettimeofday(&now, NULL);
-    return (uint32_t)((now.tv_sec * 1000) + (now.tv_usec / 1000));
-}
 
 #else // _WIN32
 
@@ -616,11 +628,11 @@ void response_clear_all(ResponseList_t *lst)
  * @param timeoutms, timeout serialread in ms
  * @return 1 on success or 0
  */
-int response_read_serial(ResponseList_t *lst, const int timeoutms)
+int response_read_serial(ResponseList_t *lst, uint32_t minLen, const uint16_t timeoutms)
 {
     uint32_t timeoutAt = timeGetTime() + (uint32_t)timeoutms;
 
-    enum { BUF_SZ = 2048 };
+    enum { BUF_SZ = 0xFFFFFF };
     static char buf[BUF_SZ];
     static uint32_t bufPos = 0; // position of previous unfinished read
 
@@ -630,7 +642,7 @@ int response_read_serial(ResponseList_t *lst, const int timeoutms)
             initialLen = lst->len;
     Response_t *itm = NULL;
 
-    int res = read_port(&buf[bufPos], BUF_SZ - bufPos, &nBytes, timeoutms);
+    int res = read_port(&buf[bufPos], BUF_SZ - bufPos, minLen, &nBytes, timeoutms);
     if (res < 0)
         CANBRIDGE_SET_ERRMSG("Failed to read from serial: %s\n", strerror(-res))
 
@@ -683,7 +695,7 @@ int response_read_serial(ResponseList_t *lst, const int timeoutms)
         // if we have found any chars in this invokation wewant to return true
         // sub recurse should eventually end up in false.
         int res = nBytes > 0,
-            res2 = response_read_serial(lst, (int)(timeoutAt - timeGetTime()));
+            res2 = response_read_serial(lst, minLen, (uint16_t)(timeoutAt - timeGetTime()));
         return res ? res : res2;
     }
 
@@ -703,13 +715,20 @@ cleanup:
  * @return
  */
 Response_t *response_find(ResponseList_t *lst, const char *cmdsFilter,
-                          uint8_t reversed, int restrct, int timeoutms)
+                          uint8_t reversed, int restrct, uint16_t timeoutms)
 {
-    uint32_t timeoutAt = timeGetTime() + (uint32_t)timeoutms;
+    uint32_t timeoutAt = timeGetTime() + (uint32_t)timeoutms,
+             minLen = 2;
+    switch(cmdsFilter[0]){
+    case 't': case 'r': minLen = 27; break;
+    case 'T': case 'R': minLen = 32; break;
+    case 'F': minLen = 4; break;
+    default: if (cmdsFilter[0] <= '\r') minLen = 1;
+    }
 
     // if we are empty, read from serial, if none read then bail
     if (!lst->len && timeoutms > 0)
-        if (!response_read_serial(lst, timeoutms))
+        if (!response_read_serial(lst, minLen, timeoutms))
             return NULL;
 
     Response_t *itm;
@@ -744,9 +763,9 @@ Response_t *response_find(ResponseList_t *lst, const char *cmdsFilter,
 
     // we have not found it, read from serial again until we timeout
     if (timeGetTime() < timeoutAt) {
-        timeoutms = (int)(timeoutAt - timeGetTime());
+        timeoutms = (uint16_t)(timeoutAt - timeGetTime());
         if (timeoutms > 0) {
-            response_read_serial(lst, timeoutms);
+            response_read_serial(lst, minLen, timeoutms);
             return response_find(lst, cmdsFilter, reversed, restrct, timeoutms);
         }
     }
@@ -764,6 +783,8 @@ static int clear_pipeline(void) {
     // canusb.com states:
     // Always start each session (when your program starts) with sending 2-3 [CR]
     response_clear_all(&responses);
+    // discard old chars from serial buffer
+    flush_port(1, 1);
 
     for(int i = 0; i < 3; ++i) {
         char ch = CR;
@@ -809,9 +830,6 @@ int slcan_init(const char *name, CAN_Speeds_t speed)
     // this driver needs a open
     if (open_port(name) < 1)
         GOTO_CLEANUP_ERR
-
-    // discard old chars from serial buffer
-    flush_port(1, 1);
 
     state = CANBRIDGE_INIT;
 
@@ -1041,7 +1059,7 @@ uint8_t slcan_geterrors(void)
     if (state == CANBRIDGE_OPEN) {
         char txChs[] = { 'F', CR };
         uint32_t nBytes;
-        int sRes = write_port(txChs, 2, &nBytes, 5);
+        int sRes = write_port(txChs, 2, &nBytes, 10);
         if (sRes < 0) {
             // err msg already set
             goto cleanup;
@@ -1050,7 +1068,7 @@ uint8_t slcan_geterrors(void)
             goto cleanup;
         }
 
-        resp = response_find(&responses, "F\a", 1, 1, 5);
+        resp = response_find(&responses, "F\a", 1, 1, 10);
         if (!resp) {
             CANBRIDGE_SET_ERRMSG("No response from slcan interface when reading error message\n")
             goto cleanup;
@@ -1291,6 +1309,7 @@ int slcan_recv(canframe_t *frm, int timeoutms)
     resp = response_find(&responses, "tTrR", 0, 0, timeoutms);
     if (!resp)
         GOTO_CLEANUP_ERR
+    //printf("rcv:%s\n", resp->data);
 
     if (resp->len < 5)
         GOTO_CLEANUP_ERR

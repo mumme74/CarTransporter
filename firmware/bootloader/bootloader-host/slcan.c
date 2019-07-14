@@ -139,13 +139,19 @@ static int write_port(const char *buf, uint32_t len,
 
     timeval_t timeoutAt, initial, now, add = { 0 , 1000 * timeoutms };
     gettimeofday(&initial, NULL);
+    uint32_t retries = 0;
 
     // calculate when to bail out
     timeradd(&initial, &add, &timeoutAt);
     do {
         ssize_t res = write(canfd, &buf[*bytesWritten], len - *bytesWritten);
-        if (res > 0)
+        if (res > 0) {
             *bytesWritten += (uint32_t)res;
+            retries = 0;
+        } else {
+            if (++retries > 10 && *bytesWritten > 0)
+                break;
+        }
         gettimeofday(&now, NULL);
         usleep(1000);
     } while(timercmp(&now, &timeoutAt, < ) &&
@@ -160,6 +166,7 @@ static int read_port(char *buf, uint32_t len,
     if (timeoutms < min_latency)
         timeoutms = min_latency;
     *bytesRead = 0;
+    uint32_t retries = 0;
 
     timeval_t timeoutAt, initial, now, add = { timeoutms / 1000 , 1000 * timeoutms };
     gettimeofday(&initial, NULL);
@@ -168,16 +175,36 @@ static int read_port(char *buf, uint32_t len,
     timeradd(&initial, &add, &timeoutAt);
     do {
         ssize_t res = read(canfd, &buf[*bytesRead], len - *bytesRead);
-        if (res > 0)
+        if (res > 0) {
             *bytesRead += (uint32_t)res;
-        else if (res == -1 && errno != EAGAIN)
-            return -errno; // read error
+            retries = 0;
+        } else if (res == -1 && errno != EAGAIN) {
+                return -errno; // read error
+        } else {
+            // can we safely break?
+            if (++retries > 10 && *bytesRead > 0) {
+                //for(int32_t i = (int32_t)*bytesRead -1; i >= 0; --i)
+                 //   if (buf[i] == '\r')
+                        break;
+            }
+        }
         usleep(1000);
         gettimeofday(&now, NULL);
     } while(timercmp(&now, &timeoutAt, < ) &&
             *bytesRead < len && !*_abortLoop);
 
     return *bytesRead == len;
+}
+
+static void flush_port(int rx, int tx)
+{
+    int flags = 0;
+    if (rx && tx) flags |= TCIOFLUSH;
+    else if (rx) flags |= TCIFLUSH;
+    else if (tx) flags |= TCOFLUSH;
+    else
+        return;
+     tcflush(canfd, flags);
 }
 
 static int close_port(void)
@@ -193,6 +220,13 @@ static int close_port(void)
     }
 
     return 1;
+}
+
+uint32_t timeGetTime()
+{
+    timeval_t now;
+    gettimeofday(&now, NULL);
+    return (uint32_t)((now.tv_sec * 1000) + (now.tv_usec / 1000));
 }
 
 #else // _WIN32
@@ -337,6 +371,15 @@ static int close_port(void)
         return 0;
     }
     return 1;
+}
+
+static void port_flush(int rx, int tx)
+{
+    DWORD flags = 0;
+    if (!rx && !tx) return;
+    if (rx) flags |= PURGE_RXCLEAR;
+    if (tx) flags |= PURGE_TXCLEAR;
+    PurgeComm(canfd, flags);
 }
 
 #endif
@@ -517,6 +560,26 @@ Response_t *response_take_at(ResponseList_t *lst, uint32_t idx)
     return itm;
 }
 
+void response_remove_item(ResponseList_t *lst, Response_t *itm)
+{
+    if (!itm)
+        return;
+
+    // update lst pointers
+    if (itm == lst->first)
+        lst->first = lst->first->next;
+    if (itm == lst->last)
+        lst->last = itm->prev;
+    --lst->len;
+
+    if (itm->next)
+        itm->next->prev = itm->prev;
+    if (itm->prev)
+        itm->prev->next = itm->next;
+
+    itm->next = itm->prev = NULL;
+}
+
 /**
  * @brief response_free, deallocate data
  * @param r, response struct to deallocate
@@ -555,7 +618,9 @@ void response_clear_all(ResponseList_t *lst)
  */
 int response_read_serial(ResponseList_t *lst, const int timeoutms)
 {
-    enum { BUF_SZ = 1024 };
+    uint32_t timeoutAt = timeGetTime() + (uint32_t)timeoutms;
+
+    enum { BUF_SZ = 2048 };
     static char buf[BUF_SZ];
     static uint32_t bufPos = 0; // position of previous unfinished read
 
@@ -613,9 +678,14 @@ int response_read_serial(ResponseList_t *lst, const int timeoutms)
         }
     }
 
-    // we might have more than BUF_SZ to recieve
-    if (nBytes == BUF_SZ)
-        return response_read_serial(lst, timeoutms);
+    // we might have more to recieve
+    if (timeGetTime() < timeoutAt && nBytes > 0) {
+        // if we have found any chars in this invokation wewant to return true
+        // sub recurse should eventually end up in false.
+        int res = nBytes > 0,
+            res2 = response_read_serial(lst, (int)(timeoutAt - timeGetTime()));
+        return res ? res : res2;
+    }
 
 cleanup:
     //response_free(itm); // we should NOT free itm here asits deletes it from the list
@@ -628,21 +698,14 @@ cleanup:
  * @param lst, list to search in
  * @param cmdsFilter, filter commands against these, might be up to 20 cmds
  * @param reversed, search from the back if non zero
+ * @param restrct, if > 0 onlky go back this many responses
  * @param timeoutms, if > 0 and we hant found any we read serial port
  * @return
  */
 Response_t *response_find(ResponseList_t *lst, const char *cmdsFilter,
-                          uint8_t reversed, int timeoutms)
+                          uint8_t reversed, int restrct, int timeoutms)
 {
-
-#ifdef _WIN32
-    DWORD timeoutAt = timeGetTime() + (uint32_t)timeoutms;
-#else
-    // calculate when to bail out
-    timeval_t timeoutAt, initial, now, tmp = { 0 , 1000 * timeoutms };
-    gettimeofday(&initial, NULL);
-    timeradd(&initial, &tmp, &timeoutAt);
-#endif
+    uint32_t timeoutAt = timeGetTime() + (uint32_t)timeoutms;
 
     // if we are empty, read from serial, if none read then bail
     if (!lst->len && timeoutms > 0)
@@ -650,50 +713,43 @@ Response_t *response_find(ResponseList_t *lst, const char *cmdsFilter,
             return NULL;
 
     Response_t *itm;
-    uint32_t idx;
     int filterLen = (int)strnlen(cmdsFilter, 20);
 
     if (reversed) {
         itm = lst->last;
-        idx = lst->len -1;
         do {
             for(int i = 0; i < filterLen; ++i) {
-                if (itm->len && itm->data[0] == cmdsFilter[i])
-                    return response_take_at(lst, idx);
+                if (itm->len && itm->data[0] == cmdsFilter[i]) {
+                    response_remove_item(lst, itm);
+                    return itm;
+                }
             }
-            --idx;
+            if (restrct && --restrct < 1)
+                break;
         } while((itm = itm->prev));
     } else {
         // non reversed
         itm = lst->first;
-        idx = 0;
         do {
             for(int i = 0; i < filterLen; ++i) {
-                if (itm->len && itm->data[0] == cmdsFilter[i])
-                    return response_take_at(lst, idx);
+                if (itm->len && itm->data[0] == cmdsFilter[i]) {
+                    response_remove_item(lst, itm);
+                    return itm;
+                }
             }
-            ++idx;
+            if (restrct && --restrct < 1)
+                break;
         } while((itm = itm->next));
     }
 
-
     // we have not found it, read from serial again until we timeout
-
-#ifdef _WIN32
     if (timeGetTime() < timeoutAt) {
         timeoutms = (int)(timeoutAt - timeGetTime());
-#else
-    if (timercmp(&now, &timeoutAt, < )) {
-        gettimeofday(&now, NULL);
-        timersub(&timeoutAt, &now, &tmp);
-        timeoutms = (int)((tmp.tv_sec * 1000) + (tmp.tv_usec / 1000));
-#endif
         if (timeoutms > 0) {
             response_read_serial(lst, timeoutms);
-            return response_find(lst, cmdsFilter, reversed, timeoutms);
+            return response_find(lst, cmdsFilter, reversed, restrct, timeoutms);
         }
     }
-
 
     return NULL;
 }
@@ -723,7 +779,7 @@ static int clear_pipeline(void) {
 
         // clear response buffer, 1char at a time until CR is recieved
         // we might have old responses in pipeline
-        Response_t *resp = response_find(&responses, "\r\a", 1, 5);
+        Response_t *resp = response_find(&responses, "\r\a", 1, 1, 5);
         if (!resp) {
             CANBRIDGE_SET_ERRMSG("Failed to get response while clearing serial buffer\n")
             return 0;
@@ -754,6 +810,9 @@ int slcan_init(const char *name, CAN_Speeds_t speed)
     if (open_port(name) < 1)
         GOTO_CLEANUP_ERR
 
+    // discard old chars from serial buffer
+    flush_port(1, 1);
+
     state = CANBRIDGE_INIT;
 
     // clear old messages
@@ -772,7 +831,7 @@ int slcan_init(const char *name, CAN_Speeds_t speed)
         GOTO_CLEANUP_ERR
     }
 
-    resp = response_find(&responses, "V", 0, 5);
+    resp = response_find(&responses, "V", 0, 1, 5);
     if (!resp) {
         CANBRIDGE_SET_ERRMSG("Failed to read version response\n")
         goto no_version;
@@ -826,7 +885,7 @@ no_version:
         GOTO_CLEANUP_ERR
     }
 
-    resp = response_find(&responses, "\r\a", 1, 5);
+    resp = response_find(&responses, "\r\a", 1, 1, 5);
     if (!resp) {
         CANBRIDGE_SET_ERRMSG("Failed to read from speed cmd response from serial\n")
         GOTO_CLEANUP_ERR
@@ -902,7 +961,7 @@ int slcan_set_filter(uint32_t mask, uint32_t id)
         }
 
         // get response
-        resp = response_find(&responses, "\r\a", 1, 5);
+        resp = response_find(&responses, "\r\a", 1, 1, 5);
         if (!resp) {
             CANBRIDGE_SET_ERRMSG("Failed to set CAN filter, response timeout\n")
             GOTO_CLEANUP_ERR
@@ -927,6 +986,9 @@ int slcan_open(void)
 {
     FUNC_HEADER;
 
+    response_clear_all(&responses);
+    flush_port(1, 1);
+
     if (state == CANBRIDGE_CLOSED) {
         CANBRIDGE_SET_ERRMSG("Can't open a closed comport\n")
         GOTO_CLEANUP_ERR
@@ -949,7 +1011,7 @@ int slcan_open(void)
     }
 
     // get response
-    resp = response_find(&responses, "\r\a", 1, 5);
+    resp = response_find(&responses, "\r\a", 1, 0, 10);
     if (!resp) {
         CANBRIDGE_SET_ERRMSG("Failed to open CAN channel, response timeout\n")
         GOTO_CLEANUP_ERR
@@ -988,7 +1050,7 @@ uint8_t slcan_geterrors(void)
             goto cleanup;
         }
 
-        resp = response_find(&responses, "F\a", 1, 5);
+        resp = response_find(&responses, "F\a", 1, 1, 5);
         if (!resp) {
             CANBRIDGE_SET_ERRMSG("No response from slcan interface when reading error message\n")
             goto cleanup;
@@ -1058,7 +1120,7 @@ int slcan_close(void)
         }
 
         // get response
-        resp = response_find(&responses, "\r\a", 1, 5);
+        resp = response_find(&responses, "\r\a", 1, 1, 5);
         if (!resp) {
             CANBRIDGE_SET_ERRMSG("Failed to close CAN channel, no response from slcan slcan interface\n")
             GOTO_CLEANUP_ERR
@@ -1194,7 +1256,7 @@ int slcan_send(canframe_t *frm, int timeoutms)
 
     // get response
     char okCmds[3] = { (frm->can_id & CAN_EFF_FLAG) ? 'Z' : 'z', BELL, 0 };
-    resp = response_find(&responses, okCmds, 1, timeoutms);
+    resp = response_find(&responses, okCmds, 1, 0, timeoutms);
     if (!resp) {
         CANBRIDGE_SET_ERRMSG("Failed to send to CAN channel, slcan interface response timeout\n")
         GOTO_CLEANUP_ERR // continue anyway?
@@ -1226,7 +1288,7 @@ int slcan_recv(canframe_t *frm, int timeoutms)
     }
 
     uint32_t pos = 0;
-    resp = response_find(&responses, "tTrR", 0, timeoutms);
+    resp = response_find(&responses, "tTrR", 0, 0, timeoutms);
     if (!resp)
         GOTO_CLEANUP_ERR
 

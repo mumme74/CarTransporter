@@ -89,7 +89,7 @@ static char *bootloadErrToStr(can_bootloaderErrs_e err)
     }
 
     // we handle all other including ErrUnknown this way
-    CANBRIDGE_SET_ERRMSG("Unknown error:%x", err);
+    CANBRIDGE_SET_ERRMSG("Unknown error:%x", err)
     return unknownErrbuf;
 }
 
@@ -104,7 +104,7 @@ static void nodeErrExit(const char *str, can_bootloaderErrs_e err)
     size_t bufSz = strlen(str) + strlen(errStr) + 2;
     char *chbuf = malloc(bufSz);
     snprintf(chbuf, bufSz, "%s %s\n", str, errStr);
-    fprintf(stdout, "%s", chbuf);
+    fprintf(stdout, "%s\n", chbuf);
     free(chbuf);
     cleanup();
     exit(EXIT_FAILURE);
@@ -147,7 +147,7 @@ static void initMemoryInfo(canframe_t *sendFrm, canframe_t *recvFrm)
     // send request
     sendFrm->can_dlc = 1;
     sendFrm->data[0] = C_bootloaderStartAddress;
-    if (canbridge_send(sendFrm, 10) < 1) {
+    if (canbridge_send(sendFrm, 20) < 1) {
         printCanError();
         errExit("can't send\n");
     }
@@ -168,7 +168,7 @@ static void initMemoryInfo(canframe_t *sendFrm, canframe_t *recvFrm)
     // get the rest
     sendFrm->can_dlc = 1;
     sendFrm->data[0] = C_bootloaderMemPageInfo;
-    if (canbridge_send((sendFrm), 10) < 1) {
+    if (canbridge_send((sendFrm), 20) < 1) {
         printCanError();
         errExit("cant send\n");
     }
@@ -430,11 +430,13 @@ static can_bootloaderErrs_e recvFileFromNode(uint8_t *fileCache, canframe_t *sen
                                             uint32_t endAddr)
 {
     uint16_t canPageNr;
-    uint8_t frames, frameNr;
+    uint8_t frames, frameNr, retryCnt = 0;
     byte4_t crc = { 0 };
 
     uint32_t lastStoredIdx = 0,
              previousStoredIndex = 0;
+    // for debug
+    uint32_t reqs = 1, revcs = 0;
 
     canPageNr = 0;
 
@@ -444,9 +446,13 @@ readCanPageLoop:
 
     // loop to receive a complete canPage
     do {
-      if (canbridge_recv(recvFrm, 100) < 1) {
-          printCanError();
-          return C_bootloaderErrNoResponse;
+      if (canbridge_recv(recvFrm, 1000) < 1) {
+          if (frames == 0 && retryCnt < 5) {
+            printCanError();
+            usleep(100000);
+            return C_bootloaderErrNoResponse;
+          }
+          goto resend;
       }
 
       if ((recvFrm->data[0] & 0x80) && frames == 0) {
@@ -455,6 +461,8 @@ readCanPageLoop:
         crc.b1 = recvFrm->data[2];
         crc.b2 = recvFrm->data[3];
         crc.b3 = recvFrm->data[4];
+
+        revcs++;
 
         //crc = (uint32_t)(recvFrm->data[4] << 24 | recvFrm->data[3] << 16 |
         //                 recvFrm->data[2] << 8  | recvFrm->data[1]);
@@ -493,10 +501,11 @@ readCanPageLoop:
                              lastStoredIdx - previousStoredIndex);
     if (crc.vlu != recvCrc) {
       // notify node that we need this canPage retransmitted
+resend:
       sendFrm->can_dlc = 2;
       sendFrm->data[0] = C_bootloaderReadFlash;
       sendFrm->data[1] = C_bootloaderErrResend;
-      if (canbridge_send(sendFrm, 1000) < 1) {
+      if (++retryCnt > 10 && canbridge_send(sendFrm, 1000) < 1) {
           printCanError();
           return C_bootloaderErrSendFailed;
       }
@@ -509,14 +518,25 @@ readCanPageLoop:
     // and we are not at end of bin
     // (last memPage sent from invoker might be less than pageSize)
     if (lastStoredIdx < (endAddr - startAddr -1)) {
+      retryCnt = 0;
       ++canPageNr;
       sendFrm->can_dlc = 2;
       sendFrm->data[0] = C_bootloaderReadFlash;
       sendFrm->data[1] = C_bootloaderErrOK;
-      if (canbridge_send(sendFrm, 1000) < 1) {
+      if (canbridge_send(sendFrm, 100) < 1) {
           printCanError();
           return C_bootloaderErrSendFailed;
       }
+      // for debug
+      reqs++;
+      struct timeval timeVal;
+      gettimeofday(&timeVal, NULL);
+      char sec[9], usec[7];
+      snprintf(sec, 9, "%08lu", timeVal.tv_sec);
+      snprintf(usec, 7, "%06lu", timeVal.tv_usec);
+      fprintf(stdout, "request at [%s:%s] frameNr:%u\n", sec, usec, frameNr);
+
+      // end debug
       previousStoredIndex = lastStoredIdx;
       goto readCanPageLoop;
     }

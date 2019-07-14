@@ -109,6 +109,8 @@ void setup_can_iface(char *name)
     //if (!canbridge_set_filter(mask, id))
     //    errExit(canbridge_errmsg);
 
+    canbridge_set_abortvariable(&abortVar);
+
     if (!canbridge_open())
         errExit(canbridge_errmsg);
 }
@@ -156,11 +158,11 @@ void print_usage(char *prg)
     fprintf(stderr, "         -i <ID>      CAN frameid to listen to in HEX\n");
     fprintf(stderr, "         -b <baudID>  Use baudrate, some drivers need this\n");
     fprintf(stderr, "                        baudID can be:\n");
-    for (CAN_Speeds_t s = _CAN_speed_start_marker +1; s < _CAN_speed_end_marker; ++s)
-        fprintf(stderr, "                           %s", canbridge_get_speed_name_from_id(s));
+    for (CAN_Speeds_t s = _CAN_speed_start_marker +1; s < _CAN_speed_end_marker -1; ++s)
+        fprintf(stderr, "                           %s\n", canbridge_get_speed_name_from_id(s));
     fprintf(stderr, "         -d <driver>  what driver to use, ie:\n");
     for (CAN_Drivers_t d = _CAN_driver_start_marker +1; d < _CAN_driver_end_marker; ++d)
-        fprintf(stderr, "                            %s", canbridge_get_driver_name_for_id(d));
+        fprintf(stderr, "                            %s\n", canbridge_get_driver_name_for_id(d));
 
     fprintf(stderr, "\n");
     fprintf(stderr, "A CAN interface must be specified on the commandline in the form:\n");
@@ -331,7 +333,6 @@ int main(int argc, char *argv[])
         // parse arguments
         // first argument should be interface ie. can0
         char *cansockname = argv[optind];
-        setup_can_iface(cansockname); // FIXME implement code to select driver
 
         // next comes the verb (what we should do)
         if (optind + 1 == argc) {
@@ -341,6 +342,7 @@ int main(int argc, char *argv[])
             errExit(0);
         }
 
+        setup_can_iface(cansockname);
         char *cmd = argv[optind + 1];
 
         // get rest of agrguments

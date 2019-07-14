@@ -18,6 +18,7 @@ extern "C" {
 #endif
 
 bool commandsStart(canframe_t *msg);
+bool commandIsResetFrame(canframe_t *frm);
 
 #ifdef __cplusplus
 }

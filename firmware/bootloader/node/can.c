@@ -39,25 +39,37 @@ void canInit(void)
 }
 
 void canWaitRecv(canframe_t *msg) {
-  uint32_t resetAt = systemMillis() + WAIT_UNRESPONSE_CAN_BEFORE_RESET;
+  uint32_t resetAt = systemMillis() + WAIT_UNRESPONSE_CAN_BEFORE_RESET,
+           now;
   while(!canGet(msg)) {
-      if (systemMillis() > resetAt)
+      now = systemMillis();
+      if (now > resetAt)
 	systemReset();
 #ifdef DEBUG_PRINT
-      if (systemMillis() % 100 && usb_serial_available())
+      if (now > 1000 && now % 1000)
+	  print_uint(sizeof(rxbuf) / sizeof(msg) - fifo_spaceleft(&can_rxqueue));endl();
+      if (now % 100 && print_available())
 	print_flush();
 #endif
   }
 }
 
 void canWaitSend(canframe_t *msg) {
-  uint32_t resetAt = systemMillis() + WAIT_UNRESPONSE_CAN_BEFORE_RESET;
-  while(!canPost(msg) != 1) {
-      if (systemMillis() > resetAt)
-	systemReset();
+  uint32_t resetAt = systemMillis() + WAIT_UNRESPONSE_CAN_BEFORE_RESET,
+           now;
+  canframe_t rcvFrm;
+  while(canPost(msg) != 1) {
+      now = systemMillis();
+      if (now > resetAt)
+	systemReset(); // auto reset if stuck
+      if (fifo_peek(&can_rxqueue, &rcvFrm)) {
+        if (commandIsResetFrame(rcvFrm))
+          systemReset();
+      }
 #ifdef DEBUG_PRINT
-      if (systemMillis() % 100 && usb_serial_available())
+      if (now % 100 && print_available()) {
 	print_flush();
+      }
 #endif
   }
 }
@@ -70,8 +82,11 @@ void canWaitSend(canframe_t *msg) {
  */
 bool canGet(canframe_t *msg)
 {
-  if (fifo_pop(&can_rxqueue, msg))
+  if (fifo_pop(&can_rxqueue, msg)) {
+    if (commandIsResetFrame(msg))
+      systemReset();
     return true;
+  }
   return _canGet();
 }
 
@@ -84,7 +99,8 @@ bool canGet(canframe_t *msg)
 int8_t canPost(canframe_t *msg)
 {
   // notify which node sends this msg
-  msg->IDE &= (CAN_MSG_TYPE_MASK | CAN_MSG_ID_MASK | NODE_ID);
+  msg->IDE &= (CAN_MSG_TYPE_MASK | CAN_MSG_ID_MASK); // other clears sender bits
+  msg->IDE |=  NODE_ID; // sets sender bits
 
   if (!_canPost(msg)) {
       // buffer full?

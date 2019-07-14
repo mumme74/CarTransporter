@@ -41,6 +41,10 @@
   void print_flush() {
     usb_serial_flush_output();
   }
+
+  int print_available() {
+    return usb_serial_available();
+  }
 # endif
 #endif
 

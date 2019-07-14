@@ -32,11 +32,13 @@ extern "C" {
   void endl(void);
   void print_uint(uint32_t vlu);
   void print_flush(void);
+  int  print_available();
 #else
 # define print_str(buf)
 # define print_uint(vlu)
 # define endl()
 # define print_flush()
+# define print_available();
 #endif
 
 extern const uint16_t canId;

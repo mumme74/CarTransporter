@@ -321,7 +321,6 @@ writeCanPageLoop:
 
   case C_bootloaderReset:
     systemReset();
-    while(1); // wait for reset
     break;
   default:; // bust out
   }
@@ -351,4 +350,9 @@ bool commandsStart(canframe_t *msg)
   return res;
 }
 
+
+bool commandIsResetFrame(canframe_t *frm)
+{
+  return (frm->DLC == 1 && frm->data8[0] == C_bootloaderReset);
+}
 

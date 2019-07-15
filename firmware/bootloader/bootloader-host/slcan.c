@@ -1178,7 +1178,7 @@ void slcan_set_abortvariable(int *abortVar)
  * @param timeoutms, timeout if not send within
  * @return true on success
  */
-int slcan_send(canframe_t *frm, int timeoutms)
+int slcan_send(canframe_t *frm, uint32_t timeoutms)
 {
     FUNC_HEADER;
 
@@ -1296,7 +1296,7 @@ cleanup:
  * @param timeoutms, timeout if no recieved frm within timeout
  * @return true if we have a frm
  */
-int slcan_recv(canframe_t *frm, int timeoutms)
+int slcan_recv(canframe_t *frm, uint32_t timeoutms)
 {
     FUNC_HEADER;
 

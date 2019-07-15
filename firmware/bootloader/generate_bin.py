@@ -9,7 +9,7 @@ def create(sz = 51200):
             sz -= 1
             f.write(i.to_bytes(1, "little"))
             i += 1
-            if (i > 0xf):
+            if (i > 0x10):
                 i = 0
         print("generated MOCKUP.bin")
                 

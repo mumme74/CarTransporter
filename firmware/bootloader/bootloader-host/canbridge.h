@@ -168,7 +168,7 @@ void canbridge_set_abortvariable(int *abortVar);
  * @param timeoutms, timeout if not send within
  * @return 1 on success, 0 timeout, below 0 if socket errno is set
  */
-extern int (*canbridge_send)(canframe_t *frm, int timeoutms);
+extern int (*canbridge_send)(canframe_t *frm, uint32_t timeoutms);
 
 /**
  * @brief canbridge_recv, recive fromcan
@@ -176,7 +176,7 @@ extern int (*canbridge_send)(canframe_t *frm, int timeoutms);
  * @param timeoutms, timeout if no recieved frm within timeout
  * @return 1 if we have frm, 0 timeout, below 0 if socket errno is set
  */
-extern int (*canbridge_recv)(canframe_t *frm, int timeoutms);
+extern int (*canbridge_recv)(canframe_t *frm, uint32_t timeoutms);
 
 
 

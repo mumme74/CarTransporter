@@ -310,8 +310,8 @@ void canbridge_set_abortvariable(int *abortVar)
 }
 
 // function pointers, gets set by setupDriver();
-int (*canbridge_send)(canframe_t *frm, int timeoutms) = NULL;
+int (*canbridge_send)(canframe_t *frm, uint32_t timeoutms) = NULL;
 
-int (*canbridge_recv)(canframe_t *frm, int timeoutms) = NULL;
+int (*canbridge_recv)(canframe_t *frm, uint32_t timeoutms) = NULL;
 
 

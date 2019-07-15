@@ -314,7 +314,7 @@ void socketcan_set_abortvariable(int *abortVar)
 }
 
 
-int socketcan_send(canframe_t *frm, int timeoutms)
+int socketcan_send(canframe_t *frm, uint32_t timeoutms)
 {
     ssize_t e = write(cansock, frm, CAN_MTU);
     if (e == -1 &&
@@ -334,7 +334,7 @@ int socketcan_send(canframe_t *frm, int timeoutms)
     return res == 0 ? 1 : res;
 }
 
-int socketcan_recv(canframe_t *frm, int timeoutms)
+int socketcan_recv(canframe_t *frm, uint32_t timeoutms)
 {
     struct timeval tv;
 

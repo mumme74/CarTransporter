@@ -42,10 +42,6 @@ static bool getAndCheckAddress(canframe_t *msg)
   endAddr.b2 = msg->data8[7];
   endAddr.b3 = 0;
   endAddr.vlu += addr.vlu;
-//  addr = (uint8_t*)((msg->data8[4] << 24) | (msg->data8[3] << 16) |
-//                    (msg->data8[2] << 8)  | (msg->data8[1])) ;
-//  endAddr = addr + ((msg->data8[7] << 16) | (msg->data8[6] << 8) |
-//                    (msg->data8[5]));
   if (addr.ptr32 < &_appRomStart) {
     sendErr(msg, C_bootloaderErrStartAddressOutOfRange);
     return false; // to commands loop
@@ -82,12 +78,15 @@ readPageLoop:
     // concept here is that addr advances in send loop with nr bytes written
     // we will eventually reach endAddr
     // also when reading memory we don't need that 2K memory page restriction that we need when writing to memory
-    frames = MIN(((endAddr.vlu - addr.vlu) / 7 + (endAddr.vlu - addr.vlu) % 7),
-                 BOOTLOADER_PAGE_SIZE+1);
-print_str("read frames:");print_uint(frames);endl();
-
-    crc.vlu = crc32(0, addr.ptr8 + (frameNr * 7),
-                    MIN(endAddr.vlu - addr.vlu, ((BOOTLOADER_PAGE_SIZE+1) * 7)));
+    uint32_t bytesDiff = endAddr.ptr8 - addr.ptr8;
+    if ((bytesDiff / 7) < (BOOTLOADER_PAGE_SIZE +1))
+      frames = (bytesDiff / 7) + ((bytesDiff % 7) ? 1 : 0);
+    else
+      frames = BOOTLOADER_PAGE_SIZE+1;
+    //print_str("read frames:");print_uint(frames);print_str(" bytdif");print_uint(bytesDiff);endl();
+    //print_str("addr");print_uint(addr.vlu);print_str(" endAddr");print_uint(endAddr.vlu);endl();
+    //print_str("crc_len:");print_uint(MIN(endAddr.ptr8 - addr.ptr8, ((BOOTLOADER_PAGE_SIZE+1) * 7)));endl();
+    crc.vlu = crc32(0, addr.ptr8, MIN(bytesDiff, ((BOOTLOADER_PAGE_SIZE+1) * 7)));
     msg->DLC = 8;
     msg->data8[0] = C_bootloaderReadFlash;
     msg->data8[1] = crc.b0; // (crc & 0x000000FF);
@@ -107,7 +106,7 @@ print_str("read frames:");print_uint(frames);endl();
       msg->data8[0] = frameNr++;
       for (uint8_t i = 1; i < 8; ++i) {
         msg->data8[i] = *addr.ptr8;
-        if (addr.vlu++ >= endAddr.vlu) {
+        if (addr.ptr8++ >= endAddr.ptr8) {
           msg->DLC = i;
           break; // frameId should now be frameId == frames
         }
@@ -116,8 +115,7 @@ print_str("read frames:");print_uint(frames);endl();
     }
 
     // wait for remote to Ack this page
-
-    print_str("wait ack adr:");print_uint(addr.vlu);
+    //print_str("wait ack adr:");print_uint(addr.vlu);
     do {
       canWaitRecv(msg);
       print_str("got can");endl();
@@ -129,8 +127,8 @@ print_str("read frames:");print_uint(frames);endl();
 	continue;
     } while(msg->data8[0] != C_bootloaderReadFlash);
 
-    print_str("after ack adr:");print_uint(addr.vlu);
-    print_str(" eAdr:");print_uint(endAddr.vlu);endl();
+    //print_str("after ack adr:");print_uint(addr.vlu);
+    //print_str(" eAdr:");print_uint(endAddr.vlu);endl();
 
     // check if we should resend
     if (msg->data8[1] == C_bootloaderErrOK)
@@ -169,8 +167,6 @@ print_str("read frames:");print_uint(frames);endl();
     canWaitSend(msg);
 
     uint8_t buf[pageSize];
-    for(uint32_t  i = 0; i < sizeof(buf); ++i)
-      buf[i] = 0x39;
     can_bootloaderErrs_e err;
     uint32_t lastStoredIdx;
 
@@ -290,6 +286,7 @@ print_str("buf idx:");print_uint((canPageNr.vlu * (BOOTLOADER_PAGE_SIZE+1) * 7))
     err = systemFlashWritePage((uint16_t*)buf, addr.ptr16);
     if (err != C_bootloaderErrOK) {
 	print_str("write failed\n");
+	print_str(" addr");print_uint(addr.ptr16);endl();
       sendErr(msg, err);
       break;
     } else {

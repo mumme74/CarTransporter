@@ -29,7 +29,7 @@
 extern "C" {
 #endif
 
-#if defined(ARDUINO) && defined(DEBUG_PRINT)
+#if defined(DEBUG_PRINT) && defined(ARDUINO)
   // for cfiles in teensy
   void print_str(const char *str);
   void endl(void);
@@ -41,7 +41,7 @@ extern "C" {
 # define print_uint(vlu)
 # define endl()
 # define print_flush()
-# define print_available();
+# define print_available() 0
 #endif
 
 extern const uint16_t canId;

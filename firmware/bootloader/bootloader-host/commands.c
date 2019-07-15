@@ -125,13 +125,16 @@ static void nodeErrExit(const char *str, can_bootloaderErrs_e err)
 }
 
 // recives a specific frame with a specific data at pos
-static bool filteredRecv(canframe_t *recvFrm, int timeout,
+static bool filteredRecv(canframe_t *recvFrm, uint32_t timeout,
                   uint8_t dataPos, uint8_t isvlu)
 {
+    uint32_t timeoutAt = timeGetTime() + timeout;
     // get result
     int res = 0;
     // we might get another queued frame, discard that...
-    while ((res = canbridge_recv(recvFrm, timeout)) > 0)  {
+    while ((res = canbridge_recv(recvFrm, timeout)) > 0 &&
+           (timeGetTime() < timeoutAt))
+    {
         if ((recvFrm->can_dlc > 0) &&
             (recvFrm->data[dataPos] == isvlu))
         {
@@ -282,9 +285,9 @@ static void checkMemOptWithinBounds(memoptions_t *mopt)
 static uint8_t *readLocalFile(const char *binName, long *sz)
 {
 #ifdef _WIN32
-    if (fopen_s(&binFile, binName, "r") != 0) {
+    if (fopen_s(&binFile, binName, "rb") != 0) {
 #else
-    binFile = fopen(binName, "r");
+    binFile = fopen(binName, "rb");
     if (binFile == NULL) {
 #endif
         fprintf(stderr, "**Couldn't open binfile '%s'\n", binName);
@@ -363,7 +366,7 @@ writeCanPageLoop:
 
     crc.vlu = crc32(0, addr, MIN(MIN((size_t)(eAddr - addr), (frames * 7)),
                                  ((BOOTLOADER_PAGE_SIZE+1) * 7)));
-    printf("crc: 0x%x\n", crc.vlu);
+    //printf("crc: 0x%x\n", crc.vlu);
     sendFrm->can_dlc = 8;
     sendFrm->data[0] = C_bootloaderWriteFlash;
     sendFrm->data[1] = crc.b3; // (crc & 0x000000FF);
@@ -447,8 +450,8 @@ writeCanPageLoop:
 
 // handles reception of binfile, communicates with node, fills file in filecache
 static can_bootloaderErrs_e recvFileFromNode(uint8_t *fileCache, canframe_t *sendFrm,
-                                            canframe_t *recvFrm, uint32_t startAddr,
-                                            uint32_t endAddr)
+                                            canframe_t *recvFrm, uint32_t *writtenLen,
+                                            uint32_t startAddr, uint32_t endAddr)
 {
     uint16_t canPageNr;
     uint8_t frames, frameNr, retryCnt = 0;
@@ -479,7 +482,10 @@ readCanPageLoop:
           goto resend;
       }
 
-      if ((recvFrm->data[0] & 0x80) && frames == 0) {
+      if ((recvFrm->data[0] & 0x80)) {
+          if (frames != 0)
+              continue; // if this happens, our node has a bug
+
         // get header
         crc.b0 = recvFrm->data[1];
         crc.b1 = recvFrm->data[2];
@@ -499,15 +505,17 @@ readCanPageLoop:
         // it's a payload frame, frames might arrive at random order
         uint32_t cPage = (canPageNr * (BOOTLOADER_PAGE_SIZE +1)) * 7,
                  fOffset = ((recvFrm->data[0] & 0x7F) * 7);
-        if (lastStoredIdx < cPage + fOffset - 1 + recvFrm->can_dlc)
+        if (lastStoredIdx < cPage + fOffset - 1 + recvFrm->can_dlc) {
             lastStoredIdx = cPage + fOffset - 1 + recvFrm->can_dlc;
+            *writtenLen = lastStoredIdx;
+        }
         for (uint8_t i = 1; i < recvFrm->can_dlc; ++i) {
           fileCache[cPage + fOffset + i -1] = recvFrm->data[i];
         }
         ++frameNr;
         if (((totalFrames / 8) % frameNr) == 0)
             printProgress(-1.0, frameNr);
-        //printf("at idx:%u cPage:%u fOffset:%u\n", cPage + fOffset + recvFrm->can_dlc -1, cPage, fOffset);
+        printf("at idx:%u cPage:%u fOffset:%u\n", cPage + fOffset + recvFrm->can_dlc -1, cPage, fOffset);
       }
 
     } while (frameNr < frames);
@@ -525,7 +533,8 @@ readCanPageLoop:
     if (crc.vlu != recvCrc) {
       // notify node that we need this canPage retransmitted
 resend:
-      //printf("Resend start at %u frameNr:%u\n", timeGetTime(), frameNr);
+      printf("\ncrc len: 0x%x\n", lastStoredIdx - previousStoredIndex);
+      printf("Resend start at %u frameNr:%u\n", timeGetTime(), frameNr);
       if (++retryCnt > 10)
           return C_bootloaderErrResendMaxLoopCount;
       sendFrm->can_dlc = 2;
@@ -636,9 +645,9 @@ void doReadCmd(memoptions_t *mopt, char *storeName)
     bool errOccured = false; // used to notify cleanup label that we should exit
 
 #ifdef _WIN32
-    if (fopen_s(&binFile, fileName, "w") != 0) {
+    if (fopen_s(&binFile, fileName, "wb") != 0) {
 #else
-    binFile = fopen(fileName, "w"); // implicitly overwrite by design
+    binFile = fopen(fileName, "wb"); // implicitly overwrite by design
     if (binFile == NULL) {
 #endif
         fprintf(stderr, "**Couldn't open '%s' for write operations\n", fileName);
@@ -681,6 +690,7 @@ void doReadCmd(memoptions_t *mopt, char *storeName)
 
     // allocate a filecache for received bytes
     fileCache = (uint8_t*)malloc(len * sizeof(uint8_t));
+    memset(fileCache, 0x77, len); // for debug, easier to wiew memory regions
     if (fileCache == NULL) {
         fprintf(stderr, "**Failed to allocate memory in RAM for filereception\n");
         errOccured = true;
@@ -688,7 +698,8 @@ void doReadCmd(memoptions_t *mopt, char *storeName)
     }
 
     // initiate reception sequence
-    can_bootloaderErrs_e err = recvFileFromNode(fileCache, &sendFrm, &recvFrm,
+    uint32_t writtenLen = 0;
+    can_bootloaderErrs_e err = recvFileFromNode(fileCache, &sendFrm, &recvFrm, &writtenLen,
                                                 mopt->lowerbound, mopt->upperbound);
 
     if (err == C_bootloaderErrOK) {
@@ -702,6 +713,12 @@ void doReadCmd(memoptions_t *mopt, char *storeName)
             goto readCleanup;
         }
 
+        if (writtenLen < len) {
+            len = writtenLen;
+            fprintf(stderr, "**Error recieved wrong number of bytes, got:%u expected %u\n", writtenLen, len);
+            errOccured = true;
+        }
+
         // successfull
         if (fwrite(fileCache, sizeof(uint8_t), len, binFile) != len) {
             fprintf(stderr, "**Error when saving file to disk\n");
@@ -713,7 +730,12 @@ void doReadCmd(memoptions_t *mopt, char *storeName)
     } else {
         // some error during reception?
         fprintf(stderr, "**Error when recieving bin from node: %s\n", bootloadErrToStr(err));
+        fprintf(stderr, "Saving what we got as %s\n", fileName);
+        if (fwrite(fileCache, sizeof(uint8_t), writtenLen, binFile) != writtenLen)
+            fprintf(stderr, "**Error when saving file to disk\n");
+
         errOccured = true;
+        goto readCleanup;
     }
 
     // fallthrough to cleanup

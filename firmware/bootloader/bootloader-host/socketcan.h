@@ -65,7 +65,7 @@ void socketcan_set_abortvariable(int *abortVar);
  * @param timeoutms, timeout if not send within
  * @return true on success
  */
-int socketcan_send(canframe_t *frm, int timeoutms);
+int socketcan_send(canframe_t *frm, uint32_t timeoutms);
 
 /**
  * @brief socketcan_recv, recive fromcan
@@ -73,7 +73,7 @@ int socketcan_send(canframe_t *frm, int timeoutms);
  * @param timeoutms, timeout if no recieved frm within timeout
  * @return true if we have a frm
  */
-int socketcan_recv(canframe_t *frm, int timeoutms);
+int socketcan_recv(canframe_t *frm, uint32_t timeoutms);
 
 
 #endif // SOCKETCAN_H

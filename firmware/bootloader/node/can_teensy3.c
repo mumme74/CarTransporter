@@ -290,7 +290,6 @@ int8_t _canPost(canframe_t *msg)
 // NOTE !! this is called from isr, not used by normal code
 static void readMB(canframe_t *frm, uint8_t buffer, fifo_t *queue)
 {
-  digitalWrite(9, !digitalRead(9));
   // get identifier and dlc
   frm->DLC = FLEXCAN_get_length(FLEXCANb_MBn_CS(FLEXCAN0_BASE, buffer));
   frm->ext = (FLEXCANb_MBn_CS(FLEXCAN0_BASE, buffer) & FLEXCAN_MB_CS_IDE)? 1:0;

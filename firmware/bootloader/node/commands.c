@@ -25,7 +25,7 @@ static void sendErr(canframe_t *msg, can_bootloaderErrs_e err)
 {
   msg->DLC = 2;
   msg->data8[1] = err;
-  CAN_POST_MSG;
+  canWaitSend(msg);
 }
 
 static byte4_t addr, endAddr;
@@ -121,6 +121,8 @@ print_str("read frames:");print_uint(frames);endl();
     do {
       canWaitRecv(msg);
       print_str("got can");endl();
+      if (msg->DLC == 1 && msg->data8[0] == C_bootloaderUnblock)
+	break; // bust out of this command
       if (msg->DLC != 2 || msg->data8[0] != C_bootloaderReadFlash)
         goto rescan;
       if (msg->IDE != (canId & (CAN_MSG_ID_MASK | CAN_MSG_TYPE_MASK )))
@@ -164,9 +166,11 @@ print_str("read frames:");print_uint(frames);endl();
     // initial state is tell invoker we are ready to recieve
     msg->data8[1] = C_bootloaderErrOK;
     msg->DLC = 2;
-    CAN_POST_MSG;
+    canWaitSend(msg);
 
     uint8_t buf[pageSize];
+    for(uint32_t  i = 0; i < sizeof(buf); ++i)
+      buf[i] = 0x39;
     can_bootloaderErrs_e err;
     uint32_t lastStoredIdx;
 
@@ -181,52 +185,75 @@ writeCanPageLoop:
     // loop to receive a complete canPage
     do {
       canWaitRecv(msg);
+      //print_str("wr rcv\n");
       if ((msg->data8[0] & 0x80)) {
-        if (msg->data8[0] != C_bootloaderWriteFlash)
+        if (msg->data8[0] != C_bootloaderWriteFlash) {
+            print_str("abort\n");
           return true; // stuck in loop, we should probably abort
+        }
 
         // get header
-        crc.b0 = msg->data8[1];
-        crc.b1 = msg->data8[2];
-        crc.b2 = msg->data8[3];
-        crc.b3 = msg->data8[4];
-        //crc = (msg->data8[4] << 24 | msg->data8[3] << 16 |
+        crc.b3 = msg->data8[1];
+        crc.b2 = msg->data8[2];
+        crc.b1 = msg->data8[3];
+        crc.b0 = msg->data8[4];
+        //crc = (msg->data8[4] <<24 | msg->data8[3] << 16 |
         //       msg->data8[2] << 8  | msg->data8[1]);
 
         frames = msg->data8[5];
 
         byte2_t pgNr;
-        pgNr.b0 = msg->data8[6];
         pgNr.b1 = msg->data8[6];
+        pgNr.b0 = msg->data8[7];
+        print_str("canPageNr:");print_uint(canPageNr.vlu);
+        print_str(" pgNr:");print_uint(pgNr.vlu);endl();
+        print_str("crc:");print_uint(crc.vlu);endl();
 
         //if (canPageNr != (msg->data8[7] << 8 | msg->data8[6])) {
         if (canPageNr.vlu != pgNr.vlu) {
+            print_str("pg out order\n");
           sendErr(msg, C_bootloaderErrCanPageOutOfOrder);
           return true; // to commands loop
         }
       } else {
         // it's a payload frame
-        uint32_t cPage = (canPageNr.vlu * (BOOTLOADER_PAGE_SIZE+1) * 7),
+        uint32_t cPage = canPageNr.vlu * ((BOOTLOADER_PAGE_SIZE+1) * 7),
                  fOffset = ((msg->data8[0] & 0x7F) * 7);
-        if (lastStoredIdx < cPage + fOffset + msg->DLC -1)
-            lastStoredIdx = cPage + fOffset + msg->DLC -1;
-        for (uint8_t i = 1; i < 8; ++i) {
-          if (msg->DLC == i)
-            break; // frameNr == frames should be true now
-          buf[cPage + fOffset + i -1] = msg->data8[i];
+        uint32_t idxBase = cPage + fOffset;
+
+        /*
+        print_str("frameNr:");print_uint(frameNr);
+        print_str(" canPage.vlu");print_uint(canPageNr.vlu);
+	print_str(" fOffset:");print_uint(fOffset);
+	print_str(" msg->DLC");print_uint(msg->DLC);
+	print_str(" cPage:");print_uint(cPage);endl();
+	print_str(" idx:");print_uint(idxBase);endl();
+	*/
+
+
+        if (lastStoredIdx < idxBase + msg->DLC -1)
+            lastStoredIdx = idxBase + msg->DLC -1;
+        for (uint8_t i = 0; i < msg->DLC; ++i) {
+          buf[idxBase + i] = msg->data8[i + 1];
         }
         ++frameNr;
       }
 
     } while (frameNr < frames);
 
+    print_str("got frames\n");
+    print_str("canPgnr:");print_uint(canPageNr.vlu);endl();
+
     // check canPage
     // pointer buf[0] advance to start of canPage.
     // last frame might be less than 7 bytes
-
+print_str("len:");print_uint(lastStoredIdx - (canPageNr.vlu * (BOOTLOADER_PAGE_SIZE+1) * 7));endl();
+print_str("buf idx:");print_uint((canPageNr.vlu * (BOOTLOADER_PAGE_SIZE+1) * 7));endl();
     uint32_t recvCrc = crc32(0, buf + (canPageNr.vlu * (BOOTLOADER_PAGE_SIZE+1) * 7),
                              lastStoredIdx - (canPageNr.vlu * (BOOTLOADER_PAGE_SIZE+1) * 7));
     if (crc.vlu != recvCrc) {
+	print_str("crc:");print_uint(recvCrc);endl();
+
       sendErr(msg, C_bootloaderErrResend);
       goto writeCanPageLoop;// resend this canPage
     } else {
@@ -240,6 +267,7 @@ writeCanPageLoop:
     if (lastStoredIdx < pageSize &&
         memPagesWritten < memPages)
     {
+	print_str("send next\n");
       // notify invoker that we are ready for next frame
       sendErr(msg, C_bootloaderErrOK);
       goto writeCanPageLoop;
@@ -252,14 +280,16 @@ writeCanPageLoop:
     // setup a pointer to our buffer with offset to end of just received +1
     //  (msg->DLC is +1 due to data8[0] is frameid)
     //uint8_t *pbuf = buf + (((canPageNr -1) * 0x7F) * 7) + (frames * 7) -  (7 - msg->DLC) +1;
-    uint8_t *pbuf = &buf[MIN(lastStoredIdx, pageSize) -1];
+    uint8_t *pbuf = &buf[MIN(lastStoredIdx, pageSize) - 1];
+    print_str("st idx");print_uint(lastStoredIdx);endl();
     while (++pbuf < (buf + pageSize)) {
-      *pbuf = 0xFF;
+      *pbuf = 0x55; // 0xFF
     }
 
     // write flashpage to rom
     err = systemFlashWritePage((uint16_t*)buf, addr.ptr16);
     if (err != C_bootloaderErrOK) {
+	print_str("write failed\n");
       sendErr(msg, err);
       break;
     } else {
@@ -270,10 +300,12 @@ writeCanPageLoop:
     // a *.bin might span over many memPages
     if (memPagesWritten < memPages) {
       // notify invoker that we are ready for next frame
+	print_str("mempage\n");
       sendErr(msg, C_bootloaderErrOK);
       goto writeMemPageLoop;
     }
 
+    print_str("out");print_uint(err);endl();
     sendErr(msg, err);
 
   }  break; // to commands loop

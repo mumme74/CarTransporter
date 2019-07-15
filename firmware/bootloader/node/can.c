@@ -63,8 +63,8 @@ void canWaitSend(canframe_t *msg) {
       if (now > resetAt)
 	systemReset(); // auto reset if stuck
       if (fifo_peek(&can_rxqueue, &rcvFrm)) {
-        if (commandIsResetFrame(rcvFrm))
-          systemReset();
+//        if (commandIsResetFrame(rcvFrm))
+//          systemReset();
       }
 #ifdef DEBUG_PRINT
       if ((now % 100) == 0 && print_available()) {

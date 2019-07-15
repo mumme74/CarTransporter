@@ -79,23 +79,27 @@ static char unknownErrbuf[50];
 
 static FILE *binFile = NULL;
 
-static char *bootloadErrToStr(can_bootloaderErrs_e err)
+static const char *bootloadErrToStr(can_bootloaderErrs_e err)
 {
-    switch (err) {
-    case C_bootloaderErr:                       return "BootloaderErr";
-    case C_bootloaderErrResend:                 return "BootloaderErrResend";
-    case C_bootloaderErrStartAddressOutOfRange:  return "BootloaderErrStartAddressOutOfRange";
-    case C_bootloaderErrEndAddressOutOfRange:    return "BootloaderErrEndAddressOutOfRange";
-    case C_bootloaderErrStartPageOutOfRange:    return "BootloaderErrStartPageOutOfRange";
-    case C_bootloaderErrPageLenOutOfRange:      return "BootloaderErrPageLenOutOfRange";
-    case C_bootloaderErrPageWriteFailed:        return "BootloaderErrWriteFailed";
-    case C_bootloaderErrPageEraseFailed:        return "BootloaderErrPageEraseFailed";
-    case C_bootloaderErrCanPageOutOfOrder:      return "BootloaderErrCanPageOutOfOrder";
-    case C_bootloaderErrOK:                     return "BootloaderErrOK";
-    case C_bootloaderErrNoResponse:             return "BootloaderErrNoResponse";
-    case C_bootloaderErrSendFailed:             return "BootloaderErrSendFailed";
-    case C_bootloaderErrReceiveTimeout:         return "BootloaderErrReceiveTimeout";
-    default: ;
+    switch(err) {
+    case C_bootloaderErr:                       return  "BootloaderErr";
+    case C_bootloaderErrResend:                 return      "BootloaderErrResend";
+    case C_bootloaderErrStartAddressOutOfRange: return      "BootloaderErrStartAddressOutOfRange";
+    case C_bootloaderErrEndAddressOutOfRange:   return      "BootloaderErrEndAddressOutOfRange";
+    case C_bootloaderErrStartPageOutOfRange:    return      "BootloaderErrStartPageOutOfRange";
+    case C_bootloaderErrPageLenOutOfRange:      return     "BootloaderErrPageLenOutOfRange";
+    case C_bootloaderErrPageWriteFailed:        return      "BootloaderErrPageWriteFailed";
+    case C_bootloaderErrPageEraseFailed:        return      "BootloaderErrPageEraseFailed";
+    case C_bootloaderErrCanPageOutOfOrder:      return      "BootloaderErrCanPageOutOfOrder";
+    case C_bootloaderErrMemoryPageViolation:    return      "BootloaderErrMemoryPageViolation";
+    case C_bootloaderErrNoResponse:             return     "BootloaderErrNoResponse";
+    case C_bootloaderErrSendFailed:             return     "BootloaderErrSendFailed";
+    case C_bootloaderErrReceiveTimeout:         return      "BootloaderErrReceiveTimeout";
+    case C_bootloaderErrResendMaxLoopCount:     return      "BootloaderErrResendMaxLoopCount";
+
+    case C_bootloaderErrOK:                     return      "BootloaderErrOK";
+    case C_bootloaderErrNonValidBin:            return      "BootloaderErrNonValidBin";
+    case C_bootloaderErrUnknown:                return      "BootloaderErrUnknown";
     }
 
     // we handle all other including ErrUnknown this way
@@ -110,7 +114,7 @@ __declspec(noreturn) static void nodeErrExit(const char *str, can_bootloaderErrs
 #endif
 static void nodeErrExit(const char *str, can_bootloaderErrs_e err)
 {
-    char *errStr = bootloadErrToStr(err);
+    const char *errStr = bootloadErrToStr(err);
     size_t bufSz = strlen(str) + strlen(errStr) + 2;
     char *chbuf = malloc(bufSz);
     snprintf(chbuf, bufSz, "%s %s\n", str, errStr);
@@ -335,6 +339,7 @@ static can_bootloaderErrs_e writeFileToNode(memoptions_t *mopt, uint8_t *fileCac
     byte4_t crc = { 0 };
     uint8_t *addrAtCanPageStart;
     uint8_t *addrAtMemPageStart;
+    uint8_t retryCnt = 0;
 
 writeMemPageLoop:
     addrAtMemPageStart = addr;
@@ -351,24 +356,25 @@ writeCanPageLoop:
     // we use addrAtMemPageStart to make sure we transmitt in pageSize chunks
     // we will eventually reach endAddr
     frameNr = 0;
-    uint8_t *eAddr = MIN((addrAtMemPageStart + memory.pageSize +1), endAddr+1);
-    frames = (uint8_t)MIN((eAddr - addr -1), ((BOOTLOADER_PAGE_SIZE+1) * 7)) / 7;
-    if ((MIN((eAddr - addr -1), ((BOOTLOADER_PAGE_SIZE+1) * 7)) % 7) > 0)
+    uint8_t *eAddr = MIN((addrAtMemPageStart + memory.pageSize), endAddr);
+    frames = (uint8_t)(MIN((eAddr - addr), ((BOOTLOADER_PAGE_SIZE+1) * 7)) / 7);
+    if ((MIN((eAddr - addr), ((BOOTLOADER_PAGE_SIZE+1) * 7)) % 7) > 0)
         frames += 1;
 
-    crc.vlu = crc32(0, addr, MIN(MIN((size_t)(eAddr - addr -1), (frames * 7)),
+    crc.vlu = crc32(0, addr, MIN(MIN((size_t)(eAddr - addr), (frames * 7)),
                                  ((BOOTLOADER_PAGE_SIZE+1) * 7)));
+    printf("crc: 0x%x\n", crc.vlu);
     sendFrm->can_dlc = 8;
     sendFrm->data[0] = C_bootloaderWriteFlash;
-    sendFrm->data[1] = crc.b0; // (crc & 0x000000FF);
-    sendFrm->data[2] = crc.b1; // (crc & 0x0000FF00) >> 8;
-    sendFrm->data[3] = crc.b2; // (crc & 0x00FF0000) >> 16;
-    sendFrm->data[4] = crc.b3; // (crc & 0xFF000000) >> 24;
+    sendFrm->data[1] = crc.b3; // (crc & 0x000000FF);
+    sendFrm->data[2] = crc.b2; // (crc & 0x0000FF00) >> 8;
+    sendFrm->data[3] = crc.b1; // (crc & 0x00FF0000) >> 16;
+    sendFrm->data[4] = crc.b0; // (crc & 0xFF000000) >> 24;
     // len of page
     sendFrm->data[5] = frames;
-    sendFrm->data[6] = canPageNr.b0; //(canPageNr & 0x000000FF);
-    sendFrm->data[7] = canPageNr.b1; //(canPageNr & 0x0000FF00) >> 8;
-    if (canbridge_send(sendFrm, 1000) < 1) {
+    sendFrm->data[6] = canPageNr.b1; //(canPageNr & 0x000000FF);
+    sendFrm->data[7] = canPageNr.b0; //(canPageNr & 0x0000FF00) >> 8;
+    if (canbridge_send(sendFrm, 10) < 1) {
         printCanError();
         return C_bootloaderErrSendFailed;
     }
@@ -386,12 +392,12 @@ writeCanPageLoop:
           // should never arrive here!
           return C_bootloaderErrMemoryPageViolation;
         }
-        if (++addr >= eAddr) {
+        if (addr++ >= eAddr) {
           sendFrm->can_dlc = i;
           break; // frameId should now be frameId == frames
         }
       }
-      if (canbridge_send(sendFrm, 1000) < 1) {
+      if (canbridge_send(sendFrm, 10) < 1) {
           printCanError();
           return C_bootloaderErrSendFailed;
       }
@@ -399,7 +405,7 @@ writeCanPageLoop:
       printProgress(-1.0, frameNr);
     }
 
-    // wait for remote to Ack this page
+    // wait for remote to Ack this page, might take a while
     do {
         // progressbar
         uint32_t total = (uint32_t)(endAddr - fileCache),
@@ -412,15 +418,18 @@ writeCanPageLoop:
             printCanError();
             return C_bootloaderErrReceiveTimeout;
         }
-        if (!abortVar)
+        if (abortVar)
             return C_bootloaderErrUnknown;
     } while(recvFrm->can_dlc != 2 &&
             recvFrm->data[0] != C_bootloaderReadFlash);
 
     // check if we should resend
-    if (recvFrm->data[1] == C_bootloaderErrOK)
+    if (recvFrm->data[1] == C_bootloaderErrOK) {
+        retryCnt = 0;
       ++canPageNr.vlu;
-    else if (recvFrm->data[1] == C_bootloaderErrResend) {
+    } else if (recvFrm->data[1] == C_bootloaderErrResend) {
+        if (++retryCnt > 10)
+            return C_bootloaderErrResendMaxLoopCount;
         addr = addrAtCanPageStart;
         memPageGuard -= (frameNr * 7) + (8 - sendFrm->can_dlc);
         goto writeCanPageLoop;
@@ -517,10 +526,12 @@ readCanPageLoop:
       // notify node that we need this canPage retransmitted
 resend:
       //printf("Resend start at %u frameNr:%u\n", timeGetTime(), frameNr);
+      if (++retryCnt > 10)
+          return C_bootloaderErrResendMaxLoopCount;
       sendFrm->can_dlc = 2;
       sendFrm->data[0] = C_bootloaderReadFlash;
       sendFrm->data[1] = C_bootloaderErrResend;
-      if (++retryCnt > 10 && canbridge_send(sendFrm, 1000) < 1) {
+      if (canbridge_send(sendFrm, 1000) < 1) {
           printCanError();
           return C_bootloaderErrSendFailed;
       }
@@ -656,6 +667,7 @@ void doReadCmd(memoptions_t *mopt, char *storeName)
     sendFrm.data[sendFrm.can_dlc++] = (len & 0x0000FF00) >> 8;
     sendFrm.data[sendFrm.can_dlc++] = (len & 0x00FF0000) >> 16;
 
+    // use long timeou
     if (canbridge_send(&sendFrm, 100) < 1) {
         printCanError();
         errExit("Failed to send flash command");

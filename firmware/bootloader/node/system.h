@@ -22,6 +22,9 @@
 #define WAIT_UNRESPONSE_CAN_BEFORE_RESET 60000
 
 
+// from https://github.com/alex-Arc/FirmwareFlasher/blob/master/FirmwareFlasher.h
+#define RAMFUNC  __attribute__ ((section(".fastrun"), noinline, noclone, optimize("Os") ))
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -53,9 +56,9 @@ void systickShutdown(void);
 void systemToApplication(void);
 void systemReset(void) __attribute__((noreturn));
 
-can_bootloaderErrs_e systemFlashErase(uint8_t *startAddr, uint8_t *endAddr);
-can_bootloaderErrs_e systemFlashWritePage(uint16_t *memPageBuf,
-                                          volatile uint16_t *addr);
+can_bootloaderErrs_e RAMFUNC systemFlashErase(uint8_t *startAddr, uint8_t *endAddr);
+can_bootloaderErrs_e RAMFUNC systemFlashWritePage(uint16_t *memPageBuf,
+                                                  volatile uint16_t *addr);
 
 #ifdef __cplusplus
 }

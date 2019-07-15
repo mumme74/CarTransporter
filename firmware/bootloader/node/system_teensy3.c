@@ -11,6 +11,11 @@
 #include "can.h"
 #include "commands.h"
 
+#define FLTL_FCCOB_PGMSEC 0x0B
+#define FLTL_FCCOB_ERSSCR 0x09
+#define FTFL_FCCOB_SETRAM 0x81
+
+
 #ifdef ARDUINO
 # include <Arduino.h>
 # ifdef DEBUG_PRINT
@@ -49,8 +54,6 @@
 #endif
 
 
-// from https://github.com/alex-Arc/FirmwareFlasher/blob/master/FirmwareFlasher.h
-#define RAMFUNC  __attribute__ ((section(".fastrun"), noinline, noclone, optimize("Os") ))
 
 // from linkscript
 extern const size_t _appRomStart, _appRomEnd, _bootRom, _stack, _heapstart;
@@ -64,7 +67,7 @@ extern const size_t _appRomStart, _appRomEnd, _bootRom, _stack, _heapstart;
 
 // --------------- begin private functions ------------------------
 
-bool flash_is_idle() {
+RAMFUNC bool flash_is_idle() {
   return FTFL_FSTAT & FTFL_FSTAT_CCIF;
 }
 
@@ -78,24 +81,24 @@ RAMFUNC void flash_invalidate_cache() {
 }
 
 
-void flash_wait_for_last_operation() {
-  while(!flash_is_idle())
+RAMFUNC void flash_wait_for_last_operation() {
+  while((FTFL_FSTAT & FTFL_FSTAT_CCIF) == 0)
     ;
 }
 
-void flash_err_clr() {
+RAMFUNC void flash_err_clr() {
   FTFL_FSTAT &= FTFL_FSTAT_RDCOLERR |
                 FTFL_FSTAT_ACCERR | FTFL_FSTAT_FPVIOL;
   flash_wait_for_last_operation();
 }
 
-bool flash_has_error() {
+RAMFUNC bool flash_has_error() {
   if (flash_is_idle())
     return (FTFL_FSTAT & FTFL_FSTAT_MGSTAT0);
   return false;
 }
 
-bool flash_run_cmd() {
+RAMFUNC bool flash_run_cmd() {
   FTFL_FSTAT |= FTFL_FSTAT_CCIF;
   flash_wait_for_last_operation();
   return 0 != (FTFL_FSTAT & (FTFL_FSTAT_RDCOLERR | FTFL_FSTAT_ACCERR |
@@ -229,7 +232,7 @@ void systemReset() {
 }
 
 
-can_bootloaderErrs_e systemFlashErase(uint8_t *startAddr, uint8_t *endAddr)
+RAMFUNC can_bootloaderErrs_e systemFlashErase(uint8_t *startAddr, uint8_t *endAddr)
 {
   if (startAddr < (uint8_t*)_appRomStart)
     return C_bootloaderErrStartAddressOutOfRange;
@@ -270,8 +273,16 @@ can_bootloaderErrs_e systemFlashErase(uint8_t *startAddr, uint8_t *endAddr)
     FTFL_FCCOB4 = ((uint32_t)startAddr & 0x0000FF00u) >> 8;
     FTFL_FCCOB5 = ((uint32_t)startAddr & 0x000000FFu) >> 0;
 
-    // Run cmd
-    if (!flash_run_cmd()) {
+    // run command
+    FTFL_FSTAT = FTFL_FSTAT_CCIF;
+    while((FTFL_FSTAT & FTFL_FSTAT_CCIF) == 0);
+
+
+
+    // Test for errors
+    if (FTFL_FSTAT & (FTFL_FSTAT_RDCOLERR | FTFL_FSTAT_ACCERR |
+		       FTFL_FSTAT_FPVIOL   | FTFL_FSTAT_MGSTAT0))
+    {
       err = C_bootloaderErrPageEraseFailed;
       break;
     }
@@ -284,36 +295,48 @@ can_bootloaderErrs_e systemFlashErase(uint8_t *startAddr, uint8_t *endAddr)
   return err;
 }
 
-can_bootloaderErrs_e systemFlashWritePage(uint16_t *memPageBuf,
+//RAMFUNC can_bootloaderErrs_e _systemFlashWritePage(uint16_t *memPageBuf,
+//                                          volatile uint16_t *addr);
+RAMFUNC can_bootloaderErrs_e systemFlashWritePage(uint16_t *memPageBuf,
                                           volatile uint16_t *addr)
 {
-
+  print_str("addr");print_uint(addr);endl();print_flush();
   if (addr < (uint16_t*)_appRomStart)
     return C_bootloaderErrStartAddressOutOfRange;
 
   can_bootloaderErrs_e err = C_bootloaderErrOK;
 
-
+  __disable_irq();
 
   // check that FlexRAM is in RAM mode not EEPROM
-  flash_wait_for_last_operation();
+  //flash_wait_for_last_operation();
+  while((FTFL_FSTAT & FTFL_FSTAT_CCIF) == 0);
+
+      // We can't use print_* here in this function
+     // print_str("wr flsh 1kb\n");print_flush();
+
   bool isEEPROM = FTFL_FCNFG & FTFL_FCNFG_EEERDY;
   if (isEEPROM) {
     // set to RAM
     FTFL_FCCOB0 = 0x81; // (SETRAM) 28.4.11.15 Set FlexRAM Function Command
     FTFL_FCCOB1 = 0xFF; // Make FlexRAM available as RAM:
-    flash_wait_for_last_operation();
+    //flash_wait_for_last_operation();
+    FTFL_FSTAT |= FTFL_FSTAT_CCIF;
+    while((FTFL_FSTAT & FTFL_FSTAT_CCIF) == 0);
   }
 
   // erase this memorypage before we write new stuff
   // we must do this as flash write requires 0xffff in address to write
   // erase sector cmd
-  FTFL_FCCOB0 = 0x09; // (ERSSCR) 28.4.11.7 Erase Flash Sector Command
+  FTFL_FCCOB0 = FLTL_FCCOB_ERSSCR; // (ERSSCR) 28.4.11.7 Erase Flash Sector Command
   FTFL_FCCOB1 = ((uint32_t)addr & 0x00FF0000u) >> 16; // address of sector to erase
   FTFL_FCCOB2 = ((uint32_t)addr & 0x0000FF00u) >> 8;
   FTFL_FCCOB3 = ((uint32_t)addr & 0x000000FFu) >> 0;
-  FTFL_FSTAT |= FTFL_FSTAT_CCIF; // do cmd, continue while it does its thing
+  //flash_run_cmd();
+  FTFL_FSTAT |= FTFL_FSTAT_CCIF; //| FTFL_FSTAT_RDCOLERR |
+  //              FTFL_FSTAT_ACCERR | FTFL_FSTAT_FPVIOL; // do cmd, continue while it does its thing
 
+  while((FTFL_FSTAT & FTFL_FSTAT_CCIF) == 0);
   // fill FlexRAM with our payload
 
   // write in phrases (64bits), cast to phrase
@@ -323,22 +346,25 @@ can_bootloaderErrs_e systemFlashWritePage(uint16_t *memPageBuf,
 
   // first some boundaries
   const uint64_t *flexRamStart = (uint64_t*)0x14000000u, // from 3.5.1.2
-                 //*flexRamEnd   = (uint64_t*)0x140007FFu,
-                 *flexRam2half = (uint64_t*)0x14000400u;
+                 *flexRam2half = (uint64_t*)0x14000400u,
+                 *flexRamEnd   = (uint64_t*)0x140007FFu;
+  uint8_t sectors = 2;
+
+  // pointer to flexram
+  volatile uint64_t *flexRamBuf = (uint64_t*)flexRamStart;
 
   // we can't store more than 1kb at a time in flexRam, sequential writes
   do {
-
-    // pointer to flexram
-    volatile uint64_t *flexRamBuf = (uint64_t*)flexRamStart;
-
     // FIXME this assumes a 2kb FlexRAM conf
-    // and we can only write to lower 1/2 of flexRAM
+    // and we can only write to lower 1/2 of flexRAM first
+    // Then upper part in that sequence
 
     uint16_t phrasesWritten = 0;
-    // do 1kb each and sequential writes
-    do {
 
+    // do 1kb each and sequential writes
+    while (flexRamBuf < flexRam2half) {
+	// system resets at flexRam2half + 0x1A
+     // if (flexRamBuf == flexRamStart + 0x400 && sectorInc) { while(1);}
       *flexRamBuf = *memBuf; // write to rom
 
       // checks for write errors (addr is volatile)
@@ -350,16 +376,22 @@ can_bootloaderErrs_e systemFlashWritePage(uint16_t *memPageBuf,
 
       ++phrasesWritten;
       ++flexRamBuf;
-    } while (++memBuf < flexRam2half);
+      ++memBuf;
+    }
 
     // erase cmd might not be finished yet
-    flash_wait_for_last_operation();
+    //flash_wait_for_last_operation();
+    while((FTFL_FSTAT & FTFL_FSTAT_CCIF) == 0);
 
-    if (flash_has_error()) {
+
+    if (err != C_bootloaderErrOK)
+      break;
+    else if (flash_has_error()) {
+	//digitalWrite(9, !digitalRead(9));
       err = C_bootloaderErrPageWriteFailed;
-      //break;
+      break;
     } else {
-      FTFL_FCCOB0 = 0x0B; // (PGMSEC) 28.4.11.8 Program Section Command
+      FTFL_FCCOB0 = FLTL_FCCOB_PGMSEC; // (PGMSEC) 28.4.11.8 Program Section Command
       FTFL_FCCOB1 = ((uint32_t)sectorAddr & 0x00FF0000u) >> 16; // address of sector to program
       FTFL_FCCOB2 = ((uint32_t)sectorAddr & 0x0000FF00u) >> 8;
       FTFL_FCCOB3 = ((uint32_t)sectorAddr & 0x000000FFu) >> 0;
@@ -368,28 +400,47 @@ can_bootloaderErrs_e systemFlashWritePage(uint16_t *memPageBuf,
       FTFL_FCCOB4 = (phrasesWritten & 0xFF00u) >> 8; // length stored in FlexRAM
       FTFL_FCCOB5 = (phrasesWritten & 0x00FFu) >> 0;
       FTFL_FSTAT |= FTFL_FSTAT_CCIF; // run cmd
+      //flash_run_cmd();
+
+      --sectors;
+
+      //flash_wait_for_last_operation();
+      while((FTFL_FSTAT & FTFL_FSTAT_CCIF) == 0);
     }
 
+      // must start over from top otherwise we would write into the 2/2 half
+      // if I understand cossrectly it is't allowed
+      flexRamBuf = (uint64_t*)flexRamStart;
+
     // advance sector storeAddress
-    sectorAddr += flexRam2half - flexRamStart;
-  } while(err == C_bootloaderErrOK && memBuf < (uint64_t*)(addr + pageSize));
+    sectorAddr += (flexRam2half - flexRamStart) *2; // as they are 64bit to 32
+
+  } while(err == C_bootloaderErrOK && sectors);
 
   // cleanup and sanity checks
 
-  flash_wait_for_last_operation();
+  //flash_wait_for_last_operation();
+  while((FTFL_FSTAT & FTFL_FSTAT_CCIF) == 0);
+
   if (flash_has_error())
     err = C_bootloaderErrPageWriteFailed;
 
   if (isEEPROM) {
     // restore to EEPROM
-    flash_wait_for_last_operation();
     FTFL_FCCOB0 = 0x81; // (SETRAM) 28.4.11.15 Set FlexRAM Function Command
     FTFL_FCCOB1 = 0x00; // Make FlexRAM available as EEPROM:
-    flash_run_cmd();
+    FTFL_FSTAT |= FTFL_FSTAT_CCIF; // run cmd
+    while((FTFL_FSTAT & FTFL_FSTAT_CCIF) == 0);
   }
 
   // program cache must be invalidated
   flash_invalidate_cache();
+  while((FTFL_FSTAT & FTFL_FSTAT_CCIF) == 0);
+
+  __enable_irq();
+
+  print_str("exit fls:");print_uint(err);endl();
+  print_flush();
 
   return err;
 }

@@ -17,6 +17,10 @@
 #define FMC_PFB0CR_CINV_WAY (0x0Fu << 20);
 
 
+// from https://github.com/alex-Arc/FirmwareFlasher/blob/master/FirmwareFlasher.h
+#define RAMFUNC  __attribute__ ((section(".fastrun"), noinline, noclone, optimize("Os") ))
+
+
 #ifdef ARDUINO
 # include <Arduino.h>
 # ifdef DEBUG_PRINT
@@ -127,6 +131,7 @@ void systemInit(void) {
   //Serial.begin(115200); // actually does nothing in teensy
   delay(50); // allow usb to settle
 
+  /*
   // FIXME ONLY for debuging
   pinMode(6, OUTPUT);
   pinMode(8, OUTPUT);
@@ -134,6 +139,7 @@ void systemInit(void) {
 
   // hard fault
   pinMode(13, OUTPUT);
+  */
 }
 
 void systemDeinit(void) {
@@ -254,25 +260,6 @@ RAMFUNC can_bootloaderErrs_e systemFlashErase(uint8_t *startAddr, uint8_t *endAd
   while((FTFL_FSTAT & FTFL_FSTAT_CCIF) == 0);
 
   do {
-//    // make sure sector is unprotected
-//    flash_wait_for_last_operation(); // can't change FPROT registers while other cmds running
-//    // figure out which byte that handles this region
-//    uint32_t curRegion = (startAddr - _bootRom) / protectRegionSize;
-//    uint32_t curRegionByte = curRegion / 8;
-//    volatile uint8_t *protectionByte = nullptr;
-//    switch(curRegionByte) {
-//    case 0: protectionByte = FTFL_FPROT3; break;
-//    case 1: protectionByte = FTFL_FPROT2; break;
-//    case 2: protectionByte = FTFL_FPROT1; break;
-//    case 3: protectionByte = FTFL_FPROT0; break;
-//    default:
-//      Serial.printf("unhandled protection curRegionByte:%l\n", curRegionByte);
-//      return C_bootloaderErrPageEraseFailed;
-//    }
-//
-//    // figure out which bit in this byte to twiddle
-//    protectionByte |=
-
     // erase sector cmd
     FTFL_FCCOB0 = FLTL_FCCOB_ERSSCR; // (ERSSCR) 28.4.11.7 Erase Flash Sector Command
     FTFL_FCCOB1 = ((uint32_t)startAddr & 0x00FF0000u) >> 16; // address of sector to erase
@@ -282,8 +269,6 @@ RAMFUNC can_bootloaderErrs_e systemFlashErase(uint8_t *startAddr, uint8_t *endAd
     // run command
     FTFL_FSTAT = FTFL_FSTAT_CCIF;
     while((FTFL_FSTAT & FTFL_FSTAT_CCIF) == 0);
-
-
 
     // Test for errors
     if (FTFL_FSTAT & (FTFL_FSTAT_RDCOLERR | FTFL_FSTAT_ACCERR |
@@ -310,7 +295,7 @@ RAMFUNC can_bootloaderErrs_e systemFlashErase(uint8_t *startAddr, uint8_t *endAd
 RAMFUNC can_bootloaderErrs_e systemFlashWritePage(uint16_t *memPageBuf,
                                           volatile uint16_t *addr)
 {
-  print_str("romstart");print_uint((uint32_t)_appRomStart);endl();print_flush();
+  //print_str("romstart");print_uint((uint32_t)_appRomStart);endl();print_flush();
   if (addr < (uint16_t*)&_appRomStart)
     return C_bootloaderErrStartAddressOutOfRange;
 
@@ -455,9 +440,8 @@ RAMFUNC can_bootloaderErrs_e systemFlashWritePage(uint16_t *memPageBuf,
 
   __enable_irq();
 
-  print_str("exit fls:");print_uint(err);endl();
-  print_flush();
-  print_str("romstart");print_uint((uint32_t)_appRomStart);endl();print_flush();
+  //print_str("exit fls:");print_uint(err);endl();
+  //print_str("romstart");print_uint((uint32_t)_appRomStart);endl();print_flush();
 
   return err;
 }

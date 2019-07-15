@@ -79,14 +79,14 @@ readPageLoop:
     // we will eventually reach endAddr
     // also when reading memory we don't need that 2K memory page restriction that we need when writing to memory
     uint32_t bytesDiff = endAddr.ptr8 - addr.ptr8;
-    if ((bytesDiff / 7) < (BOOTLOADER_PAGE_SIZE +1))
+    if ((bytesDiff / 7) < (BOOTLOADER_PAGE_SIZE))
       frames = (bytesDiff / 7) + ((bytesDiff % 7) ? 1 : 0);
     else
-      frames = BOOTLOADER_PAGE_SIZE+1;
+      frames = BOOTLOADER_PAGE_SIZE;
     //print_str("read frames:");print_uint(frames);print_str(" bytdif");print_uint(bytesDiff);endl();
     //print_str("addr");print_uint(addr.vlu);print_str(" endAddr");print_uint(endAddr.vlu);endl();
     //print_str("crc_len:");print_uint(MIN(endAddr.ptr8 - addr.ptr8, ((BOOTLOADER_PAGE_SIZE+1) * 7)));endl();
-    crc.vlu = crc32(0, addr.ptr8, MIN(bytesDiff, ((BOOTLOADER_PAGE_SIZE+1) * 7)));
+    crc.vlu = crc32(0, addr.ptr8, MIN(bytesDiff, ((BOOTLOADER_PAGE_SIZE) * 7)));
     msg->DLC = 8;
     msg->data8[0] = C_bootloaderReadFlash;
     msg->data8[1] = crc.b0; // (crc & 0x000000FF);
@@ -213,7 +213,7 @@ writeCanPageLoop:
         }
       } else {
         // it's a payload frame
-        uint32_t cPage = canPageNr.vlu * ((BOOTLOADER_PAGE_SIZE+1) * 7),
+        uint32_t cPage = canPageNr.vlu * ((BOOTLOADER_PAGE_SIZE) * 7),
                  fOffset = ((msg->data8[0] & 0x7F) * 7);
         uint32_t idxBase = cPage + fOffset;
 
@@ -243,10 +243,10 @@ writeCanPageLoop:
     // check canPage
     // pointer buf[0] advance to start of canPage.
     // last frame might be less than 7 bytes
-print_str("len:");print_uint(lastStoredIdx - (canPageNr.vlu * (BOOTLOADER_PAGE_SIZE+1) * 7));endl();
-print_str("buf idx:");print_uint((canPageNr.vlu * (BOOTLOADER_PAGE_SIZE+1) * 7));endl();
-    uint32_t recvCrc = crc32(0, buf + (canPageNr.vlu * (BOOTLOADER_PAGE_SIZE+1) * 7),
-                             lastStoredIdx - (canPageNr.vlu * (BOOTLOADER_PAGE_SIZE+1) * 7));
+    //print_str("len:");print_uint(lastStoredIdx - (canPageNr.vlu * (BOOTLOADER_PAGE_SIZE+1) * 7));endl();
+    //print_str("buf idx:");print_uint((canPageNr.vlu * (BOOTLOADER_PAGE_SIZE+1) * 7));endl();
+    uint32_t recvCrc = crc32(0, buf + (canPageNr.vlu * (BOOTLOADER_PAGE_SIZE) * 7),
+                             lastStoredIdx - (canPageNr.vlu * (BOOTLOADER_PAGE_SIZE) * 7));
     if (crc.vlu != recvCrc) {
 	print_str("crc:");print_uint(recvCrc);endl();
 

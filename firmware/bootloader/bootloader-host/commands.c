@@ -360,12 +360,12 @@ writeCanPageLoop:
     // we will eventually reach endAddr
     frameNr = 0;
     uint8_t *eAddr = MIN((addrAtMemPageStart + memory.pageSize), endAddr);
-    frames = (uint8_t)(MIN((eAddr - addr), ((BOOTLOADER_PAGE_SIZE+1) * 7)) / 7);
-    if ((MIN((eAddr - addr), ((BOOTLOADER_PAGE_SIZE+1) * 7)) % 7) > 0)
+    frames = (uint8_t)(MIN((eAddr - addr), ((BOOTLOADER_PAGE_SIZE) * 7)) / 7);
+    if ((MIN((eAddr - addr), ((BOOTLOADER_PAGE_SIZE) * 7)) % 7) > 0)
         frames += 1;
 
     crc.vlu = crc32(0, addr, MIN(MIN((size_t)(eAddr - addr), (frames * 7)),
-                                 ((BOOTLOADER_PAGE_SIZE+1) * 7)));
+                                 ((BOOTLOADER_PAGE_SIZE) * 7)));
     //printf("crc: 0x%x\n", crc.vlu);
     sendFrm->can_dlc = 8;
     sendFrm->data[0] = C_bootloaderWriteFlash;
@@ -455,7 +455,7 @@ static can_bootloaderErrs_e recvFileFromNode(uint8_t *fileCache, canframe_t *sen
 {
     uint16_t canPageNr;
     uint8_t frames, frameNr, retryCnt = 0;
-    uint32_t totalFrames = ((endAddr - startAddr) / 7) / (BOOTLOADER_PAGE_SIZE -1);
+    uint32_t totalFrames = ((endAddr - startAddr) / 7);
     byte4_t crc = { 0 };
 
     uint32_t lastStoredIdx = 0,
@@ -503,7 +503,7 @@ readCanPageLoop:
         }
       } else {
         // it's a payload frame, frames might arrive at random order
-        uint32_t cPage = (canPageNr * (BOOTLOADER_PAGE_SIZE +1)) * 7,
+        uint32_t cPage = (canPageNr * (BOOTLOADER_PAGE_SIZE)) * 7,
                  fOffset = ((recvFrm->data[0] & 0x7F) * 7);
         if (lastStoredIdx < cPage + fOffset - 1 + recvFrm->can_dlc) {
             lastStoredIdx = cPage + fOffset - 1 + recvFrm->can_dlc;
@@ -515,7 +515,7 @@ readCanPageLoop:
         ++frameNr;
         if (((totalFrames / 8) % frameNr) == 0)
             printProgress(-1.0, frameNr);
-        printf("at idx:%u cPage:%u fOffset:%u\n", cPage + fOffset + recvFrm->can_dlc -1, cPage, fOffset);
+        //printf("at idx:%u cPage:%u fOffset:%u\n", cPage + fOffset + recvFrm->can_dlc -1, cPage, fOffset);
       }
 
     } while (frameNr < frames);
@@ -528,13 +528,13 @@ readCanPageLoop:
     // check canPage
     // pointer buf[0] advance to start of canPage.
     // last frame might be less than 7 bytes
-    uint32_t recvCrc = crc32(0, fileCache + (canPageNr * (BOOTLOADER_PAGE_SIZE +1) * 7),
+    uint32_t recvCrc = crc32(0, fileCache + (canPageNr * (BOOTLOADER_PAGE_SIZE) * 7),
                              lastStoredIdx - previousStoredIndex);
     if (crc.vlu != recvCrc) {
       // notify node that we need this canPage retransmitted
 resend:
-      printf("\ncrc len: 0x%x\n", lastStoredIdx - previousStoredIndex);
-      printf("Resend start at %u frameNr:%u\n", timeGetTime(), frameNr);
+      //printf("\ncrc len: 0x%x\n", lastStoredIdx - previousStoredIndex);
+      //printf("Resend start at %u frameNr:%u\n", timeGetTime(), frameNr);
       if (++retryCnt > 10)
           return C_bootloaderErrResendMaxLoopCount;
       sendFrm->can_dlc = 2;

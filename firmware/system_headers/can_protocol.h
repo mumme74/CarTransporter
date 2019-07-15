@@ -632,7 +632,7 @@ typedef enum {
 
 
 // maximimum nr frames in each canpage
-#define BOOTLOADER_PAGE_SIZE 0x7F
+#define BOOTLOADER_PAGE_SIZE 0x80 /*0x7F is last index payload frame*/
 
 
 #endif /* CAN_PROTOCOL_H_ */

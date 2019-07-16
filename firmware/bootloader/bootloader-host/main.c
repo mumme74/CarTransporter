@@ -35,6 +35,7 @@
 // global vars
 int abortVar = 0;
 uint32_t canIdx = 0;
+static uint32_t canFilterMask = 0;
 
 static CAN_Speeds_t speed = CAN_speed_socketspeed;
 
@@ -97,17 +98,18 @@ void setup_can_iface(char *name)
         errExit(canbridge_errmsg);
 
     // filter out all other messages
-    uint32_t mask, id;
-    if (canIdx < 0x800) {
+    uint32_t mask;
+    if (canFilterMask) {
+        mask = canFilterMask;
+    } else if (canIdx < 0x800) {
         // 11 bit id
         mask = 0x7F8; // filter in only this id
     } else {
         // 29 bit (extended frame)
         mask = 0x1FFFFFF8;
     }
-    id = canIdx;
-    //if (!canbridge_set_filter(mask, id))
-    //    errExit(canbridge_errmsg);
+    if (!canbridge_set_filter(mask, canIdx))
+        errExit(canbridge_errmsg);
 
     canbridge_set_abortvariable(&abortVar);
 
@@ -156,6 +158,9 @@ void print_usage(char *prg)
     fprintf(stderr, "                                       3-7=currently not used nodes\n");
     fprintf(stderr, "         -N <node>    nodename: parkbrakeNode | suspensionNode\n");
     fprintf(stderr, "         -i <ID>      CAN frameid to listen to in HEX\n");
+    fprintf(stderr, "         -m <mask>    Use mask  as filterMask, must be hex value\n");
+    fprintf(stderr, "                        default filterMask is to match against canID, must be hex value\n");
+    fprintf(stderr, "                       0 turns off filterMask\n");
     fprintf(stderr, "         -b <baudID>  Use baudrate, some drivers need this\n");
     fprintf(stderr, "                        baudID can be:\n");
     for (CAN_Speeds_t s = _CAN_speed_start_marker +1; s < _CAN_speed_end_marker -1; ++s)
@@ -197,7 +202,7 @@ void print_usage(char *prg)
     fprintf(stderr, "   memoryinfo\n");
     fprintf(stderr, "                       Prints node memory regions\n\n");
     fprintf(stderr, "   reset\n");
-    fprintf(stderr, "                  T    Trigger a reset in node\n\n");
+    fprintf(stderr, "                       Trigger a reset in node\n\n");
     fprintf(stderr, " explanation memoryregion:\n");
     fprintf(stderr, "   if given if should be in the <form startaddress>:<endaddress>\n");
     fprintf(stderr, "   Startaddress is where action begins in node memory\n");
@@ -205,10 +210,11 @@ void print_usage(char *prg)
     fprintf(stderr, "   example:  0x801800:0x80FFFF\n");
     fprintf(stderr, "   See memoryinfo for the bounds of memory regions\n\n");
     fprintf(stderr, "Examples:\n");
-    fprintf(stderr, "%s -N parkbrakeNode can0 checksum\n", prg);
-    fprintf(stderr, "%s -n 0 can0 read /path/to/backup.bin\n", prg);
-    fprintf(stderr, "%s -n 0 can0 write /path/to/new.bin 0x8003050:0x800FFFF\n", prg);
-    fprintf(stderr, "%s -i 6a0 can0 [action] <optional agument> uses canID 0x6A for communication\n", prg);
+    fprintf(stderr, "%s -s socketcan -N parkbrakeNode can0 checksum\n", prg);
+    fprintf(stderr, "%s -s slcan -n 0 can0 read /path/to/backup.bin\n", prg);
+    fprintf(stderr, "%s -s slcan -n 0 can0 write /path/to/new.bin 0x8003050:0x800FFFF\n", prg);
+    fprintf(stderr, "%s -s socketcan -i 6a0 -m FF8 can0 [action] <optional agument> uses canID 0x6A for communication\n", prg);
+    fprintf(stderr, "        matches canID 6a0 to 6a7\n");
     fprintf(stderr, "        usefull when we have a new node that isn't hard coded in %s\n", prg);
     fprintf(stderr, "\n");
 }
@@ -232,14 +238,26 @@ int main(int argc, char *argv[])
 
     abortVar = 0;
 
-    while ((opt = getopt(argc, argv, "i:n:N:d:b:h?")) != -1) {
+    while ((opt = getopt(argc, argv, "i:m:n:N:d:b:h?")) != -1) {
         switch (opt) {
         case 'i': {
-            long idx = strtol(optarg, NULL, 16);
-            if (idx < 0 || idx > 0x7FF) {
+            char *nxt = NULL;
+            long idx = strtol(optarg, &nxt, 16);
+            if (nxt != &optarg[strnlen(optarg, 20)])
+                errExit("Invalid canID\n");
+            if (idx < 0 || idx > 0x7FFFFF)
                 errExit("Wrong canID given\n");
-            }
+
             canIdx = (unsigned int)idx;
+        }   break;
+        case  'm': {
+            char *nxt = NULL;
+            long filter = strtol(optarg, &nxt, 16);
+            if (nxt != &optarg[strnlen(optarg, 20)])
+                errExit("Invalid can filter mask\n");
+            if (filter < 0 || filter > 0x7FFFFFF)
+                errExit("Wrong filter given\n");
+            canFilterMask = (uint32_t)filter;
         }   break;
         case 'n': {
             int idx = atoi(optarg);

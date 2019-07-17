@@ -7,6 +7,7 @@
 
 #include <Arduino.h>
 #include <kinetis.h>
+#include <usb_serial.h>
 //#include <core_cm4.h>
 #include "system.h"
 #include "can.h"
@@ -113,6 +114,7 @@ extern fifo_t can_rxqueue, can_txqueue; // is visible to global from can.c
 int8_t _canPost(canframe_t *msg);
 void _canInit(void);
 void _canLoop(void);
+bool _canGet(void);
 
 typedef enum {
   _RX_start,
@@ -130,8 +132,8 @@ typedef enum {
   //_TX_end = TX3
 } mailboxes_t;
 
-uint32_t canFilter = 0, //(canId | C_displayNode),
-         canMask   = 0;
+static uint32_t canFilter = 0,
+	        canMask   = 0x7FF;
 
 // -----------------------------------------------------------
 // public functions and variables
@@ -169,8 +171,9 @@ void _canInit(void)
 //    Can0.setFilter(canFilter2, i);
 //  }
 
-  canFilter = (canId | C_displayNode);
-  canMask   = 0;
+  canFilter = (canId & (CAN_MSG_ID_MASK | CAN_MSG_TYPE_MASK))
+					    | C_displayNode;
+  canMask   = 0x7F8;
 
   // these are taken from FlexCAN.cpp
   CORE_PIN3_CONFIG = PORT_PCR_MUX(2);

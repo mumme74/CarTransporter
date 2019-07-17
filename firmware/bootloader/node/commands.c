@@ -9,6 +9,7 @@
 #include "commands.h"
 #include "system.h"
 #include "crc32.h"
+#include "can.h"
 #include <can_protocol.h>
 
 
@@ -184,7 +185,7 @@ writeCanPageLoop:
       //print_str("wr rcv\n");
       if ((msg->data8[0] & 0x80)) {
         if (msg->data8[0] != C_bootloaderWriteFlash) {
-            print_str("abort\n");
+            print_str("abort wrong header cmd:");print_uint(msg->data8[0]);endl();
           return true; // stuck in loop, we should probably abort
         }
 
@@ -239,6 +240,7 @@ writeCanPageLoop:
 
     print_str("got frames\n");
     print_str("canPgnr:");print_uint(canPageNr.vlu);endl();
+    print_str("wr bytes ");print_uint(memPagesWritten * pageSize + lastStoredIdx);endl();
 
     // check canPage
     // pointer buf[0] advance to start of canPage.
@@ -248,7 +250,7 @@ writeCanPageLoop:
     uint32_t recvCrc = crc32(0, buf + (canPageNr.vlu * (BOOTLOADER_PAGE_SIZE) * 7),
                              lastStoredIdx - (canPageNr.vlu * (BOOTLOADER_PAGE_SIZE) * 7));
     if (crc.vlu != recvCrc) {
-	print_str("crc:");print_uint(recvCrc);endl();
+	print_str("crc fail:");print_uint(recvCrc);endl();
 
       sendErr(msg, C_bootloaderErrResend);
       goto writeCanPageLoop;// resend this canPage
@@ -261,7 +263,7 @@ writeCanPageLoop:
     // and we are not at end of bin
     // (last memPage sent from invoker might be less than pageSize)
     if (lastStoredIdx < pageSize &&
-        memPagesWritten < memPages)
+	&addr.ptr8[lastStoredIdx] < endAddr.ptr8)
     {
 	print_str("send next\n");
       // notify invoker that we are ready for next frame
@@ -282,11 +284,13 @@ writeCanPageLoop:
       *pbuf = 0x55; // 0xFF
     }
 
+    print_str("bef. flsh\n");print_flush();
+
     // write flashpage to rom
     err = systemFlashWritePage((uint16_t*)buf, addr.ptr16);
     if (err != C_bootloaderErrOK) {
 	print_str("write failed\n");
-	print_str(" addr");print_uint(addr.ptr16);endl();
+	print_str(" addr");print_uint((uint32_t)addr.ptr16);endl();
       sendErr(msg, err);
       break;
     } else {
@@ -297,12 +301,13 @@ writeCanPageLoop:
     // a *.bin might span over many memPages
     if (memPagesWritten < memPages) {
       // notify invoker that we are ready for next frame
-	print_str("mempage\n");
+	print_str("nxt mempage\n");
       sendErr(msg, C_bootloaderErrOK);
       goto writeMemPageLoop;
     }
 
-    print_str("out");print_uint(err);endl();
+    print_str("out");print_uint(err);print_str(" pages:");print_uint(memPages);
+    print_str("pages_written:");print_uint(memPagesWritten);endl();
     sendErr(msg, err);
 
   }  break; // to commands loop

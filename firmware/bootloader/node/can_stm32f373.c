@@ -35,6 +35,7 @@ extern fifo_t can_rxqueue, can_txqueue; // is visible to global from can.c
 // prototypes
 int8_t _canPost(canframe_t *msg);
 void _canInit(void);
+bool _canGet(void);
 
 // --------------------------------------------------------------
 // private to this file
@@ -138,6 +139,11 @@ void canEnableIRQ(void)
 
 // --------------------------------------------------------------------
 // implementation specific here on, treat as private
+
+bool _canGet(void)
+{
+  return false; // does nothing in this architecture
+}
 
 int8_t _canPost(canframe_t *msg)
 {

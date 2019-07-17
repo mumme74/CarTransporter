@@ -90,7 +90,6 @@ void canDisableIRQ(void);
 void canEnableIRQ(void);
 
 
-
 #ifdef __cplusplus
 }
 #endif

@@ -6,6 +6,7 @@
  */
 
 #include "system.h"
+#include "commands.h"
 #include "can.h"
 #include "fifo.h"
 #include <can_protocol.h>
@@ -99,8 +100,9 @@ bool canGet(canframe_t *msg)
 int8_t canPost(canframe_t *msg)
 {
   // notify which node sends this msg
-  msg->IDE &= (CAN_MSG_TYPE_MASK | CAN_MSG_ID_MASK); // other clears sender bits
-  msg->IDE |=  NODE_ID; // sets sender bits
+  //msg->IDE &= (CAN_MSG_TYPE_MASK | CAN_MSG_ID_MASK); // other clears sender bits
+  //msg->IDE |=  NODE_ID; // sets sender bits
+  msg->IDE = canId;
 
   if (!_canPost(msg)) {
       // buffer full?

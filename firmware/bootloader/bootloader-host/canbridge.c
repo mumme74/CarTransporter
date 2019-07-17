@@ -147,7 +147,7 @@ int canbridge_set_driver_from_name(const char *name)
 CAN_Speeds_t canbridge_get_speed_id_from_speed_name(const char *name)
 {
     for(CAN_Speeds_t s = _CAN_speed_start_marker; s < _CAN_speed_end_marker; ++s) {
-        if (strncmp(name, CAN_Speeds[s], MAXLEN_SPEEDNAME_STR) == 0)
+        if (strncasecmp(name, CAN_Speeds[s], MAXLEN_SPEEDNAME_STR) == 0)
             return s;
     }
     // return invalid
@@ -196,14 +196,14 @@ int canbridge_init(const char *idStr, CAN_Speeds_t speed)
  * @param id, use this can msg ID
  * @return 0 on error, 1 when ok
  */
-int canbridge_set_filter(canid_t mask, canid_t id)
+int canbridge_set_filter(canid_t mask, canid_t id, int extended)
 {
     switch (_driverId) {
     case CAN_driver_slcan:
-        return slcan_set_filter(mask, id);
+        return slcan_set_filter(mask, id, extended);
 #ifdef BUILD_SOCKETCAN
     case CAN_driver_socketcan:
-        return socketcan_set_filter(mask, id);
+        return socketcan_set_filter(mask, id, extended);
 #endif
     default:
         CANBRIDGE_SET_ERRMSG("Invalid CAN driver\n")

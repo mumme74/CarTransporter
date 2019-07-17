@@ -24,7 +24,7 @@ int socketcan_init(const char *name, CAN_Speeds_t speed);
  * @param id, use this can msg ID
  * @return 0 on error, 1 when ok
  */
-int socketcan_set_filter(canid_t mask, canid_t id);
+int socketcan_set_filter(canid_t mask, canid_t id, int extended);
 
 /**
  * @brief socketcan_open, open a previously initialized

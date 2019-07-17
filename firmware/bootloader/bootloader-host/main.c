@@ -36,6 +36,7 @@
 int abortVar = 0;
 uint32_t canIdx = 0;
 static uint32_t canFilterMask = 0;
+static int extendedCanId = 0;
 
 static CAN_Speeds_t speed = CAN_speed_socketspeed;
 
@@ -108,7 +109,7 @@ void setup_can_iface(char *name)
         // 29 bit (extended frame)
         mask = 0x1FFFFFF8;
     }
-    if (!canbridge_set_filter(mask, canIdx))
+    if (!canbridge_set_filter(mask, canIdx, extendedCanId))
         errExit(canbridge_errmsg);
 
     canbridge_set_abortvariable(&abortVar);
@@ -249,6 +250,8 @@ int main(int argc, char *argv[])
                 errExit("Wrong canID given\n");
 
             canIdx = (unsigned int)idx;
+            if (!extendedCanId && strnlen(optarg, 10) > 4)
+                extendedCanId = 1;
         }   break;
         case  'm': {
             char *nxt = NULL;
@@ -258,6 +261,8 @@ int main(int argc, char *argv[])
             if (filter < 0 || filter > 0x7FFFFFF)
                 errExit("Wrong filter given\n");
             canFilterMask = (uint32_t)filter;
+            if (!extendedCanId && strnlen(optarg, 10) > 4)
+                extendedCanId = 1;
         }   break;
         case 'n': {
             int idx = atoi(optarg);

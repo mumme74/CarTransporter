@@ -43,7 +43,7 @@ int slcan_init(const char *name, CAN_Speeds_t speed);
  * @param id, use this can msg ID
  * @return 0 on error, 1 when ok
  */
-int slcan_set_filter(uint32_t mask, uint32_t id);
+int slcan_set_filter(uint32_t mask, uint32_t id, int extended);
 
 /**
  * @brief slcan_open, open a previously initialized

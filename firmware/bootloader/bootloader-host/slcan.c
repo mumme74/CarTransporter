@@ -133,7 +133,7 @@ static int open_port(const char *portname)
 }
 
 static int write_port(const char *buf, uint32_t len,
-                      uint32_t *bytesWritten, int timeoutms)
+                      uint32_t *bytesWritten, uint32_t timeoutms)
 {
     if (timeoutms < min_latency)
         timeoutms = min_latency;
@@ -163,7 +163,7 @@ static int write_port(const char *buf, uint32_t len,
 }
 
 static int read_port(char *buf, uint32_t maxLen, uint32_t minLen,
-                     uint32_t *bytesRead, uint16_t timeoutms)
+                     uint32_t *bytesRead, uint32_t timeoutms)
 {
     if (timeoutms < min_latency)
         timeoutms = min_latency;
@@ -333,7 +333,7 @@ static int open_port(const char *port)
 
 // len is how many bytes to write
 static int write_port(const char *buf, uint32_t len,
-                      uint32_t *written, const int timeoutms)
+                      uint32_t *written, const uint32_t timeoutms)
 {
     DWORD nBytesWritten = 0,
           timeoutAt = timeGetTime() + (uint32_t)timeoutms;
@@ -356,7 +356,7 @@ static int write_port(const char *buf, uint32_t len,
 }
 
 static int read_port(char *buf, uint32_t len,
-                     uint32_t *readBytes, int timeoutms)
+                     uint32_t *readBytes, uint32_t timeoutms)
 {
     DWORD nBytesRead = 0,
           timeoutAt = timeGetTime() + (uint32_t)timeoutms;
@@ -628,9 +628,9 @@ void response_clear_all(ResponseList_t *lst)
  * @param timeoutms, timeout serialread in ms
  * @return 1 on success or 0
  */
-int response_read_serial(ResponseList_t *lst, uint32_t minLen, const uint16_t timeoutms)
+int response_read_serial(ResponseList_t *lst, uint32_t minLen, const uint32_t timeoutms)
 {
-    uint32_t timeoutAt = timeGetTime() + (uint32_t)timeoutms;
+    uint32_t timeoutAt = timeGetTime() + timeoutms;
 
     enum { BUF_SZ = 0xFFFFFF };
     static char buf[BUF_SZ];
@@ -715,7 +715,7 @@ cleanup:
  * @return
  */
 Response_t *response_find(ResponseList_t *lst, const char *cmdsFilter,
-                          uint8_t reversed, int restrct, uint16_t timeoutms)
+                          uint8_t reversed, int restrct, uint32_t timeoutms)
 {
     uint32_t timeoutAt = timeGetTime() + (uint32_t)timeoutms,
              minLen = 2;
@@ -935,7 +935,7 @@ cleanup:
  * @param id, use this can msg ID
  * @return 0 on error, 1 when ok
  */
-int slcan_set_filter(uint32_t mask, uint32_t id)
+int slcan_set_filter(uint32_t mask, uint32_t id, int extended)
 {
     FUNC_HEADER;
 
@@ -944,12 +944,27 @@ int slcan_set_filter(uint32_t mask, uint32_t id)
         GOTO_CLEANUP_ERR
     }
 
+    // invert mask as 1 mean dont care
+    mask = ~mask;
+
+    if (extended) {
+        // extended id 29bit
+        id <<= 3;
+        mask <<= 3;
+        mask |= 0x07; // rtr bit + trailing 2 bits
+
+    } else {
+        // 11 bit
+        id <<= 21;
+        mask <<= 21;
+        mask |= 0x0010FFFF; // rtr bit + trailing bits
+    }
+
     char cmds[] = {
         'M', // Acceptance code
         'm'  // Acceptance mask
     };
 
-    // should send LSB first
     byte4_t code[] = { {id}, {mask} };
     char buf[RESPONSE_MAX_SZ];
     uint32_t nBytes = 0, j;
@@ -957,13 +972,13 @@ int slcan_set_filter(uint32_t mask, uint32_t id)
     for(int i = 0; i < 2; ++i) {
         j = 0;
         buf[j++] = cmds[i]; // insert command
-        snprintf(&buf[j], 3,"%02X", code[i].b0); // lsb
+        snprintf(&buf[j], 3,"%02X", code[i].b3); // lsb
         j += 2; // adds 2 chars above ie: FF
-        snprintf(&buf[j], 3, "%02X", code[i].b1);
-        j += 2;
         snprintf(&buf[j], 3, "%02X", code[i].b2);
         j += 2;
-        snprintf(&buf[j], 3, "%02X", code[i].b3); // msb
+        snprintf(&buf[j], 3, "%02X", code[i].b1);
+        j += 2;
+        snprintf(&buf[j], 3, "%02X", code[i].b0); // msb
         j += 2;
         buf[j++] = CR; // end marker
 
@@ -1280,7 +1295,7 @@ int slcan_send(canframe_t *frm, uint32_t timeoutms)
         GOTO_CLEANUP_ERR // continue anyway?
     }
     if (resp->data[1] != CR) {
-        CANBRIDGE_SET_ERRMSG("Failed to send to CAN channel, slcan interface returned error\n")
+        CANBRIDGE_SET_ERRMSG("Failed to send to CAN channel, slcan interface returned error\nNot ACK. by other nodes?\n")
         GOTO_CLEANUP_ERR
     }
 

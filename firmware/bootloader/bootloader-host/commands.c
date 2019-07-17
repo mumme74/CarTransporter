@@ -400,7 +400,7 @@ writeCanPageLoop:
           break; // frameId should now be frameId == frames
         }
       }
-      if (canbridge_send(sendFrm, 10) < 1) {
+      if (canbridge_send(sendFrm, 16) < 1) {
           printCanError();
           return C_bootloaderErrSendFailed;
       }

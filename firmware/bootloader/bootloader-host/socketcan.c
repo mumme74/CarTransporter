@@ -184,7 +184,7 @@ int socketcan_init(const char *name, CAN_Speeds_t speed)
  * @param id, use this can msg ID
  * @return 0 on error, 1 when ok
  */
-int socketcan_set_filter(canid_t mask, canid_t id)
+int socketcan_set_filter(canid_t mask, canid_t id, int extended)
 {
     if (socketcan_status() != 1) {
         CANBRIDGE_SET_ERRMSG("Not in initialized state\n")
@@ -193,15 +193,15 @@ int socketcan_set_filter(canid_t mask, canid_t id)
 
     // filter out all other messages
     struct can_filter rcvfilter;
-    /*if (canIdx < 0x800) {
+    if (!extended) {
         // 11 bit id
-        rcvfilter.can_mask = 0x7F8; // filter in only this id
+        rcvfilter.can_mask = mask; //0x7F8; // filter in only this id
     } else {
         // 29 bit (extended frame)
-        rcvfilter.can_mask = 0x1FFFFFF8;
+        rcvfilter.can_mask = mask; //0x1FFFFFF8;
     }
-    rcvfilter.can_id = canIdx;
-    */
+    rcvfilter.can_id = id;
+
     rcvfilter.can_id = id;
     rcvfilter.can_mask = mask;
     setsockopt(cansock, SOL_CAN_RAW, CAN_RAW_FILTER, &rcvfilter, sizeof (struct can_filter));

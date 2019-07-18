@@ -114,6 +114,21 @@ void CAN::IOController::_recievedCommand(CAN_message_t *msg,
       }
       send(*msg);
     } break;
+    case C_suspensionCmdReboot: {
+      // we should only reset if we have a value above 0x7f
+      if (msg->len != 1 || msg->buf[0] < 0x7F)
+	break;
+      // from arm documentation, page 4-17
+      //http://infocenter.arm.com/help/topic/com.arm.doc.dui0553b/DUI0553.pdf
+      //http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0552a/Cihehdge.html
+      // and https://mcuoneclipse.com/2015/07/01/how-to-reset-an-arm-cortex-m-with-software/
+      // 6.2.2.8 in kinetis K20 manual
+      SCB_AIRCR = (0x5FA << 16) | (1 << 2);
+
+      // wait forever until reset is done in hardware
+      for(;;);
+
+    } break;
 //
 //    case C_suspensionCmdSaveConfig: {
 //      heightStateMachine.saveSettings();

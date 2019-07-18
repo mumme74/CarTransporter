@@ -57,7 +57,7 @@ SECTIONS
         KEEP (*(SORT(.init_array.*)))
         KEEP (*(.init_array))
         __init_array_end = .;
-    } > rom = 0xFF
+    } > rom = 0xFF /* must relocate this if changing size of bootrom! */
 
     .ARM.exidx : {
         __exidx_start = .;
@@ -109,9 +109,10 @@ SECTIONS
     . = ALIGN(4);
     _heapstart = .;
 
+
     _estack = ORIGIN(RAM) + LENGTH(RAM) -4;
     _stack  = _estack;
     _appRomStart = ORIGIN(rom);
-    _appRomEnd   = ORIGIN(rom) + LENGTH(rom);
+    _appRomEnd   = ORIGIN(rom) + LENGTH(rom) -4;
     _bootRom     = ORIGIN(bootrom);
 }

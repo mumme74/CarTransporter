@@ -44,10 +44,12 @@ LOCAL_CPP_SRCS =
 CFLAGS := -I $(realpath ./) \
           -I $(realpath ../../system_headers/) \
           -I $(realpath crc32/) \
+          -g \
           $(USER_DEFINES)
           
 CPPFLAGS := $(CFLAGS)
-
+LDFLAGS := -g
+ 
 all:
 	@echo "${USER_INCLUDES}"
 

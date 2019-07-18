@@ -18,8 +18,16 @@
 #include <can_protocol.h>
 
 // these are in milliseconds
-#define WAIT_BEFORE_APPBOOT 100
-#define WAIT_UNRESPONSE_CAN_BEFORE_RESET 60000
+
+#ifndef DEBUG_PRINT
+# define WAIT_BEFORE_APPBOOT 100 + 7000
+#else
+# define WAIT_BEFORE_APPBOOT 100
+#endif
+
+
+
+#define WAIT_UNRESPONSE_CAN_BEFORE_RESET (60000 * 15) /*15 minutes of inactivity*/
 
 
 #ifdef __cplusplus

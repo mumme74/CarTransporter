@@ -61,7 +61,7 @@
 
 
 // from linkscript
-extern const size_t _appRomStart, _appRomEnd, _bootRom, _stack, _heapstart;
+extern const uint32_t _appRomStart, _appRomEnd, _bootRom, _stack, _heapstart;
 
 // from 4.3.4
 // http://infocenter.arm.com/help/topic/com.arm.doc.dui0553b/DUI0553.pdf
@@ -131,27 +131,29 @@ void systemInit(void) {
   //Serial.begin(115200); // actually does nothing in teensy
   delay(50); // allow usb to settle
 
-  /*
+
   // FIXME ONLY for debuging
   pinMode(6, OUTPUT);
   pinMode(8, OUTPUT);
   pinMode(9, OUTPUT);
+  pinMode(10, OUTPUT);
 
   // hard fault
   pinMode(13, OUTPUT);
-  */
+
 }
 
 void systemDeinit(void) {
   //Serial.end(); // actually does nothing in teensy
+
+  for(int i = 0; i < CORE_NUM_DIGITAL; ++i)
+    pinMode(i, INPUT);
 }
 
 // abstraction to make code portable
 uint32_t systemMillis(void) {
   return millis();
 }
-
-
 
 void systickInit(void) {} /* stub */
 void systickShutdown(void) {} /* stub */
@@ -161,12 +163,17 @@ void systemToApplication(void)
   typedef void (*funcptr_t)(void);
 
   /* variable that will be loaded with the start address of the application */
-  size_t  *jumpAddress;
-  const size_t* applicationAddress = &_appRomStart;
-
-  // safetycheck, if hang in bootloader mode if we dont have a valid start of vector table
-  if (applicationAddress[0] > _stack +4 ||
-      applicationAddress[0] < _heapstart + 100)
+  uint32_t  *jumpAddress;
+  const uint32_t* applicationAddress = &_appRomStart;
+  /*
+  print_str("appAddr");print_uint(applicationAddress[0]);
+  print_str(" stk");print_uint((size_t)(&_stack) +4);
+  print_str(" heap");print_uint((size_t)(&_heapstart) + 100);
+  endl();print_flush();delay(5000);
+  */
+  // safetycheck, if hang in bootloader mode if we don't have a valid start of vector table
+  if (applicationAddress[0] > (uint32_t)(&_stack) + 4 ||
+      applicationAddress[0] < (uint32_t)(&_heapstart) + 100)
   {
     canframe_t msg;
     canInitFrame(&msg, canId);
@@ -193,17 +200,27 @@ void systemToApplication(void)
       commandsStart(&msg);
     }
   }
-  print_str("after");
+  //print_str("after, to app\n");print_flush();
+  //delay(1000);
 
 
   /* get jump address from application vector table */
-  jumpAddress = (size_t*) applicationAddress[1];
+  jumpAddress = (uint32_t*) applicationAddress[1];
+
+  /*
+  print_str("jmpA:");print_uint(jumpAddress);endl();
+  for(int i = 7; i >3; --i){
+      print_str("byte[");print_uint(i);print_str("]=");print_uint(((uint8_t*)applicationAddress)[i]);endl();
+  }
+  print_flush();
+  delay(1000);
+  */
 
   /* load this address into function pointer */
   funcptr_t start_func = (funcptr_t)jumpAddress;
 
   /* Disable all interrupts */
-  for(int i = 0; i < NVIC_NUM_INTERRUPTS; ++i){
+  for(int i = 0; i < NVIC_NUM_INTERRUPTS +16; ++i){
     NVIC_CLEAR_PENDING(i);
     NVIC_DISABLE_IRQ(i);
   }
@@ -219,12 +236,14 @@ void systemToApplication(void)
 
   /* set stack pointer as in application's vector table */
   // change both Mainstackpointer and PriorityStackpointer
-  asm("msr msp, %[address]" : : [address] "r" (applicationAddress));
-  asm("msr psp, %[address]" : : [address] "r" (applicationAddress));
-  // asm("msr lr, %[address]" : : [address] "r" (0xFFFFFFFF));
+  asm("msr msp, %[address]" : : [address] "r" (applicationAddress[0]));
+  asm("msr psp, %[address]" : : [address] "r" (applicationAddress[0]));
 
   /* call our application startup */
   start_func();
+
+  //while(1){ digitalWrite(13, !digitalRead(13));}
+
 }
 
 void systemReset() {

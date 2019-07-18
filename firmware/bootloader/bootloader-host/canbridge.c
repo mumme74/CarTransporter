@@ -10,6 +10,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "canbridge.h"
+#include "win_common.h"
 
 static CAN_Drivers_t _driverId = _CAN_driver_start_marker;
 

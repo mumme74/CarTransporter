@@ -16,7 +16,7 @@
 #include <errno.h>
 
 #ifdef _WIN32
-# include "win_getopt.h"
+# include "win_common.h"
 #else
 // unix headers
 # include <getopt.h>
@@ -74,24 +74,6 @@ CMDs_t cmd_from_str(const char *cmd) {
 
     return _CMDs_start_marker;
 }
-
-
-#ifdef _WIN32
-# include "win_getopt.h"
-
-char *basename(const char* filepath) {
-    enum { BNAME_SZ = 100, EXT_SZ = 10 };
-    static char bname[BNAME_SZ], ext[EXT_SZ];
-    _splitpath_s(filepath,
-            NULL, 0, // drive
-            NULL, 0, // dir
-            bname, 88, // filename
-            ext, 10);
-    strcat_s(bname, BNAME_SZ, ".");
-    strcat_s(bname, BNAME_SZ, ext);
-    return bname;
-}
-#endif
 
 void setup_can_iface(char *name)
 {

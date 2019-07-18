@@ -1,6 +1,16 @@
-#ifndef WIN_GETOPT_H
-#define WIN_GETOPT_H
+#ifndef WIN_COMMON_H
+#define WIN_COMMON_H
 
+#ifdef _WIN32
+
+#ifdef _MSC_VER
+#define strncasecmp _strnicmp
+
+int usleep(unsigned long long us);
+
+#endif // _MSC_VER
+
+// getopt for windows
 // got this from
 // https://gist.github.com/superwills/5815344
 
@@ -12,4 +22,9 @@ extern char *optarg;	/* argument associated with option */
 
 int getopt(int nargc, char * const nargv[], const char *ostr);
 
-#endif // WIN_GETOPT_H
+
+// works as linux basename
+char *basename(const char* filepath);
+
+#endif // _WIN32
+#endif // WIN_COMMON_H

@@ -12,8 +12,8 @@ option(SET_DEBUG_FLAG "Set preprocessor DEBUG=1" OFF)
 
 # architecture specific
 if(WIN32 AND NOT COMPILE_FOR_RPI)
-  add_compile_options(/W3 /WX)
-  set(WIN_FIXES "win_getopt.c")
+    add_compile_options(/W3) # /WX)
+  set(WIN_FIXES "win_common.c")
 else()
   set(UNIX_FIXES "unix_common.c")
   if (COMPILE_FOR_RPI)
@@ -69,7 +69,7 @@ add_custom_target(headers SOURCES ${HeadFiles})
 FILE(GLOB_RECURSE CFiles "*.c")
 FILE(GLOB_RECURSE CppFiles "*.cpp")
 add_custom_target(srcs SOURCES ${CFiles} ${CppFiles})
-add_custom_target(other SOURCES qtcreator_debugger_helper.py)
+#add_custom_target(other SOURCES qtcreator_debugger_helper.py)
 
 
 # setup for compile

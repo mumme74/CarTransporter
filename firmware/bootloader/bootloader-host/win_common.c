@@ -3,7 +3,8 @@
  * Got it from https://gist.github.com/superwills/5815344
  */
 
-#include "win_getopt.h" // make sure you construct the header file as dictated above
+#include "win_common.h" // make sure you construct the header file as dictated above
+
 
 /*
 * Copyright (c) 1987, 1993, 1994
@@ -40,6 +41,9 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <Windows.h>
+#include <synchapi.h>
+#include <stdint.h>
 
 int     opterr = 1,             /* if error message should be printed */
         optind = 1,             /* index into parent argv vector */
@@ -108,4 +112,42 @@ int getopt(int nargc, char * const nargv[], const char *ostr)
     ++optind;
   }
   return (optopt);                        /* dump back option letter */
+}
+
+
+// as linux basename
+char *basename(const char* filepath) {
+    enum { BNAME_SZ = 100, EXT_SZ = 10 };
+    static char bname[BNAME_SZ], ext[EXT_SZ];
+    _splitpath_s(filepath,
+            NULL, 0, // drive
+            NULL, 0, // dir
+            bname, 88, // filename
+            ext, 10);
+    strcat_s(bname, BNAME_SZ, ".");
+    strcat_s(bname, BNAME_SZ, ext);
+    return bname;
+}
+
+/* Windows sleep in 1us units */
+// based on https://gist.github.com/Youka/4153f12cf2e17a77314c#file-windows_nanosleep-c
+int usleep(unsigned long long us){
+    HANDLE timer;
+    LARGE_INTEGER li;
+    /* Create timer */
+    if(!(timer = CreateWaitableTimer(NULL, TRUE, NULL)))
+        return -1;
+    /* Set timer properties */
+    us *= 10; // to usec, is based in 100nanosec
+    li.QuadPart = -(int64_t)us;
+    if(!SetWaitableTimer(timer, &li, 0, NULL, NULL, FALSE)){
+        CloseHandle(timer);
+        return -1;
+    }
+    /* Start & wait for timer */
+    WaitForSingleObject(timer, INFINITE);
+    /* Clean resources */
+    CloseHandle(timer);
+    /* Slept without problems */
+    return 0;
 }

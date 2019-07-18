@@ -12,6 +12,7 @@
 
 #ifdef _WIN32
 # include <Windows.h>
+# include "win_common.h"
 #else
 # include <unistd.h>
 # include <sys/types.h>
@@ -1010,7 +1011,7 @@ void doBootloaderModeCmd(void)
 {
     canframe_t sendFrm, recvFrm;
     bool printResetFail = true;
-    struct timespec sleepUntil = { 0, 10000000 };
+    uint32_t abortAt = timeGetTime() + 15000;
 
     while (true && !abortVar) {
         initFrame(&sendFrm);
@@ -1019,14 +1020,14 @@ void doBootloaderModeCmd(void)
         // we have send reboot to node,
         sendFrm.can_dlc = 1;
         sendFrm.data[0] = C_bootloaderReset;
-        if (canbridge_send(&sendFrm, 100) < 1) {
+        if (canbridge_send(&sendFrm, 20) < 1) {
             printCanError();
             if (printResetFail) {
                 printResetFail =false;
                 fprintf(stderr, "**Unable to reset node, please powercycle node (ie. yank fuse)\n");
             }
         }
-        if (canbridge_recv(&recvFrm, 1000) == 1) {
+        if (canbridge_recv(&recvFrm, 20) == 1) {
             if ((recvFrm.can_dlc > 0) &&
                 (recvFrm.data[0] == C_bootloaderWait ||
                  recvFrm.data[0] == C_bootloaderReset))
@@ -1040,11 +1041,11 @@ void doBootloaderModeCmd(void)
                 }
                 goto bootModeOut;
             }
-        } else {
+        }
+        if(timeGetTime() > abortAt) {
             printCanError();
             errExit("Can't send to CAN\n");
         }
-        nanosleep(&sleepUntil, NULL);
     }
 
     errExit("Not in bootMode\n");
@@ -1052,6 +1053,6 @@ void doBootloaderModeCmd(void)
 bootModeOut:
     // trigger a cmd so we set node in cammand mode
     fprintf(stdout, "\n--Successfully set in bootloadermode\n--Printing memory\n\n");
-    nanosleep(&sleepUntil, NULL);
+    usleep(10000);
     doPrintMemorySetupCmd(); // using memory print for this
 }

@@ -32,6 +32,12 @@ static int *_abortLoop = &_abortVar;
 #include <string.h>
 #include <time.h>
 
+static uint16_t min_latency = 20; // FTDI chips has a default 16ms latency timer
+                             // it waits for either 64bytes or 16ms
+                             // it is changable through DLL, but not through serial (unless its a linux)
+                             // linux does however let us set 1ms latency in ioctl
+
+
 #ifndef _WIN32
 // posix comport here
 #include <termios.h>
@@ -51,11 +57,6 @@ static int *_abortLoop = &_abortVar;
 #endif
 
 typedef struct timeval timeval_t;
-
-static uint16_t min_latency = 20; // FTDI chips has a default 16ms latency timer
-                             // it waits for either 64bytes or 16ms
-                             // it is changable through DLL, but not through serial (unless its a linux)
-                             // linux does however let us set 1ms latency in ioctl
 
 static int canfd = 0;
 
@@ -247,7 +248,8 @@ static int close_port(void)
 #else // _WIN32
 
 // based on https://www.xanthium.in/Serial-Port-Programming-using-Win32-API
-#include<Windows.h>
+#include <Windows.h>
+#include "win_common.h"
 
 static HANDLE canfd;
 
@@ -315,11 +317,11 @@ static int open_port(const char *port)
     // ******* timeouts **************
     COMMTIMEOUTS timeouts = { 0 };
     // return immediatly from read operations
-    timeouts.ReadIntervalTimeout         = 1; // in milliseconds
+    timeouts.ReadIntervalTimeout         = 0; // in milliseconds
     timeouts.ReadTotalTimeoutConstant    = 1; // in milliseconds
-    timeouts.ReadTotalTimeoutMultiplier  = 1; // in milliseconds
+    timeouts.ReadTotalTimeoutMultiplier  = 0; // in milliseconds
     timeouts.WriteTotalTimeoutConstant   = 2; // in milliseconds
-    timeouts.WriteTotalTimeoutMultiplier = 1; // in milliseconds
+    timeouts.WriteTotalTimeoutMultiplier = 0; // in milliseconds
 
     if (!SetCommTimeouts(canfd, &timeouts)) {
         CANBRIDGE_SET_ERRMSG("Couldn't set COM timeouts.\n");
@@ -358,25 +360,32 @@ static int write_port(const char *buf, uint32_t len,
     return *written == len;
 }
 
-static int read_port(char *buf, uint32_t len,
-                     uint32_t *readBytes, uint32_t timeoutms)
+static int read_port(char *buf, uint32_t maxLen, uint32_t minLen,
+                     uint32_t *bytesRead, uint32_t timeoutms)
 {
+    if (timeoutms < min_latency)
+        timeoutms = min_latency;
+
     DWORD nBytesRead = 0,
-          timeoutAt = timeGetTime() + (uint32_t)timeoutms;
-    *readBytes = 0;
+          timeoutAt = timeGetTime() + timeoutms;
+    *bytesRead = 0;
 
     // continue until timeout is met
     do {
-        // read from COM port
-        while(ReadFile(canfd, (LPVOID)buf, 1, &nBytesRead, NULL) &&
-              nBytesRead > 0)
+            // read from COM port
+        if (ReadFile(canfd, (LPVOID)buf, maxLen, &nBytesRead, NULL) &&
+                  nBytesRead > 0)
         {
-            *readBytes += nBytesRead;
+            *bytesRead += nBytesRead;
         }
-    } while(timeoutAt > timeGetTime() &&
-            *readBytes < len && !(*_abortLoop));
 
-    return *readBytes == len;
+        if(*bytesRead >= minLen)
+            break;
+        usleep(1000);
+    } while(timeoutAt > timeGetTime() &&
+            *bytesRead < maxLen && !(*_abortLoop));
+
+    return *bytesRead == maxLen;
 }
 
 static int close_port(void)
@@ -388,7 +397,7 @@ static int close_port(void)
     return 1;
 }
 
-static void port_flush(int rx, int tx)
+static void flush_port(int rx, int tx)
 {
     DWORD flags = 0;
     if (!rx && !tx) return;
@@ -766,10 +775,10 @@ Response_t *response_find(ResponseList_t *lst, const char *cmdsFilter,
 
     // we have not found it, read from serial again until we timeout
     if (timeGetTime() < timeoutAt) {
-        timeoutms = (uint16_t)(timeoutAt - timeGetTime());
-        if (timeoutms > 0) {
-            response_read_serial(lst, minLen, timeoutms);
-            return response_find(lst, cmdsFilter, reversed, restrct, timeoutms);
+        int timoutms = (uint16_t)(timeoutAt - timeGetTime());
+        if (timoutms > 0) {
+            response_read_serial(lst, minLen, (uint32_t)timoutms);
+            return response_find(lst, cmdsFilter, reversed, restrct, (uint32_t)timoutms);
         }
     }
 

@@ -21,7 +21,6 @@
 # include "cantypes.h"
 #endif // BUILD_SOCKETCAN
 
-
 // global defines
 #define CANBRIDGE_CLOSED 0
 #define CANBRIDGE_INIT 1

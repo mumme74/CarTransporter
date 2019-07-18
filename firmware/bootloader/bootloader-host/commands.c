@@ -1009,10 +1009,14 @@ writeCleanup:
 void doBootloaderModeCmd(void)
 {
     canframe_t sendFrm, recvFrm;
-    initFrame(&sendFrm);
-    initFrame(&recvFrm);
     bool printResetFail = true;
-    while (true) {
+    struct timespec sleepUntil = { 0, 10000000 };
+
+    while (true && !abortVar) {
+        initFrame(&sendFrm);
+        initFrame(&recvFrm);
+
+        // we have send reboot to node,
         sendFrm.can_dlc = 1;
         sendFrm.data[0] = C_bootloaderReset;
         if (canbridge_send(&sendFrm, 100) < 1) {
@@ -1040,10 +1044,14 @@ void doBootloaderModeCmd(void)
             printCanError();
             errExit("Can't send to CAN\n");
         }
+        nanosleep(&sleepUntil, NULL);
     }
+
+    errExit("Not in bootMode\n");
 
 bootModeOut:
     // trigger a cmd so we set node in cammand mode
     fprintf(stdout, "\n--Successfully set in bootloadermode\n--Printing memory\n\n");
+    nanosleep(&sleepUntil, NULL);
     doPrintMemorySetupCmd(); // using memory print for this
 }

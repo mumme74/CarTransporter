@@ -30,6 +30,7 @@ static int *_abortLoop = &_abortVar;
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #ifndef _WIN32
 // posix comport here
@@ -155,7 +156,9 @@ static int write_port(const char *buf, uint32_t len,
                 break;
         }
         gettimeofday(&now, NULL);
-        usleep(1000);
+        struct timespec sleepUntil = { 0, 1000000 };
+        nanosleep(&sleepUntil, NULL);
+        //usleep(1000);
     } while(timercmp(&now, &timeoutAt, < ) &&
             *bytesWritten < len && !*_abortLoop);
 
@@ -1044,7 +1047,7 @@ int slcan_open(void)
     }
 
     // get response
-    resp = response_find(&responses, "\r\a", 1, 0, 10);
+    resp = response_find(&responses, "\r\a", 1, 0, 100);
     if (!resp) {
         CANBRIDGE_SET_ERRMSG("Failed to open CAN channel, response timeout\n")
         GOTO_CLEANUP_ERR

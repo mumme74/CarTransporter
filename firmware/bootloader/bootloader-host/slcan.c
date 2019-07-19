@@ -33,9 +33,9 @@ static int *_abortLoop = &_abortVar;
 #include <time.h>
 
 static uint16_t min_latency = 20; // FTDI chips has a default 16ms latency timer
-                             // it waits for either 64bytes or 16ms
-                             // it is changable through DLL, but not through serial (unless its a linux)
-                             // linux does however let us set 1ms latency in ioctl
+                                // it waits for either 64bytes or 16ms
+                                // it is changable through DLL, but not through serial (unless its a linux)
+                                // linux does however let us set 1ms latency in ioctl
 
 
 #ifndef _WIN32
@@ -289,7 +289,8 @@ static int open_port(const char *port)
                         NULL);        // Null for Comm Devices
 
     if (canfd == INVALID_HANDLE_VALUE) {
-        CANBRIDGE_SET_ERRMSG("Error in opening serial port\n");
+        DWORD errCode = GetLastError();
+        CANBRIDGE_SET_ERRMSG("Error in opening serial port errcode: %lu %s\n", errCode, ErrorAsString(errCode));
         return 0;
     }
 
@@ -308,9 +309,11 @@ static int open_port(const char *port)
     dcbSerialParams.ByteSize = 8;         // Setting ByteSize = 8
     dcbSerialParams.StopBits = ONESTOPBIT;// Setting StopBits = 1
     dcbSerialParams.Parity   = NOPARITY;  // Setting Parity = None
+    dcbSerialParams.fBinary  = 1;
     // set settings to port
     if (!SetCommState(canfd, &dcbSerialParams)) {
-        CANBRIDGE_SET_ERRMSG("Failed to change port settings\n");
+        DWORD errCode = GetLastError();
+        CANBRIDGE_SET_ERRMSG("Failed to change port settings errcode: %lu %s\n", errCode, ErrorAsString(errCode));
         return 0;
     }
 
@@ -318,13 +321,14 @@ static int open_port(const char *port)
     COMMTIMEOUTS timeouts = { 0 };
     // return immediatly from read operations
     timeouts.ReadIntervalTimeout         = 0; // in milliseconds
-    timeouts.ReadTotalTimeoutConstant    = 1; // in milliseconds
+    timeouts.ReadTotalTimeoutConstant    = 5; // in milliseconds
     timeouts.ReadTotalTimeoutMultiplier  = 0; // in milliseconds
-    timeouts.WriteTotalTimeoutConstant   = 2; // in milliseconds
+    timeouts.WriteTotalTimeoutConstant   = 5; // in milliseconds
     timeouts.WriteTotalTimeoutMultiplier = 0; // in milliseconds
 
     if (!SetCommTimeouts(canfd, &timeouts)) {
-        CANBRIDGE_SET_ERRMSG("Couldn't set COM timeouts.\n");
+        DWORD errCode = GetLastError();
+        CANBRIDGE_SET_ERRMSG("Couldn't set COM timeouts. errcode: %lu %s\n", errCode, ErrorAsString(errCode));
         return 0;
     }
 
@@ -351,9 +355,13 @@ static int write_port(const char *buf, uint32_t len,
             *written += nBytesWritten;
         else {
             DWORD errCode = GetLastError();
-            CANBRIDGE_SET_ERRMSG("Error writing to to serial, error: %lu %s\n", errCode, ErrorAsString(errCode));
-            return -1;
+            if (errCode != ERROR_IO_PENDING) {
+                CANBRIDGE_SET_ERRMSG("Error writing to to serial, error: %lu %s\n", errCode, ErrorAsString(errCode));
+                return -1;
+            }
+            usleep(1000);
         }
+
     } while((timeoutAt > timeGetTime()) &&
             (*written < len) && !(*_abortLoop));
 
@@ -373,15 +381,20 @@ static int read_port(char *buf, uint32_t maxLen, uint32_t minLen,
     // continue until timeout is met
     do {
             // read from COM port
-        if (ReadFile(canfd, (LPVOID)buf, maxLen, &nBytesRead, NULL) &&
-                  nBytesRead > 0)
-        {
+        BOOL res = ReadFile(canfd, (LPVOID)buf, maxLen, &nBytesRead, NULL);
+        if (nBytesRead > 0)
             *bytesRead += nBytesRead;
+        if (!res) {
+            DWORD errCode = GetLastError();
+            if (errCode != ERROR_IO_PENDING) {
+                CANBRIDGE_SET_ERRMSG("Error reading from serial. errcode: %lu %s\n", errCode, ErrorAsString(errCode));
+                return -(int)errCode;
+            } else
+                usleep(1000);
         }
 
         if(*bytesRead >= minLen)
             break;
-        usleep(1000);
     } while(timeoutAt > timeGetTime() &&
             *bytesRead < maxLen && !(*_abortLoop));
 

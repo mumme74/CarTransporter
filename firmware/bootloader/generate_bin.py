@@ -22,4 +22,5 @@ if (__name__ == "__main__"):
             create(sz)
        except:
             create()
-
+    else:
+        create()

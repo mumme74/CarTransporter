@@ -112,7 +112,7 @@ static int open_port(const char *portname)
 #ifdef __APPLE__
     speed_t speed = 3000000;
     if (ioctl(canfd, IOSSIOSPEED, &speed)) {
-        CANBRIDGE_SET_ERRMSG("Error when setting serial speed to 1Mbaud\n");
+        CANBRIDGE_SET_ERRMSG("Error when setting serial speed to 3Mbaud\n");
         return 0;
     }
 
@@ -124,7 +124,7 @@ static int open_port(const char *portname)
         kSerialSettings.flags |= ASYNC_LOW_LATENCY;
         if (ioctl(canfd, TIOCSSERIAL, &kSerialSettings) < 0) {
             CANBRIDGE_SET_ERRMSG(
-                    "Could not set low latency to serial driver\nreson%s\n",
+                    "Info: Could not set low latency to serial driver\nreson%s\n",
                     strerror(errno))
         } else
             min_latency = 5;

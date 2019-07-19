@@ -19,7 +19,7 @@
 
 // these are in milliseconds
 
-#ifndef DEBUG_PRINT
+#ifdef DEBUG_PRINT
 # define WAIT_BEFORE_APPBOOT 100 + 7000
 #else
 # define WAIT_BEFORE_APPBOOT 100

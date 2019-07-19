@@ -19,7 +19,7 @@ extern "C" {
 typedef struct {
   volatile uint8_t tail,
                     head;
-  uint8_t size;
+  volatile uint8_t size;
   canframe_t *buf;
 } fifo_t;
 

@@ -125,11 +125,11 @@ typedef enum {
   _RX_end = RX3,
   _TX_start,
   TX0 = _TX_start,
-  _TX_end = TX0 // only 1 tx box so we dont get race issues
-  //TX1,
-  //TX2,
-  //TX3,
-  //_TX_end = TX3
+  //_TX_end = TX0 // only 1 tx box so we dont get race issues
+  TX1,
+  TX2,
+  TX3,
+ _TX_end = TX3
 } mailboxes_t;
 
 static uint32_t canFilter = 0,

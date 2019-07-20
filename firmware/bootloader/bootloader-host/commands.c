@@ -408,6 +408,7 @@ writeCanPageLoop:
           break; // frameId should now be frameId == frames
         }
       }
+      usleep(600); // give node a break
       if (canbridge_send(sendFrm, 16) < 1) {
           printCanError();
           return C_bootloaderErrSendFailed;

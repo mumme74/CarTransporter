@@ -112,6 +112,10 @@ readPageLoop:
           break; // frameId should now be frameId == frames
         }
       }
+      // slow device interfaces might choke if send speed is to high
+      uint32_t waitTo = systemMillis() + 1;
+      while(systemMillis() < waitTo);
+
       CAN_POST_MSG;
     }
 

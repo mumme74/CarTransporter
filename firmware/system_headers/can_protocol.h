@@ -627,6 +627,7 @@ typedef enum {
   // any added here must also be added in strings in host software
   C_bootloaderErrOK                    = 0xAA,
   C_bootloaderErrNonValidBin           = 0xF0,
+  C_bootloaderErrAborted               = 0xF1,
   C_bootloaderErrUnknown               = 0xFF,
 } can_bootloaderErrs_e;
 

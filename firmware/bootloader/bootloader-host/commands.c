@@ -100,6 +100,7 @@ static const char *bootloadErrToStr(can_bootloaderErrs_e err)
 
     case C_bootloaderErrOK:                     return      "BootloaderErrOK";
     case C_bootloaderErrNonValidBin:            return      "BootloaderErrNonValidBin";
+    case C_bootloaderErrAborted:                return      "BootloaderErrAborted";
     case C_bootloaderErrUnknown:                return      "BootloaderErrUnknown";
     }
 
@@ -351,6 +352,10 @@ writeMemPageLoop:
     canPageNr.vlu = 0;
 
 writeCanPageLoop:
+
+    if (abortVar)
+        return C_bootloaderErrAborted;
+
     // begin header
     // on top of the 889 bytes restriction in CAN pages, BOOTLOADER_PAGE_SIZE,
     // it must also send in chunks divisible by mempage.pageSize (ie 2048)
@@ -469,6 +474,9 @@ static can_bootloaderErrs_e recvFileFromNode(uint8_t *fileCache, canframe_t *sen
 readCanPageLoop:
     frameNr = frames = 0;
     lastStoredIdx = previousStoredIndex;
+
+    if (abortVar)
+        return C_bootloaderErrAborted;
 
     // loop to receive a complete canPage
     do {

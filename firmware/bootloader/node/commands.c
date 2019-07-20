@@ -358,7 +358,11 @@ writeCanPageLoop:
     msg->data8[4] = canPageNr.b1; //(canPageNr & 0x00FF) >> 8;
     CAN_POST_MSG;
   }  break;
-
+  case C_bootloaderWait:
+    msg->DLC = 2;
+    msg->data8[1] = C_bootloaderErrOK;
+    CAN_POST_MSG;
+    break;
   case C_bootloaderReset:
     systemReset();
     break;

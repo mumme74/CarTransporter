@@ -1042,12 +1042,15 @@ void doBootloaderModeCmd(void)
                 (recvFrm.data[0] == C_bootloaderWait ||
                  recvFrm.data[0] == C_bootloaderReset))
             {
-                for (int i = 0; i < 10; ++i) {
+                for (int i = 0; i < 100; ++i) {
                     // shower our node with commands in the hope one will catch
                     sendFrm.can_dlc = 1;
                     sendFrm.data[0] = C_bootloaderWait;
                     canbridge_send(&sendFrm, 3);
-                    usleep(10000);
+                    if (filteredRecv(&recvFrm, 1000, 0, C_bootloaderWait))
+                        ; //break;
+
+                    usleep(1000);
                 }
                 goto bootModeOut;
             }

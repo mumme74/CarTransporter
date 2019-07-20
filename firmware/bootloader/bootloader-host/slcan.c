@@ -318,9 +318,9 @@ static int open_port(const char *port)
     COMMTIMEOUTS timeouts = { 0 };
     // return immediatly from read operations
     timeouts.ReadIntervalTimeout         = 0; // in milliseconds
-    timeouts.ReadTotalTimeoutConstant    = 5; // in milliseconds
+    timeouts.ReadTotalTimeoutConstant    = 1; //min_latency; // in milliseconds
     timeouts.ReadTotalTimeoutMultiplier  = 0; // in milliseconds
-    timeouts.WriteTotalTimeoutConstant   = 5; // in milliseconds
+    timeouts.WriteTotalTimeoutConstant   = 5; //min_latency; // in milliseconds
     timeouts.WriteTotalTimeoutMultiplier = 0; // in milliseconds
 
     if (!SetCommTimeouts(canfd, &timeouts)) {
@@ -348,14 +348,16 @@ static int write_port(const char *buf, uint32_t len,
     // continue until timeout is met
     do {
         // write to COM port
-        if (WriteFile(canfd, buf + *written, len - nBytesWritten, &nBytesWritten, NULL))
+        if (WriteFile(canfd, buf + *written, len - nBytesWritten, &nBytesWritten, NULL)) {
             *written += nBytesWritten;
-        else {
+            //printf("%lu write: %u\r\n", timeGetTime(), *written);
+        } else {
             DWORD errCode = GetLastError();
             if (errCode != ERROR_IO_PENDING) {
                 CANBRIDGE_SET_ERRMSG("Error writing to to serial, error: %lu %s\n", errCode, ErrorAsString(errCode));
                 return -1;
             }
+            //printf("write:pending to write: %lu", len-nBytesWritten);
             usleep(1000);
         }
 
@@ -374,13 +376,17 @@ static int read_port(char *buf, uint32_t maxLen, uint32_t minLen,
     DWORD nBytesRead = 0,
           timeoutAt = timeGetTime() + timeoutms;
     *bytesRead = 0;
+    uint32_t chunkLen = minLen;
 
     // continue until timeout is met
     do {
             // read from COM port
+        chunkLen = MIN(minLen, maxLen - *bytesRead);
         BOOL res = ReadFile(canfd, (LPVOID)buf, maxLen, &nBytesRead, NULL);
-        if (nBytesRead > 0)
+        if (nBytesRead > 0) {
             *bytesRead += nBytesRead;
+            //printf("%lu read: %u\r\n", timeGetTime(),*bytesRead);
+        }
         if (!res) {
             DWORD errCode = GetLastError();
             if (errCode != ERROR_IO_PENDING) {
@@ -388,6 +394,10 @@ static int read_port(char *buf, uint32_t maxLen, uint32_t minLen,
                 return -(int)errCode;
             } else
                 usleep(1000);
+            //printf("read wait, have read %u\r\n", *bytesRead);
+        } else {
+            usleep(1000);
+           // printf("%lu wait loop\r\n", timeGetTime());
         }
 
         if(*bytesRead >= minLen)

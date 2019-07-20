@@ -36,7 +36,6 @@
 #include "commands.h"
 #include "canbridge.h"
 
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 // for progressbar
 #define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
@@ -484,7 +483,7 @@ readCanPageLoop:
     // loop to receive a complete canPage
     do {
       //printf("\nRecv start at %u frameNr:%u\n", timeGetTime(), frameNr);
-      if (canbridge_recv(recvFrm, 10) < 1) {
+      if (canbridge_recv(recvFrm, 50) < 1) {
           //printf("Recv failed at %u\n", timeGetTime());
           if (frames == 0 && retryCnt < 5) {
             printCanError();
@@ -690,12 +689,12 @@ void doReadCmd(memoptions_t *mopt, char *storeName)
     sendFrm.data[sendFrm.can_dlc++] = len.b0; //(len & 0x00FF0000) >> 16;
 
     // use long timeou
-    if (canbridge_send(&sendFrm, 100) < 1) {
+    if (canbridge_send(&sendFrm, 200) < 1) {
         printCanError();
         errExit("Failed to send flash command");
     }
 
-    if (!filteredRecv(&recvFrm, 100, 0, C_bootloaderReadFlash))
+    if (!filteredRecv(&recvFrm, 200, 0, C_bootloaderReadFlash))
         errExit("No ack for CAN read\n");
 
     if (recvFrm.data[1] != C_bootloaderErrOK)

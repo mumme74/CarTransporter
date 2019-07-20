@@ -205,7 +205,7 @@ static int read_port(char *buf, uint32_t maxLen, uint32_t minLen,
         } else {
             if (errno == ETIMEDOUT || errno == EAGAIN)
                 usleep(1000);
-            else
+            else if (errno != ENOTTY)
                 CANBRIDGE_SET_ERRMSG("\nRead serial error:%u %s\n", errno, strerror(errno));
         }
         now = timeGetTime();

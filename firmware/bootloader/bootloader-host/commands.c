@@ -176,10 +176,10 @@ static void initMemoryInfo(canframe_t *sendFrm, canframe_t *recvFrm)
         errExit("No response from node\n");
 
     byte4_t addr;
-    addr.b0 = recvFrm->data[1];
-    addr.b1 = recvFrm->data[2];
-    addr.b2 = recvFrm->data[3];
-    addr.b3 = recvFrm->data[4];
+    addr.b0 = recvFrm->data[4];
+    addr.b1 = recvFrm->data[3];
+    addr.b2 = recvFrm->data[2];
+    addr.b3 = recvFrm->data[1];
     memory.bootRomStart = addr.vlu;
     //memory.bootRomStart = (uint32_t)(recvFrm->data[4] << 24 | recvFrm->data[3] << 16 |
     //                                 recvFrm->data[2] << 8  | recvFrm->data[1]);
@@ -197,10 +197,10 @@ static void initMemoryInfo(canframe_t *sendFrm, canframe_t *recvFrm)
         errExit("No response from node\n");
 
     byte2_t pgSz, nPg;
-    pgSz.b0 = recvFrm->data[1];
-    pgSz.b1 = recvFrm->data[2];
-    nPg.b0 = recvFrm->data[3];
-    nPg.b1 = recvFrm->data[4];
+    pgSz.b0 = recvFrm->data[4];
+    pgSz.b1 = recvFrm->data[3];
+    nPg.b0 = recvFrm->data[2];
+    nPg.b1 = recvFrm->data[1];
 
     memory.pageSize = pgSz.vlu; //(uint16_t)(recvFrm->data[2] << 8 | recvFrm->data[1]);
     memory.nrPages  = nPg.vlu; // (uint16_t)(recvFrm->data[4] << 8 | recvFrm->data[3]);
@@ -231,15 +231,16 @@ static can_bootloaderErrs_e getRemoteChecksum(memoptions_t *mopt,
     sendFrm->can_dlc = 0;
     sendFrm->data[sendFrm->can_dlc++] = C_bootloaderChecksum;
     // start address
-    sendFrm->data[sendFrm->can_dlc++] = (mopt->lowerbound & 0x000000FF);
-    sendFrm->data[sendFrm->can_dlc++] = (mopt->lowerbound & 0x0000FF00) >> 8;
-    sendFrm->data[sendFrm->can_dlc++] = (mopt->lowerbound & 0x00FF0000) >> 16;
-    sendFrm->data[sendFrm->can_dlc++] = (mopt->lowerbound & 0xFF000000) >> 24;
+    byte4_t lower = { mopt->lowerbound };
+    sendFrm->data[sendFrm->can_dlc++] = lower.b3; //(mopt->lowerbound & 0x000000FF);
+    sendFrm->data[sendFrm->can_dlc++] = lower.b2; //(mopt->lowerbound & 0x0000FF00) >> 8;
+    sendFrm->data[sendFrm->can_dlc++] = lower.b1; //(mopt->lowerbound & 0x00FF0000) >> 16;
+    sendFrm->data[sendFrm->can_dlc++] = lower.b0; //(mopt->lowerbound & 0xFF000000) >> 24;
     // length in bytes
-    uint32_t len = mopt->upperbound - mopt->lowerbound;
-    sendFrm->data[sendFrm->can_dlc++] = (len & 0x000000FF) >> 0;
-    sendFrm->data[sendFrm->can_dlc++] = (len & 0x0000FF00) >> 8;
-    sendFrm->data[sendFrm->can_dlc++] = (len & 0x00FF0000) >> 16;
+    byte4_t len = { mopt->upperbound - mopt->lowerbound };
+    sendFrm->data[sendFrm->can_dlc++] = len.b2; //(len & 0x000000FF) >> 0;
+    sendFrm->data[sendFrm->can_dlc++] = len.b1; //(len & 0x0000FF00) >> 8;
+    sendFrm->data[sendFrm->can_dlc++] = len.b0; //(len & 0x00FF0000) >> 16;
     if (canbridge_send(sendFrm, 100) < 1) {
         printCanError();
         return C_bootloaderErr;
@@ -248,10 +249,10 @@ static can_bootloaderErrs_e getRemoteChecksum(memoptions_t *mopt,
     if (!filteredRecv(recvFrm, 2000, 0, C_bootloaderChecksum))
         return C_bootloaderErrNoResponse;
 
-    nodeCrc.b0 = recvFrm->data[1];
-    nodeCrc.b1 = recvFrm->data[2];
-    nodeCrc.b2 = recvFrm->data[3];
-    nodeCrc.b3 = recvFrm->data[4];
+    nodeCrc.b0 = recvFrm->data[4];
+    nodeCrc.b1 = recvFrm->data[3];
+    nodeCrc.b2 = recvFrm->data[2];
+    nodeCrc.b3 = recvFrm->data[1];
     //nodeCrc = (uint32_t)(recvFrm->data[4] << 24 | recvFrm->data[3] << 16 |
     //                     recvFrm->data[2] << 8  | recvFrm->data[1]);
 
@@ -331,13 +332,14 @@ static uint8_t *readLocalFile(const char *binName, long *sz)
     return fileBuf; // NOTE! caller must free this memory
 }
 
-static can_bootloaderErrs_e writeFileToNode(memoptions_t *mopt, uint8_t *fileCache,
+static can_bootloaderErrs_e writeFileToNode(memoptions_t *mopt, uint8_t *fileCache, size_t sz,
                                             canframe_t *sendFrm, canframe_t *recvFrm)
 {
+    (void)mopt;
     uint8_t frameNr = 0,
             frames = 0,
             *addr = fileCache,
-            *endAddr = fileCache + (mopt->upperbound - mopt->lowerbound);
+            *endAddr = &fileCache[sz];
 
     byte2_t canPageNr = { 0 };
     uint16_t memPageGuard = 0;
@@ -423,7 +425,7 @@ writeCanPageLoop:
         printProgress(progress, 0);
 
         // get response from node
-        if (canbridge_recv(recvFrm, 1000) < 1) {
+        if (canbridge_recv(recvFrm, 100) < 1) {
             printCanError();
             return C_bootloaderErrReceiveTimeout;
         }
@@ -481,7 +483,7 @@ readCanPageLoop:
     // loop to receive a complete canPage
     do {
       //printf("\nRecv start at %u frameNr:%u\n", timeGetTime(), frameNr);
-      if (canbridge_recv(recvFrm, 1000) < 1) {
+      if (canbridge_recv(recvFrm, 10) < 1) {
           //printf("Recv failed at %u\n", timeGetTime());
           if (frames == 0 && retryCnt < 5) {
             printCanError();
@@ -496,17 +498,17 @@ readCanPageLoop:
               continue; // if this happens, our node has a bug
 
         // get header
-        crc.b0 = recvFrm->data[1];
-        crc.b1 = recvFrm->data[2];
-        crc.b2 = recvFrm->data[3];
-        crc.b3 = recvFrm->data[4];
+        crc.b0 = recvFrm->data[4];
+        crc.b1 = recvFrm->data[3];
+        crc.b2 = recvFrm->data[2];
+        crc.b3 = recvFrm->data[1];
 
  //       revcs++;
 
         frames = recvFrm->data[5];
         byte2_t pgNr;
-        pgNr.b0 = recvFrm->data[6];
-        pgNr.b1 = recvFrm->data[7];
+        pgNr.b0 = recvFrm->data[7];
+        pgNr.b1 = recvFrm->data[6];
         if (canPageNr != pgNr.vlu) {
             return C_bootloaderErrCanPageOutOfOrder;
         }
@@ -674,16 +676,17 @@ void doReadCmd(memoptions_t *mopt, char *storeName)
     sendFrm.can_dlc = 0;
     sendFrm.data[sendFrm.can_dlc++] = C_bootloaderReadFlash;
     // startaddress
-    sendFrm.data[sendFrm.can_dlc++] = (mopt->lowerbound & 0x000000FF) >> 0;
-    sendFrm.data[sendFrm.can_dlc++] = (mopt->lowerbound & 0x0000FF00) >> 8;
-    sendFrm.data[sendFrm.can_dlc++] = (mopt->lowerbound & 0x00FF0000) >> 16;
-    sendFrm.data[sendFrm.can_dlc++] = (mopt->lowerbound & 0xFF000000) >> 24;
+    byte4_t lower = { mopt->lowerbound };
+    sendFrm.data[sendFrm.can_dlc++] = lower.b3; //(mopt->lowerbound & 0x000000FF) >> 0;
+    sendFrm.data[sendFrm.can_dlc++] = lower.b2; //(mopt->lowerbound & 0x0000FF00) >> 8;
+    sendFrm.data[sendFrm.can_dlc++] = lower.b1; //(mopt->lowerbound & 0x00FF0000) >> 16;
+    sendFrm.data[sendFrm.can_dlc++] = lower.b0; //(mopt->lowerbound & 0xFF000000) >> 24;
 
     // length
-    uint32_t len = (mopt->upperbound - mopt->lowerbound);
-    sendFrm.data[sendFrm.can_dlc++] = (len & 0x000000FF) >> 0;
-    sendFrm.data[sendFrm.can_dlc++] = (len & 0x0000FF00) >> 8;
-    sendFrm.data[sendFrm.can_dlc++] = (len & 0x00FF0000) >> 16;
+    byte4_t len = { (mopt->upperbound - mopt->lowerbound) };
+    sendFrm.data[sendFrm.can_dlc++] = len.b2; //(len & 0x000000FF) >> 0;
+    sendFrm.data[sendFrm.can_dlc++] = len.b1; //(len & 0x0000FF00) >> 8;
+    sendFrm.data[sendFrm.can_dlc++] = len.b0; //(len & 0x00FF0000) >> 16;
 
     // use long timeou
     if (canbridge_send(&sendFrm, 100) < 1) {
@@ -698,8 +701,8 @@ void doReadCmd(memoptions_t *mopt, char *storeName)
         nodeErrExit("Node gives error when init read mode:", recvFrm.data[1]);
 
     // allocate a filecache for received bytes
-    fileCache = (uint8_t*)malloc(len * sizeof(uint8_t));
-    memset(fileCache, 0x77, len); // for debug, easier to wiew memory regions
+    fileCache = (uint8_t*)malloc(len.vlu * sizeof(uint8_t));
+    memset(fileCache, 0x77, len.vlu); // for debug, easier to wiew memory regions
     if (fileCache == NULL) {
         fprintf(stderr, "**Failed to allocate memory in RAM for filereception\n");
         errOccured = true;
@@ -722,14 +725,14 @@ void doReadCmd(memoptions_t *mopt, char *storeName)
             goto readCleanup;
         }
 
-        if (writtenLen < len) {
-            len = writtenLen;
-            fprintf(stderr, "**Error recieved wrong number of bytes, got:%u expected %u\n", writtenLen, len);
+        if (writtenLen < len.vlu) {
+            len.vlu = writtenLen;
+            fprintf(stderr, "**Error recieved wrong number of bytes, got:%u expected %u\n", writtenLen, len.vlu);
             errOccured = true;
         }
 
         // successfull
-        if (fwrite(fileCache, sizeof(uint8_t), len, binFile) != len) {
+        if (fwrite(fileCache, sizeof(uint8_t), len.vlu, binFile) != len.vlu) {
             fprintf(stderr, "**Error when saving file to disk\n");
             errOccured = true;
             goto readCleanup;
@@ -872,13 +875,14 @@ void doEraseCmd(memoptions_t *mopt)
 
     // startpage to erase
     uint32_t startPage = (mopt->lowerbound - memory.bootRomStart) / memory.pageSize;
-    sendFrm.data[sendFrm.can_dlc++] =  (startPage & 0x000000FF);
-    sendFrm.data[sendFrm.can_dlc++] =  (startPage & 0x0000FF00) >> 8;
+    byte4_t stPage = { startPage };
+    sendFrm.data[sendFrm.can_dlc++] =  stPage.b1; //(startPage & 0x000000FF);
+    sendFrm.data[sendFrm.can_dlc++] =  stPage.b0; //(startPage & 0x0000FF00) >> 8;
 
     // nr of pages
-    uint32_t nrPages = (mopt->upperbound - mopt->lowerbound) / memory.pageSize;
-    sendFrm.data[sendFrm.can_dlc++] =  (nrPages & 0x000000FF);
-    sendFrm.data[sendFrm.can_dlc++] =  (nrPages & 0x0000FF00) >> 8;
+    byte4_t nrPages = { (mopt->upperbound - mopt->lowerbound) / memory.pageSize };
+    sendFrm.data[sendFrm.can_dlc++] = nrPages.b1; //(nrPages & 0x000000FF);
+    sendFrm.data[sendFrm.can_dlc++] = nrPages.b0; //(nrPages & 0x0000FF00) >> 8;
 
     if (canbridge_send(&sendFrm, 1000) < 1) {
         printCanError();
@@ -938,16 +942,16 @@ void doWriteCmd(memoptions_t *mopt, char *binName)
     sendFrm.data[sendFrm.can_dlc++] = C_bootloaderWriteFlash;
     // startaddress
     byte4_t memOptLow = { mopt->lowerbound };
-    sendFrm.data[sendFrm.can_dlc++] = memOptLow.b0; //(mopt->lowerbound & 0x000000FF) >> 0;
-    sendFrm.data[sendFrm.can_dlc++] = memOptLow.b1; //(mopt->lowerbound & 0x0000FF00) >> 8;
-    sendFrm.data[sendFrm.can_dlc++] = memOptLow.b2; //(mopt->lowerbound & 0x00FF0000) >> 16;
-    sendFrm.data[sendFrm.can_dlc++] = memOptLow.b3; //(mopt->lowerbound & 0xFF000000) >> 24;
+    sendFrm.data[sendFrm.can_dlc++] = memOptLow.b3; //(mopt->lowerbound & 0x000000FF) >> 0;
+    sendFrm.data[sendFrm.can_dlc++] = memOptLow.b2; //(mopt->lowerbound & 0x0000FF00) >> 8;
+    sendFrm.data[sendFrm.can_dlc++] = memOptLow.b1; //(mopt->lowerbound & 0x00FF0000) >> 16;
+    sendFrm.data[sendFrm.can_dlc++] = memOptLow.b0; //(mopt->lowerbound & 0xFF000000) >> 24;
 
     // length
     byte4_t len = { (mopt->upperbound - mopt->lowerbound) };
-    sendFrm.data[sendFrm.can_dlc++] = len.b0; //(len & 0x000000FF) >> 0;
+    sendFrm.data[sendFrm.can_dlc++] = len.b2; //(len & 0x000000FF) >> 0;
     sendFrm.data[sendFrm.can_dlc++] = len.b1; //(len & 0x0000FF00) >> 8;
-    sendFrm.data[sendFrm.can_dlc++] = len.b2; //(len & 0x00FF0000) >> 16;
+    sendFrm.data[sendFrm.can_dlc++] = len.b0; //(len & 0x00FF0000) >> 16;
 
     if (canbridge_send(&sendFrm, 100) < 1) {
         errExit("Failed to send flash command");
@@ -959,7 +963,7 @@ void doWriteCmd(memoptions_t *mopt, char *binName)
     if (recvFrm.data[1] != C_bootloaderErrOK)
         nodeErrExit("Node gives error when init write mode:", recvFrm.data[1]);
 
-    can_bootloaderErrs_e err = writeFileToNode(mopt, fileCache,
+    can_bootloaderErrs_e err = writeFileToNode(mopt, fileCache, sz,
                                                &sendFrm, &recvFrm);
 
     // release from blocking loop

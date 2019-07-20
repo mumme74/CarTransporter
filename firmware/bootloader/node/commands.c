@@ -34,13 +34,13 @@ static byte4_t addr, endAddr;
 // used by both readflash and writeflash
 static bool getAndCheckAddress(canframe_t *msg)
 {
-  addr.b0 = msg->data8[1];
-  addr.b1 = msg->data8[2];
-  addr.b2 = msg->data8[3];
-  addr.b3 = msg->data8[4];
-  endAddr.b0 = msg->data8[5];
+  addr.b0 = msg->data8[4];
+  addr.b1 = msg->data8[3];
+  addr.b2 = msg->data8[2];
+  addr.b3 = msg->data8[1];
+  endAddr.b0 = msg->data8[7];
   endAddr.b1 = msg->data8[6];
-  endAddr.b2 = msg->data8[7];
+  endAddr.b2 = msg->data8[5];
   endAddr.b3 = 0;
   endAddr.vlu += addr.vlu;
   if (addr.ptr32 < &_appRomStart) {
@@ -90,14 +90,14 @@ readPageLoop:
     crc.vlu = crc32(0, addr.ptr8, MIN(bytesDiff, ((BOOTLOADER_PAGE_SIZE) * 7)));
     msg->DLC = 8;
     msg->data8[0] = C_bootloaderReadFlash;
-    msg->data8[1] = crc.b0; // (crc & 0x000000FF);
-    msg->data8[2] = crc.b1; // (crc & 0x0000FF00) >> 8;
-    msg->data8[3] = crc.b2; // (crc & 0x00FF0000) >> 16;
-    msg->data8[4] = crc.b3; // (crc & 0xFF000000) >> 24;
+    msg->data8[1] = crc.b3; // (crc & 0x000000FF);
+    msg->data8[2] = crc.b2; // (crc & 0x0000FF00) >> 8;
+    msg->data8[3] = crc.b1; // (crc & 0x00FF0000) >> 16;
+    msg->data8[4] = crc.b0; // (crc & 0xFF000000) >> 24;
     // len of page
     msg->data8[5] = frames;
-    msg->data8[6] = canPageNr.b0; //(canPageNr & 0x00FF);
-    msg->data8[7] = canPageNr.b1; //(canPageNr & 0xFF00) >> 8;
+    msg->data8[6] = canPageNr.b1; //(canPageNr & 0x00FF);
+    msg->data8[7] = canPageNr.b0; //(canPageNr & 0xFF00) >> 8;
     CAN_POST_MSG;
     // inc canPageNr when we know if invoker has crc accepted this frame
     // done below
@@ -148,10 +148,10 @@ readPageLoop:
       break;
     crc.vlu = crc32(0, addr.ptr8, endAddr.vlu - addr.vlu);
     msg->DLC = 5;
-    msg->data8[1] = crc.b0; //(crc & 0x000000FF);
-    msg->data8[2] = crc.b1; //(crc & 0x0000FF00) >> 8;
-    msg->data8[3] = crc.b2; //(crc & 0x00FF0000) >> 16;
-    msg->data8[4] = crc.b3; //(crc & 0xFF000000) >> 24;
+    msg->data8[1] = crc.b3; //(crc & 0x000000FF);
+    msg->data8[2] = crc.b2; //(crc & 0x0000FF00) >> 8;
+    msg->data8[3] = crc.b1; //(crc & 0x00FF0000) >> 16;
+    msg->data8[4] = crc.b0; //(crc & 0xFF000000) >> 24;
     CAN_POST_MSG; // if buffer full we bust out to main
   }  break;
 
@@ -190,18 +190,18 @@ writeCanPageLoop:
         }
 
         // get header
-        crc.b3 = msg->data8[1];
-        crc.b2 = msg->data8[2];
-        crc.b1 = msg->data8[3];
         crc.b0 = msg->data8[4];
+        crc.b1 = msg->data8[3];
+        crc.b2 = msg->data8[2];
+        crc.b3 = msg->data8[1];
         //crc = (msg->data8[4] <<24 | msg->data8[3] << 16 |
         //       msg->data8[2] << 8  | msg->data8[1]);
 
         frames = msg->data8[5];
 
         byte2_t pgNr;
-        pgNr.b1 = msg->data8[6];
         pgNr.b0 = msg->data8[7];
+        pgNr.b1 = msg->data8[6];
         print_str("canPageNr:");print_uint(canPageNr.vlu);
         print_str(" pgNr:");print_uint(pgNr.vlu);endl();
         print_str("crc:");print_uint(crc.vlu);endl();
@@ -225,6 +225,7 @@ writeCanPageLoop:
 	print_str(" msg->DLC");print_uint(msg->DLC);
 	print_str(" cPage:");print_uint(cPage);endl();
 	print_str(" idx:");print_uint(idxBase);endl();
+	print_flush();
 	*/
 
 
@@ -239,8 +240,12 @@ writeCanPageLoop:
     } while (frameNr < frames);
 
     print_str("got frames\n");
+    print_str(" mempages ");print_uint(memPagesWritten);
+    print_str(" pgSiz ");print_uint(pageSize);
+    print_str(" lastIdx "); print_uint(lastStoredIdx);
     print_str("canPgnr:");print_uint(canPageNr.vlu);endl();
-    print_str("wr bytes ");print_uint(memPagesWritten * pageSize + lastStoredIdx);endl();
+    print_str(" addr ");print_uint(addr.vlu);
+    print_str("wr bytes ");print_uint((memPagesWritten * pageSize) + lastStoredIdx);endl();
 
     // check canPage
     // pointer buf[0] advance to start of canPage.
@@ -313,8 +318,8 @@ writeCanPageLoop:
   }  break; // to commands loop
 
   case C_bootloaderEraseFlash: {
-    canPageNr.b0 = msg->data8[1];
-    canPageNr.b1 = msg->data8[2];
+    canPageNr.b0 = msg->data8[2];
+    canPageNr.b1 = msg->data8[1];
     //canPageNr = (msg->data8[2] >> 8 | msg->data8[1]);
     addr.ptr8 = ((uint8_t*)&_appRomStart) + (canPageNr.vlu * pageSize);
     if (addr.ptr32 > &_appRomEnd) {
@@ -322,8 +327,8 @@ writeCanPageLoop:
       break;
     }
     byte2_t pgCnt;
-    pgCnt.b0 = msg->data8[3];
-    pgCnt.b1 = msg->data8[4];
+    pgCnt.b0 = msg->data8[4];
+    pgCnt.b1 = msg->data8[3];
     endAddr.vlu = addr.vlu + (pgCnt.vlu * pageSize);
     //endAddr = addr + ((msg->data8[4] << 8 | msg->data8[3]) * pageSize);
     if (endAddr.ptr32 > &_appRomEnd) {
@@ -341,10 +346,10 @@ writeCanPageLoop:
     msg->DLC = 5;
     //const uint32_t romStart = (uint32_t)&_appRomStart;
     const byte4_t romStart = { (uint32_t)&_appRomStart };
-    msg->data8[1] = romStart.b0; //(romStart & 0x000000FF);
-    msg->data8[2] = romStart.b1; //(romStart & 0x0000FF00) >> 8;
-    msg->data8[3] = romStart.b2; //(romStart & 0x00FF0000) >> 16;
-    msg->data8[4] = romStart.b3; //(romStart & 0xFF000000) >> 24;
+    msg->data8[1] = romStart.b3; //(romStart & 0x000000FF);
+    msg->data8[2] = romStart.b2; //(romStart & 0x0000FF00) >> 8;
+    msg->data8[3] = romStart.b1; //(romStart & 0x00FF0000) >> 16;
+    msg->data8[4] = romStart.b0; //(romStart & 0xFF000000) >> 24;
     CAN_POST_MSG;
   }  break;
 
@@ -352,10 +357,10 @@ writeCanPageLoop:
     msg->DLC = 5;
     canPageNr.vlu = ((uint32_t)&_appRomEnd - (uint32_t)&_appRomStart) / pageSize;
     const byte2_t pgSz = { pageSize };
-    msg->data8[1] = pgSz.b0; //(pageSize & 0x00FF);
-    msg->data8[2] = pgSz.b1; //(pageSize & 0xFF00) >> 8;
-    msg->data8[3] = canPageNr.b0; //(canPageNr & 0x00FF);
-    msg->data8[4] = canPageNr.b1; //(canPageNr & 0x00FF) >> 8;
+    msg->data8[3] = pgSz.b1; //(pageSize & 0x00FF);
+    msg->data8[4] = pgSz.b0; //(pageSize & 0xFF00) >> 8;
+    msg->data8[1] = canPageNr.b1; //(canPageNr & 0x00FF);
+    msg->data8[2] = canPageNr.b0; //(canPageNr & 0x00FF) >> 8;
     CAN_POST_MSG;
   }  break;
 

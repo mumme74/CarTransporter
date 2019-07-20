@@ -512,6 +512,7 @@ typedef enum {
 // -----------------------------------------------------------------------------
 // CAN bootloader
 // cmds allways have a 1 in bit7 at first datapos [1xxxxxxx]
+// bootloader uses big endian unless otherwise noted
 typedef enum {
   C_bootloaderWait          = 0xA5, // node is ready for starting bootloader commands
   C_bootloaderUnblock       = 0xA0, // unblock node from a hang in a receive loop

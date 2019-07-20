@@ -12,6 +12,10 @@
 #include <stdio.h>
 #include "types.h"
 
+#ifndef MIN
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+#endif
+
 // include drivers
 #include "slcan.h" // lawcell protocol, over serialport
 

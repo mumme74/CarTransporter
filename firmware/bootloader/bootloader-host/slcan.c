@@ -33,9 +33,9 @@ static int *_abortLoop = &_abortVar;
 #include <time.h>
 
 static uint16_t min_latency = 20; // FTDI chips has a default 16ms latency timer
-                                // it waits for either 64bytes or 16ms
-                                // it is changable through DLL, but not through serial (unless its a linux)
-                                // linux does however let us set 1ms latency in ioctl
+                                  // it waits for either 64bytes or 16ms
+                                  // it is changable through DLL, but not through serial (unless its a linux)
+                                  // linux does however let us set 1ms latency in ioctl
 
 
 #ifndef _WIN32
@@ -112,8 +112,12 @@ static int open_port(const char *portname)
 #ifdef __APPLE__
     speed_t speed = 3000000;
     if (ioctl(canfd, IOSSIOSPEED, &speed)) {
-        CANBRIDGE_SET_ERRMSG("Error when setting serial speed to 3Mbaud\n");
-        return 0;
+        CANBRIDGE_SET_ERRMSG("Error when setting serial speed to 3Mbaud. trying with 1Mbaud");
+        speed = 1000000;
+        if (ioctl(canfd, IOSSIOSPEED, &speed)) {
+            CANBRIDGE_SET_ERRMSG("Error when setting serial speed to 1Mbaud. Bailing out\n%s\n", strerror(errno));
+            return 0;
+        }
     }
 
 #else // linux
@@ -173,6 +177,7 @@ static int read_port(char *buf, uint32_t maxLen, uint32_t minLen,
         timeoutms = min_latency;
     *bytesRead = 0;
     uint32_t timeoutAt = timeGetTime() + timeoutms;
+    uint32_t now;
 
     fd_set set;
     struct timeval timeout;
@@ -182,7 +187,7 @@ static int read_port(char *buf, uint32_t maxLen, uint32_t minLen,
     FD_SET(canfd, &set); /* add our file descriptor to the set */
 
     timeout.tv_sec = timeoutms / 1000;
-    timeout.tv_usec = timeoutms * 1000;
+    timeout.tv_usec = (timeoutms * 1000) & 999999; // usec should not exceed 999999 usec
 
     do {
         rv = select(canfd + 1, &set, NULL, NULL, &timeout);
@@ -191,29 +196,21 @@ static int read_port(char *buf, uint32_t maxLen, uint32_t minLen,
           return -errno;
         } else if(rv > 0) {
              ssize_t res = read(canfd, &buf[*bytesRead], maxLen - *bytesRead);
-             if (res > 0) {
+             if (res > 0)
                  *bytesRead += (uint32_t)res;
-             } else if (res == -1 && errno != EAGAIN)
+             else if (res == -1 && errno != EAGAIN)
                  return -errno; // read error
-         }
-     } while((timeoutAt > timeGetTime()) &&
+             else
+                 usleep(1000);
+        } else {
+            if (errno == ETIMEDOUT || errno == EAGAIN)
+                usleep(1000);
+            else
+                CANBRIDGE_SET_ERRMSG("\nRead serial error:%u %s\n", errno, strerror(errno));
+        }
+        now = timeGetTime();
+     } while((timeoutAt > now) &&
               *bytesRead < minLen && !*_abortLoop);
-
-//    do {
-//        ssize_t res = read(canfd, &buf[*bytesRead], maxLen - *bytesRead);
-//        if (res > 0) {
-//            *bytesRead += (uint32_t)res;
-//            retries = 0;
-//        } else if (res == -1 && errno != EAGAIN) {
-//            return -errno; // read error
-//        }else if (*bytesRead > minLen && ++retries > 10) {
-//            // can we safely break now?
-//            break;
-//        }
-//        usleep(5000);
-
-//    } while((timeoutAt > timeGetTime()) &&
-//            *bytesRead < maxLen && !*_abortLoop);
 
     return *bytesRead == maxLen;
 }

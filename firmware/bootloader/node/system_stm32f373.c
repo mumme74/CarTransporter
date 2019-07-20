@@ -146,8 +146,8 @@ void systemToApplication(void)
 
   /* set stack pointer as in application's vector table */
   // change both Mainstackpointer and PriorityStackpointer
-  asm("msr msp, %[address]" : : [address] "r" (applicationAddress));
-  asm("msr psp, %[address]" : : [address] "r" (applicationAddress));
+  asm("msr msp, %[address]" : : [address] "r" (applicationAddress[0]));
+  asm("msr psp, %[address]" : : [address] "r" (applicationAddress[0]));
   //register size_t sp asm ("msp");
 //  register uint32_t __sp     __asm("msp");
 //  __sp = (applicationAddress[0]);

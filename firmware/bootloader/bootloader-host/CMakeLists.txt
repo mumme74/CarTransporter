@@ -13,7 +13,7 @@ option(SET_DEBUG_FLAG "Set preprocessor DEBUG=1" OFF)
 # architecture specific
 if(WIN32 AND NOT COMPILE_FOR_RPI)
     add_compile_options(/W3) # /WX)
-  set(WIN_FIXES "win_common.c")
+    set(WIN_FIXES "win_common.c")
 else()
   set(UNIX_FIXES "unix_common.c")
   if (COMPILE_FOR_RPI)

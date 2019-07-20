@@ -34,12 +34,21 @@ DEFS += -Icrc32/ -I$(CAR_TRANSPORTER_ROOT)/firmware/system_headers/
 $(info NODE_ID=$(NODE_ID))
 
 
+ifeq (STM32F103,)
 # parkbrakeNode, stm32f373
-ARCH_FLAGS = -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -Os
-DEFS += -DSTM32F3 -DSTM32F373RB
-LIBNAME += opencm3_stm32f3
+  ARCH_FLAGS = -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 
+  LDSCRIPT = stm32f373xRB.ld
+  DEFS += -DSTM32F3 -DSTM32F373RB
+  LIBNAME += opencm3_stm32f3
+else
+  ARCH_FLAGS = -mcpu=cortex-m3
+  LDSCRIPT = stm32f103x8t6.ld
+  DEFS += -DSTM32F1 -DSTM32F103RB
+  LIBNAME += opencm3_stm32f1
+endif
+
+ARCH_FLAGS += -Os
 LDLIBS += -lc -lgcc -lnosys
-LDSCRIPT = stm32f373xRB.ld
 SRCS = can_stm32f373.c \
        system_stm32f373.c \
 	   main.c \
@@ -50,9 +59,8 @@ SRCS = can_stm32f373.c \
 # for ubuntu
 ifneq ($(wildcard $(HOME)/elektronik/libopencm3),)
  OPENCM3_DIR=$(wildcard $(HOME)/elektronik/libopencm3)
-else ifneq ($(wildcard $(HOME)/Source/libopenmc3),)
- OPENCM_DIR=$(wildcard $(HOME)/Source/libopencm3)
+else ifneq ($(wildcard $(HOME)/Source/libopencm3),)
+ OPENCM3_DIR=$(wildcard $(HOME)/Source/libopencm3)
 endif
-
 
 include rules.mk

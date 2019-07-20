@@ -1018,8 +1018,12 @@ writeCleanup:
 void doBootloaderModeCmd(void)
 {
     canframe_t sendFrm, recvFrm;
-    bool printResetFail = true;
+    int printResetFail = 0;
     uint32_t abortAt = timeGetTime() + 15000;
+    char storedErr[CANBRIDGE_ERRORMSG_SZ] = {0};
+
+    // temporary store all error messages, new ones we dont care about yet
+    strcpy(storedErr, canbridge_errmsg);
 
     while (true && !abortVar) {
         initFrame(&sendFrm);
@@ -1029,11 +1033,9 @@ void doBootloaderModeCmd(void)
         sendFrm.can_dlc = 1;
         sendFrm.data[0] = C_bootloaderReset;
         if (canbridge_send(&sendFrm, 20) < 1) {
-            printCanError();
-            if (printResetFail) {
-                printResetFail =false;
-                fprintf(stderr, "**Unable to reset node, please powercycle node (ie. yank fuse)\n");
-            }
+            if (printResetFail == 0)
+                printResetFail = 1;
+
         }
         if (canbridge_recv(&recvFrm, 20) == 1) {
             if ((recvFrm.can_dlc > 0) &&
@@ -1045,7 +1047,7 @@ void doBootloaderModeCmd(void)
                     sendFrm.can_dlc = 1;
                     sendFrm.data[0] = C_bootloaderWait;
                     canbridge_send(&sendFrm, 3);
-
+                    usleep(10000);
                 }
                 goto bootModeOut;
             }
@@ -1053,14 +1055,21 @@ void doBootloaderModeCmd(void)
         if(timeGetTime() > abortAt) {
             printCanError();
             errExit("Can't send to CAN\n");
+        } else if (printResetFail > 0 && timeGetTime() > (abortAt - 1000)) {
+            printResetFail = -1;
+            fprintf(stderr, "**Unable to reset node, please powercycle node (ie. yank fuse)\n");
         }
     }
 
+
+    strcpy(canbridge_errmsg, storedErr);
     errExit("Not in bootMode\n");
 
 bootModeOut:
+    strcpy(canbridge_errmsg, storedErr);
+
     // trigger a cmd so we set node in cammand mode
     fprintf(stdout, "\n--Successfully set in bootloadermode\n--Printing memory\n\n");
-    usleep(10000);
+    usleep(50000);
     doPrintMemorySetupCmd(); // using memory print for this
 }

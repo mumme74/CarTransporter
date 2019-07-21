@@ -33,9 +33,6 @@
 
 #include "mcuconf.h"
 
-// obsolete must port away from Ext
-#define HAL_USE_EXT TRUE
-
 
 #define HAL_USE_COMMUNITY TRUE
 #include "halconf_community.h"

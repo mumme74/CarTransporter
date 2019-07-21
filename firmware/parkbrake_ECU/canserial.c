@@ -15,6 +15,7 @@
 #include "canserial.h"
 #include "can_protocol.h"
 #include "can.h"
+#include <string.h>
 
 
 #define STREAM_SIZE 0x7F
@@ -38,13 +39,6 @@ event_source_t evtHasContent;
 thread_t *canSerialSendp = NULL;
 
 
-
-// copy data, dont use string.h memcpy to avoid bloat
-void memcopy(uint8_t *cdest, const uint8_t *csrc, int n) {
-  for (int i = 0; i < n; ++i)
-      cdest[i] = csrc[i];
-}
-
 /* Methods implementations.*/
 static size_t writes(void *ip, const uint8_t *bp, size_t n) {
   CanSerialStream *csp = ip;
@@ -54,7 +48,7 @@ static size_t writes(void *ip, const uint8_t *bp, size_t n) {
   if (csp->size - csp->eos < nw)
     nw = csp->size - csp->eos;
 
-  memcopy(csp->buffer + csp->eos, bp, nw);
+  memcpy(csp->buffer + csp->eos, bp, nw);
   csp->eos += nw;
 
   // should we flip over?
@@ -62,7 +56,7 @@ static size_t writes(void *ip, const uint8_t *bp, size_t n) {
     nf = n - nw; // flipped over
     if (nf > csp->offset)
       nf = csp->offset;
-    memcopy(csp->buffer, bp + nw, nf);
+    memcpy(csp->buffer, bp + nw, nf);
     csp->eos = nf;
   }
   chSysUnlock();
@@ -81,14 +75,14 @@ static size_t reads(void *ip, uint8_t *bp, size_t n) {
     // we have not flipped around
     if (csp->eos - csp->offset < nr)
       nr = csp->eos - csp->offset;
-    memcopy(bp, csp->buffer + csp->offset, nr);
+    memcpy(bp, csp->buffer + csp->offset, nr);
     csp->offset += nr;
   } else {
     //  we have flipped around
     // first copy from eos to end
     if (csp->size - csp->offset < nr)
       nr = csp->size - csp->offset;
-    memcopy(bp, csp->buffer + csp->offset, nr);
+    memcpy(bp, csp->buffer + csp->offset, nr);
     csp->offset += nr;
 
     // should we copy from 0 to eos?
@@ -96,7 +90,7 @@ static size_t reads(void *ip, uint8_t *bp, size_t n) {
       nf = n - nr;
       if (nf > csp->eos)
         nf = csp->eos;
-      memcopy(bp + nr, csp->buffer, nf);
+      memcpy(bp + nr, csp->buffer, nf);
       csp->offset = nf;
     }
 
@@ -143,7 +137,6 @@ static void flush(void *ip) {
   if (csp->offset < csp->eos || csp->offset > csp->eos)
     chEvtBroadcast(&evtHasContent);
 }
-
 
 
 static const struct CanSerialStreamVMT vmt = { 0, writes, reads, put, get, flush };

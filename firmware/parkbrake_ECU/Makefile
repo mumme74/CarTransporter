@@ -135,9 +135,9 @@ CSRC = $(ALLCSRC) \
        can.c \
        diag.c \
        canserial.c \
+       pwm.c \
        main.c
 
-       #$(ALLCSRC) \
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
 CPPSRC = $(ALLCPPSRC)

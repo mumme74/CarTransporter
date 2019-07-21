@@ -26,6 +26,7 @@
 #include "control.h"
 #include "button_logic.h"
 #include "can.h"
+#include "pwm.h"
 #include "diag.h"
 #include "debug.h"
 #include "canserial.h"
@@ -65,6 +66,7 @@ int main(void) {
   ctrl_init();
   sen_initSensors();
   btn_initButtonLogic();
+  pwm_init();
 
   while (TRUE) {
     while (!can_rebootReq) {
@@ -73,6 +75,7 @@ int main(void) {
     }
 
     // terminate thds
+    pwm_thdsTerminate();
     btn_thdsTerminate();
     canserial_thdsTerminate();
     ctrl_thdsTerminate();
@@ -82,6 +85,7 @@ int main(void) {
     ee_thdsTerminate();
 
     // wait for theads to terminate and deinit drivers
+    pwm_doShutdown();
     btn_doShutdown();
     canserial_doShutdown();
     ctrl_doShutdown();

@@ -60,7 +60,7 @@ const QString CanDtc::dtcCodeStr() const
 const QString CanDtc::dtcDescription() const
 {
     QString desc;
-    switch ((can_DTCs_e)m_dtcCode) {
+    switch (static_cast<can_DTCs_e>(m_dtcCode)) {
     case C_dtc_LF_wheelsensor:
         desc = tr("Left front wheelsensor circuit"); break;
     case C_dtc_RF_wheelsensor:
@@ -123,6 +123,10 @@ const QString CanDtc::dtcDescription() const
         desc = tr("Overcurrent when LR service"); break;
     case C_dtc_OverCurrent_RR_service:
         desc = tr("Overcurrent when RR service"); break;
+    case C_dtc_parkbrake_EEProm_Error:
+        desc = tr("EEprom error in node"); break;
+    case C_dtc_parkbrake_internal_Error:
+        desc = tr("Internal error in node"); break;
 
     // suspension outputs
     case C_dtc_leftFill_openLoad:
@@ -328,6 +332,10 @@ const QString CanDtc::dtcDescription() const
         desc = tr("Airfeed overcurrent"); break;
     case C_dtc_airFeed_overHeated:
         desc = tr("Airfeed overheated"); break;
+    case C_dtc_suspension_EEProm_Error:
+        desc = tr("Suspension EEProm error in node"); break;
+    case C_dtc_suspension_internal_Error:
+        desc = tr("Suspension internal error in node"); break;
 
     default:
         desc = tr("Unknown DTC"); break;

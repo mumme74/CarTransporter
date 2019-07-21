@@ -5,11 +5,10 @@
  *      Author: fredrikjohansson
  */
 
-#include "diag.h"
-#include "can.h"
 #include "ch.h"
 #include "hal.h"
-#include "hal_eeprom.h"
+#include "diag.h"
+#include "can.h"
 #include "eeprom_setup.h"
 #include "can_protocol.h"
 #include "sensors.h"
@@ -18,7 +17,7 @@
 
 #define MAILBOX_SIZE 10
 
-#define DIAG_CAN_TIMEOUT MS2ST(25)
+#define DIAG_CAN_TIMEOUT TIME_MS2I(25)
 
 #define MAX_DTCS 34
 #define DTC_SIZE 27  /* each DTC occupies 26byte including freeze frame*/
@@ -59,7 +58,7 @@ static uint8_t storedDtcLength;
 void initDtcListFromEeprom(void)
 {
     // fill from eeprom
-    if (fileStreamSeek(dtcFile, 0) == 0) {
+    if (fileStreamSetPosition(dtcFile, 0) == FILE_OK) {
         storedDtcLength = EepromReadHalfword(dtcFile);
         if (storedDtcLength > MAX_DTCS)
           storedDtcLength = MAX_DTCS; // a DTC is uint16_t
@@ -68,7 +67,7 @@ void initDtcListFromEeprom(void)
     msg_t i;
     for (i = 0; i < storedDtcLength; ++i) {
         msg_t pos = (i * DTC_SIZE) + 1; // +1 because #0 holds dtc length
-        if (fileStreamSeek(dtcFile, pos) == pos)
+        if (fileStreamSetPosition(dtcFile, pos) == FILE_OK)
             storedDtcs[i] = EepromReadHalfword(dtcFile);
     }
 }
@@ -76,18 +75,23 @@ void initDtcListFromEeprom(void)
 // clears all memory of eeprom
 uint8_t eraseAll(void)
 {
-    size_t sz = fileStreamGetSize(dtcFile);
-    size_t i, written = 0;
-    if (fileStreamSeek(dtcFile, 0) != 0)
-        return 0;
+    uint8_t written = 0;
+    fileoffset_t sz = 0;
+    if (fileStreamGetSize(dtcFile, &sz) != FILE_OK)
+        goto error;
+    if (fileStreamSetPosition(dtcFile, 0) != FILE_OK)
+        goto error;
 
-    for (i = 0;  i + 3 < sz; i += 4) {
+    for (size_t i = 0;  i + 3 < sz; i += 4)
         written += EepromWriteWord(dtcFile, 0);
-    }
 
     storedDtcLength = 0;
 
     return written;
+
+error:
+    chMBPostTimeout(&dtc_MB, (msg_t)C_dtc_parkbrake_EEProm_Error, TIME_IMMEDIATE);
+    return 0;
 }
 // ---------------------------------------------------------------------------------------
 // begin threads
@@ -103,7 +107,7 @@ static THD_FUNCTION(setDtc, arg)
     while (!chThdShouldTerminateX()) {
         can_DTCs_e dtc;
         // must be polled to cleanly terminate
-        if (chMBFetch(&dtc_MB, (msg_t*)&dtc, MS2ST(1000)) != MSG_OK)
+        if (chMBFetchTimeout(&dtc_MB, (msg_t*)&dtc, TIME_MS2I(1000)) != MSG_OK)
             continue;
 
         msg_t i;
@@ -115,14 +119,15 @@ static THD_FUNCTION(setDtc, arg)
             if (storedDtcs[i] == dtc) {
                 // already stored, increment occurence counter
                 msg_t pos = 1 + (i * DTC_SIZE) + sizeof(uint16_t);
-                if (fileStreamSeek(dtcFile, pos) == pos) {
+                if (fileStreamSetPosition(dtcFile, pos) == FILE_OK) {
                     occurences = EepromReadByte(dtcFile);
                     if (occurences < 0xFF)
                         ++occurences;
                     dtcTime = EepromReadHalfword(dtcFile);
-                    fileStreamSeek(dtcFile, pos);
-                    EepromWriteByte(dtcFile, occurences);
-                    storedIdx = i;
+                    if (fileStreamSetPosition(dtcFile, pos) == FILE_OK) {
+                        EepromWriteByte(dtcFile, occurences);
+                        storedIdx = i;
+                    }
                     break;
                 }
             }
@@ -138,7 +143,7 @@ static THD_FUNCTION(setDtc, arg)
             } else {
                 storedIdx = storedDtcLength;
             }
-            if (fileStreamSeek(dtcFile, pos) == pos) {
+            if (fileStreamSetPosition(dtcFile, pos) == FILE_OK) {
                 static uint8_t data8[8]; // static to save stackspace
                 storedDtcs[storedDtcLength] = (uint16_t)dtc;
 
@@ -150,7 +155,7 @@ static THD_FUNCTION(setDtc, arg)
 
                 // time since start
                 systime_t t = chVTTimeElapsedSinceX(startupTime);
-                dtcTime = ST2S(t);
+                dtcTime = TIME_I2S(t);
                 EepromWriteHalfword(dtcFile, dtcTime);
 
                 // freeze frame
@@ -176,7 +181,7 @@ static THD_FUNCTION(setDtc, arg)
 
                 // save the new dtc length
                 if (storedDtcLength <= MAX_DTCS) {
-                    if (fileStreamSeek(dtcFile, 0) == 0) {
+                    if (fileStreamSetPosition(dtcFile, 0) == FILE_OK) {
                         storedDtcLength += 1;
                         EepromWriteByte(dtcFile, storedDtcLength);
                     }
@@ -209,7 +214,7 @@ static THD_FUNCTION(diagCanThd, arg)
     while (!chThdShouldTerminateX()) {
         static msg_t msg;
         // must be polled to cleanly terminate
-        if (chMBFetch(&diag_CanMB, &msg, MS2ST(1000)) != MSG_OK)
+        if (chMBFetchTimeout(&diag_CanMB, &msg, TIME_MS2I(1000)) != MSG_OK)
             continue;
 
         static uint8_t idx;
@@ -230,7 +235,7 @@ static THD_FUNCTION(diagCanThd, arg)
         }   break;
         case C_parkbrakeDiagDTC:
             pos = 1 + (idx * DTC_SIZE);
-            if (fileStreamSeek(dtcFile, pos) == pos) {
+            if (fileStreamSetPosition(dtcFile, pos) == FILE_OK) {
                 CANTxFrame txf;
                 can_initTxFrame(&txf, CAN_MSG_TYPE_DIAG, C_parkbrakeDiagDTC);
                 txf.data8[0] = idx;
@@ -256,7 +261,7 @@ static THD_FUNCTION(diagCanThd, arg)
             break;
         case C_parkbrakeDiagDTCFreezeFrame: {
             pos = (idx * DTC_SIZE) + 6; // dtcLen:1by + code:2by + occu:1by + time:2by;
-            if (fileStreamSeek(dtcFile, pos) == pos) {
+            if (fileStreamSetPosition(dtcFile, pos) == FILE_OK) {
                 static CANTxFrame txf;
                 can_initTxFrame(&txf, CAN_MSG_TYPE_DIAG, C_parkbrakeDiagDTCFreezeFrame);
 

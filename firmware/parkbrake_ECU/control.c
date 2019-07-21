@@ -117,7 +117,7 @@ void bridgeDisableTimerCallback(void *arg)
 void saveStateTimerCallback(void *arg)
 {
     (void)arg;
-    if (fileStreamSeek(stateFile, 0)) {
+    if (fileStreamSetPosition(stateFile, 0) == FILE_OK) {
         EepromWriteWord(stateFile, stateFlags);
     }
 }
@@ -166,7 +166,7 @@ static THD_FUNCTION(wheelHandler, args)
 
         ctrl_states action;
         // must be polled to allow clean shutdown
-        if (chMBFetch(info->mb, (msg_t*)&action, MS2ST(1000)) != MSG_OK)
+        if (chMBFetchTimeout(info->mb, (msg_t*)&action, TIME_MS2I(1000)) != MSG_OK)
             continue;
 
         // listen to currents to perform this action
@@ -184,7 +184,7 @@ static THD_FUNCTION(wheelHandler, args)
                 DEBUG_OUT_PRINTF("error %s motor release", info->abbreviation);
                 saveState(ErrorState, info->wheel);
                 // setting a DTC and broadcast to CAN
-                chMBPost(&dtc_MB, res, TIME_IMMEDIATE);
+                chMBPostTimeout(&dtc_MB, res, TIME_IMMEDIATE);
             } else {
                 saveState(Released, info->wheel);
             }
@@ -197,7 +197,7 @@ static THD_FUNCTION(wheelHandler, args)
                 DEBUG_OUT_PRINTF("error %s motor tighten", info->abbreviation);
                 saveState(ErrorState, info->wheel);
                 // setting a DTC and broadcast to CAN
-                chMBPost(&dtc_MB, res, TIME_IMMEDIATE);
+                chMBPostTimeout(&dtc_MB, res, TIME_IMMEDIATE);
             } else {
                 saveState(Tightened, info->wheel);
             }
@@ -211,7 +211,7 @@ static THD_FUNCTION(wheelHandler, args)
                 DEBUG_OUT_PRINTF("error %s motor service", info->abbreviation);
                 saveState(ErrorState, info->wheel);
                 // setting a DTC and broadcast to CAN
-                chMBPost(&dtc_MB, res, TIME_IMMEDIATE);
+                chMBPostTimeout(&dtc_MB, res, TIME_IMMEDIATE);
             } else {
                 saveState(InServiceState, info->wheel);
             }
@@ -251,7 +251,7 @@ static void saveState(uint32_t state, ctrl_wheels wheel)
 
     // we use a timer here so we don't save 4 times in eeprom when 1 is enough
     // it takes 10ms each time and that would block thread
-    chVTSet(&saveStateTimer, MS2ST(5), saveStateTimerCallback, NULL);
+    chVTSet(&saveStateTimer, TIME_MS2I(5), saveStateTimerCallback, NULL);
     //chSysUnlock();
 }
 
@@ -265,8 +265,8 @@ static msg_t releaseWheel(wheelthreadinfo_t *info)
     msg_t success = MSG_OK;
 
     systime_t curOffTime = 0,
-              maxTime = MS2ST(2000) + chVTGetSystemTime(),
-              revupTime = MS2ST(settings[S_TimeRevupRelease]) + chVTGetSystemTime(); // start of release means higher currents is allowed
+              maxTime = TIME_MS2I(2000) + chVTGetSystemTime(),
+              revupTime = TIME_MS2I(settings[S_TimeRevupRelease]) + chVTGetSystemTime(); // start of release means higher currents is allowed
 
     bool isReleased = false;
 
@@ -299,7 +299,7 @@ static msg_t releaseWheel(wheelthreadinfo_t *info)
         if (*info->motorcurrent > maxCurrent) {
             // overCurrent protection
             palClearPad(GPIOC, info->releasePin);
-            curOffTime = US2ST(500);
+            curOffTime = TIME_US2I(500);
         } else if (curOffTime && curOffTime < chVTGetSystemTime()) {
             // restore current again from current protection
             curOffTime = 0;
@@ -310,7 +310,7 @@ static msg_t releaseWheel(wheelthreadinfo_t *info)
                 // we are released but we continue for while
                 // by changing maxTime so we can take advantage of current limit functionality
                 isReleased = true;
-                maxTime = MS2ST(settings[S_TimeContinueAfterFreed]);
+                maxTime = TIME_MS2I(settings[S_TimeContinueAfterFreed]);
             }
         }
     }
@@ -332,15 +332,15 @@ static msg_t tightenWheel(wheelthreadinfo_t *info)
     msg_t success = MSG_OK;
 
     systime_t curOffTime = 0,
-           maxTime = MS2ST(2000) + chVTGetSystemTime(),
-           revupTime = MS2ST(settings[S_TimeRevupRelease]) + chVTGetSystemTime(); // revup means higher currents is allowed
+           maxTime = TIME_MS2I(2000) + chVTGetSystemTime(),
+           revupTime = TIME_MS2I(settings[S_TimeRevupRelease]) + chVTGetSystemTime(); // revup means higher currents is allowed
 
     bool isTightened = false;
     uint8_t avgSpeed = 0, lockSpeed = 0;
 
     while (maxTime > chVTGetSystemTime()) {
         // measure current
-        eventmask_t msk = chEvtWaitOneTimeout(info->evtReceiveFlag | BridgeEvt, US2ST(700));
+        eventmask_t msk = chEvtWaitOneTimeout(info->evtReceiveFlag | BridgeEvt, TIME_US2I(700));
         if (msk == 0) { // timeout check
             DEBUG_OUT("ADC error tighten");
             success = C_dtc_ADC_error_LF_tighten | info->wheel; // LSB:4 is the wheel, LF =0
@@ -389,7 +389,7 @@ static msg_t tightenWheel(wheelthreadinfo_t *info)
         if (*info->motorcurrent > maxCurrent) {
             // overCurrent protection
             palClearPad(GPIOC, info->tightenPin);
-            curOffTime = US2ST(500);
+            curOffTime = TIME_US2I(500);
         } else if (curOffTime && curOffTime < chVTGetSystemTime()) {
             // restore current again from current protection
             curOffTime = 0;
@@ -402,7 +402,7 @@ static msg_t tightenWheel(wheelthreadinfo_t *info)
                 // we are tightened but we continue for while
                 // by changing maxTime so we can take advantage of current limit functionality
                 isTightened = true;
-                maxTime = MS2ST(settings[S_TimeContinueAfterTightened]);
+                maxTime = TIME_MS2I(settings[S_TimeContinueAfterTightened]);
             }
         }
     }
@@ -422,15 +422,15 @@ static msg_t serviceWheel(wheelthreadinfo_t *info)
     msg_t success = MSG_OK;
 
     systime_t curOffTime = 0,
-              maxTime = MS2ST(5000),
-              revupTime = MS2ST(settings[S_TimeRevupRelease]); // start of release means higher currents is allowed
+              maxTime = TIME_MS2I(5000),
+              revupTime = TIME_MS2I(settings[S_TimeRevupRelease]); // start of release means higher currents is allowed
 
     bool isReleased = false;
 
     while (maxTime > chVTGetSystemTime()) {
         // measure current
         eventflags_t flg = chEvtWaitOneTimeout(info->evtReceiveFlag | BrgAllDiags, //EVENT_FLAG_BRIDGE_DIAG_PINS,
-                                               US2ST(700));
+                                               TIME_US2I(700));
         if (flg == 0) { // timeout check
             DEBUG_OUT("ADC error service");
             success = C_dtc_ADC_error_LF_service | info->wheel; // LSB:4 is the wheel, LF =0
@@ -454,7 +454,7 @@ static msg_t serviceWheel(wheelthreadinfo_t *info)
         if (*info->motorcurrent > maxCurrent) {
             // overCurrent protection
             palClearPad(GPIOC, info->releasePin);
-            curOffTime = US2ST(500);
+            curOffTime = TIME_US2I(500);
         } else if (curOffTime && curOffTime < chVTGetSystemTime()) {
             // restore current again from current protection
             curOffTime = 0;
@@ -511,8 +511,12 @@ static bool disableBridge(void)
 void ctrl_init(void)
 {
     // read state from EEPROM
-    fileStreamSeek(stateFile, 0);
-    stateFlags = EepromReadWord(stateFile);
+    if (fileStreamSetPosition(stateFile, 0) != FILE_OK) {
+      chMBPostTimeout(&dtc_MB, (msg_t)C_dtc_parkbrake_EEProm_Error, TIME_IMMEDIATE);
+      stateFlags = Tightening << 3 | Tightening << 2 | Tightening << 1 | Tightening << 0;
+    } else {
+      stateFlags = EepromReadWord(stateFile);
+    }
     ctrl_checkForErrors();
 
     // init mailboxes to the threads
@@ -593,13 +597,13 @@ int ctrl_setStateWheel(ctrl_states state, ctrl_wheels wheel)
     saveState(state, wheel);
     switch (wheel) {
     case LeftFront:
-        return chMBPost(&mbLF, (msg_t)state, MS2ST(10)) == MSG_OK;
+        return chMBPostTimeout(&mbLF, (msg_t)state, TIME_MS2I(10)) == MSG_OK;
     case LeftRear:
-        return chMBPost(&mbLR, (msg_t)state, MS2ST(10)) == MSG_OK;
+        return chMBPostTimeout(&mbLR, (msg_t)state, TIME_MS2I(10)) == MSG_OK;
     case RightFront:
-        return chMBPost(&mbRF, (msg_t)state, MS2ST(10)) == MSG_OK;
+        return chMBPostTimeout(&mbRF, (msg_t)state, TIME_MS2I(10)) == MSG_OK;
     case RightRear:
-        return chMBPost(&mbRR, (msg_t)state, MS2ST(10)) == MSG_OK;
+        return chMBPostTimeout(&mbRR, (msg_t)state, TIME_MS2I(10)) == MSG_OK;
     }
     return 0;
 }

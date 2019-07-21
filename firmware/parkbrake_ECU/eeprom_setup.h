@@ -23,6 +23,7 @@
 
 #include "ch.h"
 #include "park_settings.h"
+#include "hal_eeprom.h"
 
 /**
  * Driver init for Atmel SPI EEProm  AT25080 -> AT25640

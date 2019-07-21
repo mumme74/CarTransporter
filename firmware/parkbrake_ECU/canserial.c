@@ -19,7 +19,7 @@
 
 #define STREAM_SIZE 0x7F
 #define CANSERIAL_MB_SIZE 64
-#define CANTRANSMIT_TIMEOUT MS2ST(1)
+#define CANTRANSMIT_TIMEOUT TIME_MS2I(1)
 
 // ---------------------------------------------------------------------------------
 // begin public exported variables
@@ -146,7 +146,7 @@ static void flush(void *ip) {
 
 
 
-static const struct CanSerialStreamVMT vmt = { writes, reads, put, get, flush };
+static const struct CanSerialStreamVMT vmt = { 0, writes, reads, put, get, flush };
 
 uint8_t CANSerialBuffer[STREAM_SIZE+1];
 
@@ -175,7 +175,7 @@ static THD_FUNCTION(canSerialSend, arg)
 
   while(!chThdShouldTerminateX()) {
     // must be polled to allow clean shutdown
-    if (chEvtWaitAnyTimeout(ALL_EVENTS, MS2ST(1000)) != MSG_OK)
+    if (chEvtWaitAnyTimeout(ALL_EVENTS, TIME_MS2I(1000)) != MSG_OK)
       continue;
 
     static uint8_t readBuf[STREAM_SIZE +1];

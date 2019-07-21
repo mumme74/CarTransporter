@@ -373,6 +373,9 @@ typedef enum {
     C_dtc_OverCurrent_LR_service    = 0x1062,
     C_dtc_OverCurrent_RR_service    = 0x1063,
 
+    C_dtc_parkbrake_EEProm_Error    = 0x1070,
+    C_dtc_parkbrake_internal_Error  = 0x1071,
+
 
     // ------------------------------------------------------------------------------------
     // suspension node
@@ -489,6 +492,9 @@ typedef enum {
     // suspension node airfeed control logic
     C_dtc_airFeed_overCurrent            = 0x1300,
     C_dtc_airFeed_overHeated             = 0x1301,
+
+    C_dtc_suspension_EEProm_Error        = 0x1310,
+    C_dtc_suspension_internal_Error      = 0x1311,
 
 
 } can_DTCs_e;

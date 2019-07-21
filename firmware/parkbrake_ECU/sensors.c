@@ -47,10 +47,8 @@
     if (ADCD1.state != ADC_READY) { \
       adcStopConversion(&ADCD1); \
     } \
-    chThdSleep(US2ST(500)); \
+    chThdSleep(TIME_US2I(500)); \
     adcStartConversion(&ADCD1, (bridgeCfg), bridgeAdcBuf, ADC_BRIDGE_BUF_DEPTH); \
-
-
 
 
 // --------------------------------------------------------------------
@@ -62,7 +60,8 @@ static void bridgeRearAdcCallback(ADCDriver *adcp, adcsample_t *buffer, size_t n
 static void backgroundAdcCallback(ADCDriver *adcp, adcsample_t *buffer, size_t n);
 
 // interupt callback for pad change interupts
-static void extCallback(EXTDriver *extp, expchannel_t channel);
+//static void extCallback(EXTDriver *extp, expchannel_t channel);
+static void palEvtCallback(void *arg);
 
 // helper function
 static void bridgeCurrents(uint16_t *left_ma, uint16_t *right_ma);
@@ -71,6 +70,10 @@ static void backgroundTimerCallback(void);
 static void clearFrontCurrents(void);
 static void clearRearCurrents(void);
 static void calculateWheelCircumference(void);
+
+
+static void initPalEvents(void);
+static void endPalEvents(void);
 
 
 // ---------------------------------------------------------------
@@ -110,7 +113,7 @@ event_source_t sen_msgHandlerThdEvt;
 static const ADCConversionGroup adcBridgeFrontCfg = {
     false, // circular
     ADC_BRIDGE_NUM_CHANNELS,
-    bridgeFrontAdcCallback, // conversion callback
+    (adccallback_t)bridgeFrontAdcCallback, // conversion callback
     NULL,              // error callback
     //---------- stm32 specific from here on ---------------------
     {{ // begin union struct adc
@@ -150,7 +153,7 @@ static const ADCConversionGroup adcBridgeFrontCfg = {
 static const ADCConversionGroup adcBridgeRearCfg = {
     false, // circular
     ADC_BRIDGE_NUM_CHANNELS,
-    bridgeRearAdcCallback, // conversion callback
+    (adccallback_t)bridgeRearAdcCallback, // conversion callback
     NULL,              // error callback
     //---------- stm32 specific from here on ---------------------
     {{ // begin union struct adc
@@ -192,7 +195,7 @@ static const ADCConversionGroup adcBridgeRearCfg = {
 static const ADCConversionGroup adcBackgroundCfg = {
     FALSE, // not circular, but is repeated from callback
     ADC_BACKGROUND_NUM_CHANNELS, // total 3 both voltages and chip temperature
-    backgroundAdcCallback, // conversion callback
+    (adccallback_t)backgroundAdcCallback, // conversion callback
     NULL,              // error callback
     //---------- stm32 specific from here on ---------------------
     {{ // begin union struct adc
@@ -227,6 +230,7 @@ static const ADCConversionGroup adcBackgroundCfg = {
     }} // end union struct adc
 };
 
+/*
 // external input interupts
 static const  EXTConfig extConfig = {
     {
@@ -302,6 +306,7 @@ static const  EXTConfig extConfig = {
         // must be 23 items
     }
 };
+*/
 
 // end static objects declarations
 // -----------------------------------------------------------------------------------------
@@ -417,49 +422,22 @@ static void backgroundTimerCallback(void)
     systime_t nextStop;
     if (ADCD1.state != ADC_READY) {
         // ADC busy, retry in 250 us
-        nextStop = US2ST(250);
+        nextStop = TIME_US2I(250);
     } else {
         adcStartConversionI(&ADCD1, &adcBackgroundCfg, backgroundAdcBuf,
                             ADC_BACKGROUND_BUF_DEPTH);
-        nextStop = MS2ST(BACKGROUND_TIMER_MS);
+        nextStop = TIME_MS2I(BACKGROUND_TIMER_MS);
     }
     chVTSetI(&backgroundTimer, nextStop, (void*)backgroundTimerCallback, NULL);
     chSysUnlockFromISR();
 }
 
 // external pin change status interupts
-static void extCallback(EXTDriver *extp, expchannel_t channel)
+static void palEvtCallback(void *arg)
 {
-    (void)extp; (void)channel;
-
+    sen_measure_flags_e evt = (sen_measure_flags_e)arg;
     chSysLockFromISR();
-
-    switch (channel) {
-    case 1: // PB1 -> LeftFront_DIAG
-        chEvtBroadcastFlagsI(&sen_measuredEvts, BrgLFDiag); //EVENT_FLAG_BRIDGE_LF_DIAG);
-        break;
-    case 2: // PB2 -> RightFront_DIAG
-        chEvtBroadcastFlagsI(&sen_measuredEvts, BrgRFDiag); //EVENT_FLAG_BRIDGE_RF_DIAG);
-        break;
-    case 6: // PF6 -> TIGHTEN_CMD_SIG
-        chEvtBroadcastFlagsI(&sen_measuredEvts, SigTightenCmd); //EVENT_FLAG_TIGHTEN_CMD_SIG);
-        break;
-    case 7: // PF7 -> RELEASE_CMD_SIG
-        chEvtBroadcastFlagsI(&sen_measuredEvts, SigReleaseCmd); //EVENT_FLAG_RELEASE_CMD_SIG);
-        break;
-    case 8: // PA8 -> LeftRear_DIAG
-        chEvtBroadcastFlagsI(&sen_measuredEvts, BrgLRDiag); //EVENT_FLAG_BRIDGE_LR_DIAG);
-        break;
-    case 9: // PA9 -> RightRear_DIAG
-        chEvtBroadcastFlagsI(&sen_measuredEvts, BrgRRDiag); //EVENT_FLAG_BRIDGE_RR_DIAG);
-        break;
-    case 10: // PA10 -> PWR_ENABLED_SIG
-        chEvtBroadcastFlagsI(&sen_measuredEvts, SigPwrEnabled); // EVENT_FLAG_PWR_ENABLED_SIG);
-        break;
-    default:
-        break; // not handled?
-    }
-
+    chEvtBroadcastFlagsI(&sen_measuredEvts, evt);
     chSysUnlockFromISR();
 }
 
@@ -520,6 +498,65 @@ static void calculateWheelCircumference(void)
     wheelCircumference = (uint16_t)circum;
 }
 
+static void initPalEvents(void)
+{
+  osalSysLock();
+  // PB1 -> LeftFront_DIAG
+  palSetPadCallbackI(GPIOB, GPIOB_LeftFront_DIAG, palEvtCallback, (void*)BrgLFDiag);
+  palEnablePadEventI(GPIOB, GPIOB_LeftFront_DIAG, PAL_EVENT_MODE_BOTH_EDGES);
+
+  // PB2 -> RightFront_DIAG
+  palSetPadCallbackI(GPIOB, GPIOB_RightFront_DIAG, palEvtCallback, (void*)BrgRFDiag);
+  palEnablePadEventI(GPIOB, GPIOB_RightFront_DIAG, PAL_EVENT_MODE_BOTH_EDGES);
+
+  // PF6 -> TIGHTEN_CMD_SIG
+  palSetPadCallbackI(GPIOF, GPIOF_TIGHTEN_CMD_SIG, palEvtCallback, (void*)SigTightenCmd);
+  palEnablePadEventI(GPIOF, GPIOF_TIGHTEN_CMD_SIG, PAL_EVENT_MODE_BOTH_EDGES);
+
+  // PF7 -> RELEASE_CMD_SIG
+  palSetPadCallbackI(GPIOF, GPIOF_RELEASE_CMD_SIG, palEvtCallback, (void*)SigReleaseCmd);
+  palEnablePadEventI(GPIOF, GPIOF_RELEASE_CMD_SIG, PAL_EVENT_MODE_BOTH_EDGES);
+
+  // PA8 -> LeftRear_DIAG
+  palSetPadCallbackI(GPIOA, GPIOA_LeftRear_DIAG, palEvtCallback, (void*)BrgLRDiag);
+  palEnablePadEventI(GPIOA, GPIOA_LeftRear_DIAG, PAL_EVENT_MODE_BOTH_EDGES);
+
+  // PA9 -> RightRear_DIAG
+  palSetPadCallbackI(GPIOA, GPIOA_RightRear_DIAG, palEvtCallback, (void*)BrgRRDiag);
+  palEnablePadEventI(GPIOA, GPIOA_RightRear_DIAG, PAL_EVENT_MODE_BOTH_EDGES);
+
+  // PA10 -> PWR_ENABLED_SIG
+  palSetPadCallbackI(GPIOA, GPIOA_PWR_ENABLED_SIG, palEvtCallback, (void*)SigPwrEnabled);
+  palEnablePadEventI(GPIOA, GPIOA_PWR_ENABLED_SIG, PAL_EVENT_MODE_BOTH_EDGES);
+  osalSysUnlock();
+}
+
+static void endPalEvents(void)
+{
+  osalSysLock();
+  // PB1 -> LeftFront_DIAG
+  palDisablePadEventI(GPIOB, GPIOB_LeftFront_DIAG);
+
+  // PB2 -> RightFront_DIAG
+  palDisablePadEventI(GPIOB, GPIOB_RightFront_DIAG);
+
+  // PF6 -> TIGHTEN_CMD_SIG
+  palDisablePadEventI(GPIOF, GPIOF_TIGHTEN_CMD_SIG);
+
+  // PF7 -> RELEASE_CMD_SIG
+  palDisablePadEventI(GPIOF, GPIOF_RELEASE_CMD_SIG);
+
+  // PA8 -> LeftRear_DIAG
+  palDisablePadEventI(GPIOA, GPIOA_LeftRear_DIAG);
+
+  // PA9 -> RightRear_DIAG
+  palDisablePadEventI(GPIOA, GPIOA_RightRear_DIAG);
+
+  // PA10 -> PWR_ENABLED_SIG
+  palDisablePadEventI(GPIOA, GPIOA_PWR_ENABLED_SIG);
+  osalSysUnlock();
+}
+
 // ---------------------------------------------------------------------
 // start thread
 
@@ -542,7 +579,7 @@ static THD_FUNCTION(adcHandlerThd, arg)
     eventmask_t evt;
     sen_measure_flags_e action = MsgStopAll;
     const systime_t TerminatePollTime = 1000;
-    systime_t timeout = MS2ST(TerminatePollTime); // must allow thd to terminate
+    systime_t timeout = TIME_MS2I(TerminatePollTime); // must allow thd to terminate
     const ADCConversionGroup *curGroup = NULL;
 
     while (!chThdShouldTerminateX()) {
@@ -555,7 +592,7 @@ static THD_FUNCTION(adcHandlerThd, arg)
             switch (action) {
             case MsgStopAll:
                 // no current to measure, restart background timer
-                chVTSet(&backgroundTimer, MS2ST(BACKGROUND_TIMER_MS),
+                chVTSet(&backgroundTimer, TIME_MS2I(BACKGROUND_TIMER_MS),
                         (void*)backgroundTimerCallback, NULL);
                 curGroup = NULL;
                 break;
@@ -629,13 +666,13 @@ static THD_FUNCTION(adcHandlerThd, arg)
             }
 
             // don't wait for a event to occur on next loop
-            timeout = action == MsgStartAll ? ST2US(900) : TIME_IMMEDIATE;
+            timeout = action == MsgStartAll ? TIME_I2US(900) : TIME_IMMEDIATE;
             continue;
         }
 
 
         // restore so we wait for next event to occur
-        timeout = MS2ST(TerminatePollTime);
+        timeout = TIME_MS2I(TerminatePollTime);
 
     } // thread loop
 }
@@ -692,7 +729,7 @@ static THD_FUNCTION(inputPoll, arg)
         if (offBounceBtnInv == 0xF000)
             chEvtBroadcastFlags(&sen_measuredEvts, SigButtonInv); // EVENT_FLAG_BUTTON_INV_SIG);
 
-        chThdSleep(MS2ST(7));
+        chThdSleep(TIME_MS2I(7));
     }
 }
 
@@ -712,7 +749,7 @@ static THD_FUNCTION(settingsHandler, arg)
 
     while (!chThdShouldTerminateX()) {
         // must be polled to allow clean shutdown
-        chEvtWaitAnyTimeout(ALL_EVENTS, MS2ST(1000));
+        chEvtWaitAnyTimeout(ALL_EVENTS, TIME_MS2I(1000));
         calculateWheelCircumference();
     }
 }
@@ -733,11 +770,11 @@ void sen_initSensors(void)
 
     // start a background loop to read voltages, temp.
     chVTObjectInit(&backgroundTimer);
-    chVTSet(&backgroundTimer, MS2ST(BACKGROUND_TIMER_MS),
+    chVTSet(&backgroundTimer, TIME_MS2I(BACKGROUND_TIMER_MS),
              (void*)backgroundTimerCallback, NULL);
 
     // start external interrupts (from digital pins)
-    extStart(&EXTD1, &extConfig);
+    initPalEvents();
 
     // initialize our event source
     chEvtObjectInit(&sen_measuredEvts);
@@ -770,7 +807,7 @@ void sen_doShutdown(void)
   chThdWait(settingsHandlerp);
   adcStopConversion(&ADCD1);
   adcStop(&ADCD1);
-  extStop(&EXTD1);
+  endPalEvents();
 }
 
 // diagnose wheelsensor circuits
@@ -813,16 +850,16 @@ int sen_diagWheelSensors(void)
             // code for setting DTC open circuit here
             switch (bit) {
             case GPIOA_LF_speed_in:
-                chMBPost(&dtc_MB, (msg_t)C_dtc_LF_wheelsensor, TIME_IMMEDIATE);
+                chMBPostTimeout(&dtc_MB, (msg_t)C_dtc_LF_wheelsensor, TIME_IMMEDIATE);
                 break;
             case GPIOA_RF_speed_in:
-                chMBPost(&dtc_MB, (msg_t)C_dtc_RF_wheelsensor, TIME_IMMEDIATE);
+                chMBPostTimeout(&dtc_MB, (msg_t)C_dtc_RF_wheelsensor, TIME_IMMEDIATE);
                 break;
             case GPIOA_LR_speed_in:
-                chMBPost(&dtc_MB, (msg_t)C_dtc_LR_wheelsensor, TIME_IMMEDIATE);
+                chMBPostTimeout(&dtc_MB, (msg_t)C_dtc_LR_wheelsensor, TIME_IMMEDIATE);
                 break;
             case GPIOA_RR_speed_in:
-                chMBPost(&dtc_MB, (msg_t)C_dtc_RR_wheelsensor, TIME_IMMEDIATE);
+                chMBPostTimeout(&dtc_MB, (msg_t)C_dtc_RR_wheelsensor, TIME_IMMEDIATE);
                 break;
             default: break;
             }

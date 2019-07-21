@@ -120,25 +120,6 @@
 #define STM32_DAC_DAC1_CH2_DMA_PRIORITY     2
 #define STM32_DAC_DAC2_CH1_DMA_PRIORITY     2
 
-//
-///*
-// * EXT driver system settings.
-// */
-//#define STM32_EXT_EXTI0_IRQ_PRIORITY        6
-//#define STM32_EXT_EXTI1_IRQ_PRIORITY        6
-//#define STM32_EXT_EXTI2_IRQ_PRIORITY        6
-//#define STM32_EXT_EXTI3_IRQ_PRIORITY        6
-//#define STM32_EXT_EXTI4_IRQ_PRIORITY        6
-//#define STM32_EXT_EXTI5_9_IRQ_PRIORITY      6
-//#define STM32_EXT_EXTI10_15_IRQ_PRIORITY    6
-//#define STM32_EXT_EXTI16_IRQ_PRIORITY       6
-//#define STM32_EXT_EXTI17_IRQ_PRIORITY       6
-//#define STM32_EXT_EXTI18_IRQ_PRIORITY       6
-//#define STM32_EXT_EXTI19_IRQ_PRIORITY       6
-//#define STM32_EXT_EXTI20_23_IRQ_PRIORITY    6
-//#define STM32_EXT_EXTI30_32_IRQ_PRIORITY    6
-//#define STM32_EXT_EXTI33_IRQ_PRIORITY       6
-
 /*
  * GPT driver system settings.
  */

@@ -40,11 +40,11 @@ static THD_FUNCTION(buttonLogic, arg)
 
     while (!chThdShouldTerminateX()) {
         // globally wait for a new event
-        if (chEvtWaitAnyTimeout(SignalEvt, ST2MS(1000)) != MSG_OK)
+        if (chEvtWaitAnyTimeout(SignalEvt, TIME_I2MS(1000)) != MSG_OK)
           continue;
 
         // we must hold button in 500ms else its not a valid request
-        if (chEvtWaitAnyTimeout(SignalEvt, MS2ST(500)) != 0) {
+        if (chEvtWaitAnyTimeout(SignalEvt, TIME_MS2I(500)) != 0) {
             continue; // was not a timeout request, user has released button or brake
         }
 

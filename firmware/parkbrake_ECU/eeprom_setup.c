@@ -90,6 +90,8 @@ void initSettings(void);
  * CPOL=0 (SCK) low at idle, CPHA=0 (Reads bit at clock rising edge)
  */
 static const SPIConfig spiConfig = {
+    // circular
+    false,
     // SPI complete callback
     NULL,
     // -------------------------------------
@@ -114,7 +116,7 @@ SPIEepromFileConfig stateConfig = {
     3, // 4 bytes for state flags
     EEPROM_SIZE,
     EEPROM_PAGE_SIZE,
-    MS2ST(EEPROM_WRITE_TIME_MS),
+    TIME_MS2I(EEPROM_WRITE_TIME_MS),
     &EEPROM_SPID,
     &spiConfig
 };
@@ -126,19 +128,19 @@ SPIEepromFileConfig settingsConfig = {
     104, // end address gives us maximum of 50 settings
     EEPROM_SIZE,
     EEPROM_PAGE_SIZE,
-    MS2ST(EEPROM_WRITE_TIME_MS),
+    TIME_MS2I(EEPROM_WRITE_TIME_MS),
     &EEPROM_SPID,
     &spiConfig
 };
 static SPIEepromFileStream settingsFileStream;
 static EepromFileStream *settingsFile = NULL;
 
-SPIEepromFileConfig dtcFileConfig = {
+const SPIEepromFileConfig dtcFileConfig = {
    105, // start address
    1024, // end address
    EEPROM_SIZE,
    EEPROM_PAGE_SIZE,
-   MS2ST(EEPROM_WRITE_TIME_MS),
+   TIME_MS2I(EEPROM_WRITE_TIME_MS),
    &EEPROM_SPID,
    &spiConfig
 };
@@ -184,10 +186,10 @@ void initSettings(void)
     // settings[S_AutoTighten]                = 1;
 
     // fill from eeprom
-    msg_t i;
+    fileoffset_t i;
     for (i = 0; i < S_EOF; ++i) {
-        msg_t pos = i * sizeof(settings[0]);
-        if (fileStreamSeek(settingsFile, pos) == pos) {
+        fileoffset_t pos = i * sizeof(settings[0]);
+        if (fileStreamSetPosition(settingsFile, pos) == FILE_OK) {
             uint16_t vlu = EepromReadHalfword(settingsFile);
             if (vlu < 0xFFFF)
               settings[i] = vlu;
@@ -228,8 +230,8 @@ void ee_doShutdown(void)
 
 int ee_saveSetting(settings_e settingsIdx)
 {
-    msg_t pos = settingsIdx * sizeof(settings[0]);
-    if (fileStreamSeek(settingsFile, pos) == pos) {
+    fileoffset_t pos = settingsIdx * sizeof(settings[0]);
+    if (fileStreamSetPosition(settingsFile, pos) == FILE_OK) {
         if (EepromWriteHalfword(settingsFile, settings[settingsIdx]) == 2) {
             chEvtBroadcastFlags(&ee_settingsChanged, settingsIdx);
             return 1;

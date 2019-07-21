@@ -10,6 +10,7 @@
 
 #include <List.h>
 #include <Ntc.h>
+#include <stdint.h>
 
 
 namespace PIDs {

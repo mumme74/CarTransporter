@@ -29,13 +29,16 @@
 #define HALCONF_H
 
 #define _CHIBIOS_HAL_CONF_
-#define _CHIBIOS_HAL_CONF_VER_6_0_
+#define _CHIBIOS_HAL_CONF_VER_7_0_
 
 #include "mcuconf.h"
 
+// obsolete must port away from Ext
+#define HAL_USE_EXT TRUE
+
+
 #define HAL_USE_COMMUNITY TRUE
-#define HAL_USE_EEPROM TRUE
-#define EEPROM_USE_EE25XX TRUE
+#include "halconf_community.h"
 
 
 #define SERIAL_DEFAULT_BITRATE 115200
@@ -78,9 +81,11 @@
 /**
  * @brief   Enables the EXT subsystem.
  */
+/*
 #if !defined(HAL_USE_EXT) || defined(__DOXYGEN__)
 #define HAL_USE_EXT                 TRUE
 #endif
+*/
 
 /**
  * @brief   Enables the GPT subsystem.
@@ -134,9 +139,11 @@
 /**
  * @brief   Enables the QSPI subsystem.
  */
+/*
 #if !defined(HAL_USE_QSPI) || defined(__DOXYGEN__)
 #define HAL_USE_QSPI                FALSE
 #endif
+*/
 
 /**
  * @brief   Enables the RTC subsystem.
@@ -165,12 +172,25 @@
 #if !defined(HAL_USE_SERIAL_USB) || defined(__DOXYGEN__)
 #define HAL_USE_SERIAL_USB          FALSE
 #endif
+/**
+ * @brief   Enables the SIO subsystem.
+ */
+#if !defined(HAL_USE_SIO) || defined(__DOXYGEN__)
+#define HAL_USE_SIO                         FALSE
+#endif
 
 /**
  * @brief   Enables the SPI subsystem.
  */
 #if !defined(HAL_USE_SPI) || defined(__DOXYGEN__)
 #define HAL_USE_SPI                 TRUE
+#endif
+
+/**
+ * @brief   Enables the TRNG subsystem.
+ */
+#if !defined(HAL_USE_TRNG) || defined(__DOXYGEN__)
+#define HAL_USE_TRNG                        FALSE
 #endif
 
 /**
@@ -194,6 +214,13 @@
 #define HAL_USE_WDG                 FALSE
 #endif
 
+/**
+ * @brief   Enables the WSPI subsystem.
+ */
+#if !defined(HAL_USE_WSPI) || defined(__DOXYGEN__)
+#define HAL_USE_WSPI                        FALSE
+#endif
+
 /*===========================================================================*/
 /* PAL driver related settings.                                              */
 /*===========================================================================*/
@@ -203,7 +230,7 @@
  * @note    Disabling this option saves both code and data space.
  */
 #if !defined(PAL_USE_CALLBACKS) || defined(__DOXYGEN__)
-#define PAL_USE_CALLBACKS                   FALSE
+#define PAL_USE_CALLBACKS                   TRUE
 #endif
 
 /**
@@ -347,17 +374,21 @@
  * @brief   Enables synchronous APIs.
  * @note    Disabling this option saves both code and data space.
  */
+/*
 #if !defined(QSPI_USE_WAIT) || defined(__DOXYGEN__)
 #define QSPI_USE_WAIT                       TRUE
 #endif
+*/
 
 /**
  * @brief   Enables the @p qspiAcquireBus() and @p qspiReleaseBus() APIs.
  * @note    Disabling this option saves both code and data space.
  */
+/*
 #if !defined(QSPI_USE_MUTUAL_EXCLUSION) || defined(__DOXYGEN__)
 #define QSPI_USE_MUTUAL_EXCLUSION           TRUE
 #endif
+*/
 
 /*===========================================================================*/
 /* SDC driver related settings.                                              */
@@ -518,6 +549,26 @@
 #if !defined(USB_USE_WAIT) || defined(__DOXYGEN__)
 #define USB_USE_WAIT                FALSE
 #endif
+/*===========================================================================*/
+/* WSPI driver related settings.                                             */
+/*===========================================================================*/
+
+/**
+ * @brief   Enables synchronous APIs.
+ * @note    Disabling this option saves both code and data space.
+ */
+#if !defined(WSPI_USE_WAIT) || defined(__DOXYGEN__)
+#define WSPI_USE_WAIT                       TRUE
+#endif
+
+/**
+ * @brief   Enables the @p wspiAcquireBus() and @p wspiReleaseBus() APIs.
+ * @note    Disabling this option saves both code and data space.
+ */
+#if !defined(WSPI_USE_MUTUAL_EXCLUSION) || defined(__DOXYGEN__)
+#define WSPI_USE_MUTUAL_EXCLUSION           TRUE
+#endif
+
 
 #endif /* HALCONF_H */
 

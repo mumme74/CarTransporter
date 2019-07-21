@@ -106,7 +106,7 @@ static void processRx(CANRxFrame *rxf)
 //            if (!isRemoteFrame(rxf))
 //                return;
             msg_t msg = C_parkbrakeDiagDTCLength << 16;
-            chMBPost(&diag_CanMB, msg, TIME_IMMEDIATE);
+            chMBPostTimeout(&diag_CanMB, msg, TIME_IMMEDIATE);
         }   return;
         case C_parkbrakeDiagDTC: // fallthrough
         case C_parkbrakeDiagDTCFreezeFrame: {
@@ -119,7 +119,7 @@ static void processRx(CANRxFrame *rxf)
                 return;
             }
             msg_t msg = (sid << 16) | rxf->data8[0];
-            chMBPost(&diag_CanMB, msg, TIME_IMMEDIATE);
+            chMBPostTimeout(&diag_CanMB, msg, TIME_IMMEDIATE);
         }    return;
 
         case C_parkbrakeDiagClearDTCs: {
@@ -132,7 +132,7 @@ static void processRx(CANRxFrame *rxf)
                 return;
             }
             msg_t msg = (sid << 16) | rxf->data8[0];
-            chMBPost(&diag_CanMB, msg, TIME_IMMEDIATE);
+            chMBPostTimeout(&diag_CanMB, msg, TIME_IMMEDIATE);
         } return;
         case C_parkbrakeDiagActuatorTest:
             if (rxf->DLC != 1) {
@@ -140,7 +140,7 @@ static void processRx(CANRxFrame *rxf)
                 return;
             }
             msg_t msg = (sid << 16) | rxf->data8[0];
-            chMBPost(&diag_CanMB, msg, TIME_IMMEDIATE);
+            chMBPostTimeout(&diag_CanMB, msg, TIME_IMMEDIATE);
 
         } return;
     } else if (sid == CAN_MSG_TYPE_COMMAND) {
@@ -164,7 +164,7 @@ static void processRx(CANRxFrame *rxf)
             msg |= (rxf->data8[0] & 0x7F) << 16;// these bits is idx
             msg |= C_parkbrakeCmdSetConfig << 20;// 2 highest bytes is action
 
-            chMBPost(&cmdSet_MB, msg, TIME_IMMEDIATE);
+            chMBPostTimeout(&cmdSet_MB, msg, TIME_IMMEDIATE);
 
         } return;
         case C_parkbrakeCmdGetConfig: {
@@ -184,7 +184,7 @@ static void processRx(CANRxFrame *rxf)
             txf.data8[0] = rxf->data8[0];
             txf.data8[1] = settings[rxf->data8[0]] & 0x00FF; // little byte first
             txf.data8[2] = (settings[rxf->data8[0]] & 0xFF00) >> 8;
-            canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, MS2ST(10));
+            canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, TIME_MS2I(10));
 
         } return;
         case C_parkbrakeCmdGetState: {
@@ -195,14 +195,14 @@ static void processRx(CANRxFrame *rxf)
             txf.data8[1] = ctrl_getStateWheel(RightFront);
             txf.data8[2] = ctrl_getStateWheel(LeftRear);
             txf.data8[3] = ctrl_getStateWheel(RightRear);
-            canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, MS2ST(10));
+            canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, TIME_MS2I(10));
         }   return;
         case C_parkbrakeCmdServiceSet: {
-            chMBPost(&cmdSet_MB, (msg_t)C_parkbrakeCmdServiceSet, TIME_IMMEDIATE);
+            chMBPostTimeout(&cmdSet_MB, (msg_t)C_parkbrakeCmdServiceSet, TIME_IMMEDIATE);
         }   return;
         case C_parkbrakeCmdServiceUnset:
             // do the state change
-            chMBPost(&cmdSet_MB, (msg_t)C_parkbrakeCmdServiceUnset, TIME_IMMEDIATE);
+            chMBPostTimeout(&cmdSet_MB, (msg_t)C_parkbrakeCmdServiceUnset, TIME_IMMEDIATE);
             return;
         case C_parkbrakeCmdReboot:
             if (rxf->DLC > 0 && rxf->data8[0] > 0x7F) {
@@ -243,9 +243,9 @@ static void broadcastOnCan(can_msgIdsUpdate_e PID)
     CANTxFrame txf;
     can_buildPid1Data(txf.data8);
 
-    if (txf.data64[0] != oldPid_1 || PID == C_parkbrakeUpdPID_1) {
+    if ((uint64_t)(txf.data32[0]) != oldPid_1 || PID == C_parkbrakeUpdPID_1) {
         // something changed, broadcast
-        oldPid_1 = txf.data64[0];
+        oldPid_1 = (uint64_t)(txf.data32[0]);
         can_initTxFrame(&txf, CAN_MSG_TYPE_UPDATE, C_parkbrakeUpdPID_1);
         txf.DLC = 8;
         canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, TIME_IMMEDIATE);
@@ -253,9 +253,9 @@ static void broadcastOnCan(can_msgIdsUpdate_e PID)
 
       // PID_2
       can_buildPid2Data(txf.data8);
-    if (txf.data64[0] != oldPid_2 || PID == C_parkbrakeUpdPID_2) {
+    if ((uint64_t)(txf.data32[0]) != oldPid_2 || PID == C_parkbrakeUpdPID_2) {
         // something changed, broadcast
-        oldPid_2 = txf.data64[0];
+        oldPid_2 = (uint64_t)(txf.data32[0]);
         can_initTxFrame(&txf, CAN_MSG_TYPE_UPDATE, C_parkbrakeUpdPID_2);
         txf.DLC = 8;
         canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, TIME_IMMEDIATE);
@@ -264,9 +264,9 @@ static void broadcastOnCan(can_msgIdsUpdate_e PID)
     // build data for PID_3
     can_buildPid3Data(txf.data8);
 
-    if (txf.data64[0] != oldPid_3 || PID == C_parkbrakeUpdPID_3) {
+    if ((uint64_t)(txf.data32[0]) != oldPid_3 || PID == C_parkbrakeUpdPID_3) {
         // something changed, broadcast
-        oldPid_3 = txf.data64[0];
+        oldPid_3 = (uint64_t)(txf.data32[0]);
         can_initTxFrame(&txf, CAN_MSG_TYPE_UPDATE, C_parkbrakeUpdPID_3);
         txf.DLC = 6;
         canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, TIME_IMMEDIATE);
@@ -295,7 +295,7 @@ static THD_FUNCTION(canRxThd, arg)
 
     while (!chThdShouldTerminateX()) {
         // must periodically wakup to check if we should reboot
-        if (canReceive(&CAND1, CAN_ANY_MAILBOX, &rxmsg, MS2ST(1000)) == MSG_OK) {
+        if (canReceive(&CAND1, CAN_ANY_MAILBOX, &rxmsg, TIME_MS2I(1000)) == MSG_OK) {
             /* Process message.*/
             processRx(&rxmsg);
         }
@@ -315,11 +315,11 @@ static THD_FUNCTION(canPIDPeriodicSend, arg)
             // backgroundADC runs
             // timeout, try periodic send
             broadcastOnCan(C_NoUpdateFrame);
-            chThdSleep(MS2ST(broadcastTime));
+            chThdSleep(TIME_MS2I(broadcastTime));
         } else {
             // send currents each 100ms
             sendCurrents();
-            chThdSleep(MS2ST(100));
+            chThdSleep(TIME_MS2I(100));
         }
     }
 }
@@ -337,7 +337,7 @@ static THD_FUNCTION(canCmdSet, arg)
     while(!chThdShouldTerminateX()) {
       static msg_t msg;
       // must be polled periodically to check for terminate
-      if (chMBFetch(&cmdSet_MB, &msg, MS2ST(1000)) != MSG_OK)
+      if (chMBFetchTimeout(&cmdSet_MB, &msg, TIME_MS2I(1000)) != MSG_OK)
           continue;
 
       static uint16_t settingsVlu;
@@ -377,7 +377,7 @@ static THD_FUNCTION(canCmdSet, arg)
       }
 
       // send response
-      canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, MS2ST(10));
+      canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, &txf, TIME_MS2I(10));
     }
 }
 

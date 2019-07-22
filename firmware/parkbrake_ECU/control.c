@@ -14,6 +14,7 @@
 #include "debug.h"
 #include "can_protocol.h"
 #include "diag.h"
+#include "pwm.h"
 
 
 /**
@@ -29,11 +30,6 @@
 #define LF_STATE (stateFlags & 0x0000000FU)
 
 #define WHEEL_THD_STACK_SIZE 256
-
-
-#define BRIDGE_ENABLE \
-    BRIDGE_RESET \
-    palSetPad(GPIOC, GPIOC_uC_SET_POWER); \
 
 
 #define MAILBOX_SIZE 2
@@ -231,8 +227,10 @@ static THD_FUNCTION(wheelHandler, args)
     }
 
     // thread terminated, turn off all dangerous pins
-    BRIDGE_ALL_OUTPUTS_OFF;
-    BRIDGE_RESET;
+    osalSysLock();
+    pwm_bridgeAllOutputsOff();
+    pwm_bridgeReset();
+    osalSysUnlock();
 }
 
 // -------------------------------------------------------------------------------------
@@ -259,7 +257,10 @@ static void saveState(uint32_t state, ctrl_wheels wheel)
 //static msg_t releaseWheel(uint8_t pin, volatile const uint16_t *currentp, eventflags_t adcAvtFlag)
 static msg_t releaseWheel(wheelthreadinfo_t *info)
 {
-    BRIDGE_ENABLE;
+    osalSysLock();
+    pwm_bridgeEnable();
+    osalSysUnlock();
+
     palClearPad(GPIOC, info->tightenPin); // make sure opposing side is clear
     palSetPad(GPIOC, info->releasePin);
     msg_t success = MSG_OK;
@@ -326,7 +327,10 @@ static msg_t releaseWheel(wheelthreadinfo_t *info)
 // but special case them for now until we now if it can be generalized enough
 static msg_t tightenWheel(wheelthreadinfo_t *info)
 {
-    BRIDGE_ENABLE;
+    osalSysLock();
+    pwm_bridgeEnable();
+    osalSysUnlock();
+
     palClearPad(GPIOC, info->releasePin); // make sure opposing side is inactive
     palSetPad(GPIOC, info->tightenPin);
     msg_t success = MSG_OK;
@@ -416,7 +420,10 @@ static msg_t tightenWheel(wheelthreadinfo_t *info)
 
 static msg_t serviceWheel(wheelthreadinfo_t *info)
 {
-    BRIDGE_ENABLE;
+    osalSysLock();
+    pwm_bridgeEnable();
+    osalSysUnlock();
+
     palSetPad(GPIOC, info->tightenPin); // make sure opposing side is clear
     palSetPad(GPIOC, info->releasePin);
     msg_t success = MSG_OK;
@@ -495,8 +502,10 @@ static bool disableBridge(void)
     }
 
     // all drivers are in off state
-    BRIDGE_ALL_OUTPUTS_OFF;
-    BRIDGE_RESET;
+    osalSysLock();
+    pwm_bridgeAllOutputsOff();
+    pwm_bridgeReset();
+    osalSysUnlock();
 
     // stop current measurement, resume background checks
     // FIXME debug comment

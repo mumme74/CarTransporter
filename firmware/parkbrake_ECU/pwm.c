@@ -147,17 +147,105 @@ static THD_FUNCTION(pwmHandlerThd, arg)
 
 PWMvalues_t pwm_values;
 
+/**
+ * @brief starts our pwm thread
+ */
 void pwm_init(void) {
   pwmHandlerThdp = chThdCreateStatic(&waPWMhandlerThd,sizeof(waPWMhandlerThd),
                                      NORMALPRIO +9, pwmHandlerThd, NULL);
 }
 
+/**
+ * @breif tells thd to kill itself
+ */
 void pwm_thdsTerminate(void)
 {
   chThdTerminate(pwmHandlerThdp);
 }
 
+/**
+ * @brief blocks until thd has killed itself
+ */
 void pwm_doShutdown(void)
 {
   chThdWait(pwmHandlerThdp);
+}
+
+
+/**
+ * @brief Must be high to arm Currentlimit
+ * @info   Must be run with osalSysLock
+ */
+void pwm_bridgeReset(void) {
+  pwm_bridgeCurLimOff();
+  pwm_bridgeCurLimOn();
+  palClearPad(GPIOC, GPIOC_uC_SET_POWER);
+}
+
+/**
+ * @brief turns on current limit to bridge
+ * @info   Must be run with osalSysLock
+ */
+void pwm_bridgeCurLimOn(void) {
+  palSetPad(GPIOB, GPIOB_Bridge_Reset_INV);
+}
+
+/**
+ * @brief turns on Current limit to bridge
+ * @warning ! this is potentially dangerous as
+ *            hardware can't turn off itself
+ * @info   Must be run with osalSysLock
+ */
+void pwm_bridgeCurLimOff(void) {
+  /* potentially dangerus if CL is triggered */
+  if (palReadPad(GPIOB, GPIOB_LeftFront_DIAG)) {
+      palClearPad(GPIOC, GPIOC_LeftFront_Tighten);
+      palClearPad(GPIOC, GPIOC_LeftFront_Loosen);
+  }
+  if (palReadPad(GPIOB, GPIOB_RightFront_DIAG)) {
+      palClearPad(GPIOC, GPIOC_RightFront_Tighten);
+      palClearPad(GPIOC, GPIOC_RightFront_Loosen);
+  }
+  if (palReadPad(GPIOA, GPIOA_LeftRear_DIAG)) {
+      palClearPad(GPIOC, GPIOC_LeftRear_Tighten);
+      palClearPad(GPIOC, GPIOC_LeftRear_Loosen);
+  }
+  if (palReadPad(GPIOB, GPIOA_RightRear_DIAG)) {
+      palClearPad(GPIOC, GPIOC_RightRear_Tighten);
+      palClearPad(GPIOC, GPIOC_RightRear_Loosen);
+  }
+  palClearPad(GPIOB, GPIOB_Bridge_Reset_INV);
+}
+
+/**
+ * @breif sets all output pads to off
+ * @info  Must be run with osalSysLock
+ */
+void pwm_bridgeAllOutputsOff(void) {
+  palClearPad(GPIOC, GPIOC_LeftFront_Tighten);
+  palClearPad(GPIOC, GPIOC_LeftFront_Loosen);
+  palClearPad(GPIOC, GPIOC_RightFront_Tighten);
+  palClearPad(GPIOC, GPIOC_RightFront_Loosen);
+  palClearPad(GPIOC, GPIOC_LeftRear_Tighten);
+  palClearPad(GPIOC, GPIOC_LeftRear_Loosen);
+  palClearPad(GPIOC, GPIOC_RightRear_Tighten);
+  palClearPad(GPIOC, GPIOC_RightRear_Loosen);
+}
+
+/**
+ * @breif enable force setting power to bridge
+ * @info  Must be run with osalSysLock
+ */
+void pwm_bridgeEnable(void) {
+  pwm_bridgeReset();
+  palSetPad(GPIOC, GPIOC_uC_SET_POWER);
+}
+
+/**
+ * @breif ensures that we have no forced power to bridge
+ * @info  Must be run with osalSysLock
+ */
+void pwm_bridgeDisable(void) {
+  pwm_bridgeReset();
+  palClearPad(GPIOC, GPIOC_uC_SET_POWER);
 }

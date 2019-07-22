@@ -48,8 +48,10 @@ int main(void) {
   chSysInit();
 
   // enable hardware Current limit
-  BRIDGE_CL_ON;
-  BRIDGE_ALL_OUTPUTS_OFF;
+  osalSysLock();
+  pwm_bridgeCurLimOn();
+  pwm_bridgeAllOutputsOff();
+  osalSysUnlock();
 
 #ifdef DEBUG_MODE
 #ifndef CANSERIAL
@@ -94,6 +96,13 @@ int main(void) {
     sen_doShutdown();
     can_doShutdown();
     ee_doShutdown();
+
+    // enable hardware Current limit for safety
+    osalSysLock();
+    pwm_bridgeCurLimOn();
+    pwm_bridgeDisable();
+    pwm_bridgeAllOutputsOff();
+    osalSysUnlock();
 
     // turn off remaining stuff
     chSysDisable();

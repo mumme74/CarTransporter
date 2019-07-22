@@ -27,8 +27,57 @@ typedef struct  {
 
 extern PWMvalues_t pwm_values;
 
+/**
+ * @brief starts our pwm thread
+ */
 extern void pwm_init(void);
+
+/**
+ * @breif tells thd to kill itself
+ */
 void pwm_thdsTerminate(void);
+
+/**
+ * @brief blocks until thd has killed itself
+ */
 void pwm_doShutdown(void);
+
+/**
+ * @brief Must be high to arm Currentlimit
+ * @info   Must be run with osalSysLock
+ */
+void pwm_bridgeReset(void);
+
+/**
+ * @brief turns on current limit to bridge
+ * @info   Must be run with osalSysLock
+ */
+void pwm_bridgeCurLimOn(void);
+
+/**
+ * @brief turns on Current limit to bridge
+ * @warning ! this is potentially dangerous as
+ *            hardware can't turn off itself
+ * @info   Must be run with osalSysLock
+ */
+void pwm_bridgeCurLimOff(void);
+
+/**
+ * @breif sets all output pads to off
+ * @info  Must be run with osalSysLock
+ */
+void pwm_bridgeAllOutputsOff(void);
+
+/**
+ * @breif enable power to bridge
+ * @info  Must be run with osalSysLock
+ */
+void pwm_bridgeEnable(void);
+
+/**
+ * @breif ensures that we have no forced power to bridge
+ * @info  Must be run with osalSysLock
+ */
+void pwm_bridgeDisable(void);
 
 #endif /* PWM_H_ */

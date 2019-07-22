@@ -65,10 +65,10 @@ int main(void) {
   ee_initEeprom();
   can_init();
   diag_init();
+  pwm_init(); // must be before ctrl_init due to mutex init
   ctrl_init();
   sen_initSensors();
   btn_initButtonLogic();
-  pwm_init();
 
   while (TRUE) {
     while (!can_rebootReq) {
@@ -77,20 +77,20 @@ int main(void) {
     }
 
     // terminate thds
-    pwm_thdsTerminate();
     btn_thdsTerminate();
     canserial_thdsTerminate();
     ctrl_thdsTerminate();
+    pwm_thdsTerminate();
     diag_thdsTerminate();
     sen_thdsTerminate();
     can_thdsTerminate();
     ee_thdsTerminate();
 
     // wait for theads to terminate and deinit drivers
-    pwm_doShutdown();
     btn_doShutdown();
     canserial_doShutdown();
     ctrl_doShutdown();
+    pwm_doShutdown();
     diag_doShutdown();
     // those with hardware driver *Start should be last
     sen_doShutdown();

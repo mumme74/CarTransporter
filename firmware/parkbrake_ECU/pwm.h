@@ -8,24 +8,37 @@
 #ifndef PWM_H_
 #define PWM_H_
 
+#include <ch.h>
 #include <stdint.h>
 
 // This is intended to control the PWM of each wheel
 // Due to inpropper harware design (WRONG pin layout)
 // we must do a crude bit bang software pwm here
 
+#define PWM_MAX_DUTY 10u
+
+typedef enum PWMDirections {
+  PWM_loosen,
+  PWM_off,
+  PWM_tighten
+} PWMDirections_e;
+
 typedef struct  {
+  // NOTE !! these must be order in the same order as ctrl_wheels
   union {
     uint8_t LFduty, RFduty, LRduty, RRduty; // from 0 - 10
     uint8_t duty[4];
   };
+  // NOTE !! these must be order in the same order as ctrl_wheels
   union {
-    int8_t  LFdir,  Rfdir,  LRdir,  RRdir;  // 0 = off, -1 = reversed, +1 normal
-    int8_t dir[4];
+    PWMDirections_e  LFdir,  Rfdir,  LRdir,  RRdir;  // 0 = off, -1 = reversed, +1 normal
+    PWMDirections_e dir[4];
   };
 } PWMvalues_t;
 
+// NOTE this should only be consumed by pwm thread, never changed
 extern PWMvalues_t pwm_values;
+extern mutex_t pwm_valuesMtx;
 
 /**
  * @brief starts our pwm thread

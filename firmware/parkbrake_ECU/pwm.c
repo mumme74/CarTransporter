@@ -61,7 +61,7 @@ static THD_FUNCTION(pwmHandlerThd, arg)
 
     chRegSetThreadName("pwm_PWMhandler");
     static uint8_t pwmCnt = 0;
-    static const uint16_t ENABLE_CYCLES = 2000; // 2seconds
+    static const uint16_t ENABLE_CYCLES = 2000; // 4seconds inactivity, then bridge off
     static const uint16_t maxDiagErrors = 300;
     static uint16_t enableCounter = 0; // turns of bridge if no action for a
                                    // predetermined number of cycles
@@ -69,14 +69,14 @@ static THD_FUNCTION(pwmHandlerThd, arg)
                 bridgeOff = true;
 
     while(!chThdShouldTerminateX()) {
-      chThdSleep(TIME_US2I(100));
+      chThdSleep(TIME_US2I(200));
       // TODO how to handle ADC events?
 
       osalSysLock();
 
       for (uint8_t i = 0; i < 4; ++i) {
         switch(pwm_values.dir[i]) {
-        case 1:
+        case PWM_tighten:
           if (pwmCnt == 0 && pwm_values.duty[i] > 0) {
             if (portPins[i].errCounter < maxDiagErrors)
               palSetPad(portPins[i].tighten.port,
@@ -87,7 +87,7 @@ static THD_FUNCTION(pwmHandlerThd, arg)
           }
           enableCounter = ENABLE_CYCLES;
           break;
-        case 2:
+        case PWM_loosen:
           if (pwmCnt == 0 && pwm_values.duty[i] > 0) {
             if (portPins[i].errCounter < maxDiagErrors)
               palSetPad(portPins[i].loosen.port,
@@ -98,7 +98,7 @@ static THD_FUNCTION(pwmHandlerThd, arg)
           }
           enableCounter = ENABLE_CYCLES;
           break;
-        default:
+        case PWM_off: default:
           palClearPad(portPins[i].tighten.port,
                       portPins[i].tighten.pin);
           palClearPad(portPins[i].loosen.port,
@@ -145,12 +145,17 @@ static THD_FUNCTION(pwmHandlerThd, arg)
 // ----------------------------------------------------------------
 // begin exported functions and variables
 
+// NOTE this value has the associated semaphore, see below
 PWMvalues_t pwm_values;
+mutex_t pwm_valuesMtx;
 
 /**
  * @brief starts our pwm thread
  */
 void pwm_init(void) {
+  // init semaphore for pwm_values
+  chMtxObjectInit(&pwm_valuesMtx);
+  // start pwm thread
   pwmHandlerThdp = chThdCreateStatic(&waPWMhandlerThd,sizeof(waPWMhandlerThd),
                                      NORMALPRIO +9, pwmHandlerThd, NULL);
 }

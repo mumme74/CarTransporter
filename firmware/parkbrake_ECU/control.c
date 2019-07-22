@@ -261,8 +261,13 @@ static msg_t releaseWheel(wheelthreadinfo_t *info)
     pwm_bridgeEnable();
     osalSysUnlock();
 
-    palClearPad(GPIOC, info->tightenPin); // make sure opposing side is clear
-    palSetPad(GPIOC, info->releasePin);
+    //palClearPad(GPIOC, info->tightenPin); // make sure opposing side is clear
+    //palSetPad(GPIOC, info->releasePin);
+    chMtxLock(&pwm_valuesMtx);
+    pwm_values.dir[info->wheel] = PWM_loosen;
+    pwm_values.duty[info->wheel] = PWM_MAX_DUTY;
+    chMtxUnlock(&pwm_valuesMtx);
+
     msg_t success = MSG_OK;
 
     systime_t curOffTime = 0,
@@ -299,12 +304,21 @@ static msg_t releaseWheel(wheelthreadinfo_t *info)
         // compare currents from the newly measured current (as we have been released from pad)
         if (*info->motorcurrent > maxCurrent) {
             // overCurrent protection
-            palClearPad(GPIOC, info->releasePin);
+            //palClearPad(GPIOC, info->releasePin);
+            chMtxLock(&pwm_valuesMtx); // we definetly lock here
+            pwm_values.duty[info->wheel] = (pwm_values.duty[info->wheel] > 0) ?
+                                              (pwm_values.duty[info->wheel] -1u) : 0;
+            chMtxUnlock(&pwm_valuesMtx);
+
             curOffTime = TIME_US2I(500);
         } else if (curOffTime && curOffTime < chVTGetSystemTime()) {
             // restore current again from current protection
             curOffTime = 0;
-            palSetPad(GPIOC, info->releasePin);
+            //palSetPad(GPIOC, info->releasePin);
+            chMtxLock(&pwm_valuesMtx);
+            pwm_values.duty[info->wheel] = (pwm_values.duty[info->wheel] < PWM_MAX_DUTY) ?
+                                            (pwm_values.duty[info->wheel] +1u) : PWM_MAX_DUTY;
+            chMtxUnlock(&pwm_valuesMtx);
         } else if (chVTGetSystemTime() > revupTime) {
             // we are past revup time
             if (!isReleased && *info->motorcurrent < settings[S_CurrentFreeThreshold]) {
@@ -317,7 +331,11 @@ static msg_t releaseWheel(wheelthreadinfo_t *info)
     }
 
     // we are finished
-    palClearPad(GPIOC, info->releasePin);
+    //palClearPad(GPIOC, info->releasePin);
+    chMtxLock(&pwm_valuesMtx);
+    pwm_values.duty[info->wheel] = 0;
+    pwm_values.dir[info->wheel] = PWM_off;
+    chMtxUnlock(&pwm_valuesMtx);
 
     return success;
 }
@@ -331,8 +349,13 @@ static msg_t tightenWheel(wheelthreadinfo_t *info)
     pwm_bridgeEnable();
     osalSysUnlock();
 
-    palClearPad(GPIOC, info->releasePin); // make sure opposing side is inactive
-    palSetPad(GPIOC, info->tightenPin);
+    //palClearPad(GPIOC, info->releasePin); // make sure opposing side is inactive
+    //palSetPad(GPIOC, info->tightenPin);
+    chMtxLock(&pwm_valuesMtx);
+    pwm_values.dir[info->wheel] = PWM_tighten;
+    pwm_values.duty[info->wheel] = PWM_MAX_DUTY;
+    chMtxUnlock(&pwm_valuesMtx);
+
     msg_t success = MSG_OK;
 
     systime_t curOffTime = 0,
@@ -374,17 +397,25 @@ static msg_t tightenWheel(wheelthreadinfo_t *info)
                 ((*info->wheelSpeed) * 0.8) < avgSpeed)
             {
                 // wheel is slipping more than 20% event
-                lockSpeed = *info->wheelSpeed;
-                palClearPad(GPIOC, info->tightenPin);
-                palSetPad(GPIOC, info->releasePin);
+                if (chMtxTryLock(&pwm_valuesMtx)) { // we might miss here, and get it on the next loop
+                    lockSpeed = *info->wheelSpeed;
+                    //palClearPad(GPIOC, info->tightenPin);
+                    //palSetPad(GPIOC, info->releasePin);
+                    pwm_values.dir[info->wheel] = PWM_loosen;
+                    chMtxUnlock(&pwm_valuesMtx);
+                }
             }
             if (lockSpeed > 0 && ((avgSpeed > (*info->wheelSpeed) * 0.9) || avgSpeed < 1))
             {
                 // wheel is not slipping more than 10%,or vehicle is standing still
                 // restore tighten operation again
-                lockSpeed = 0;
-                palClearPad(GPIOC, info->releasePin);
-                palSetPad(GPIOC, info->tightenPin);
+                if (chMtxTryLock(&pwm_valuesMtx)) {
+                    lockSpeed = 0;
+                    //palClearPad(GPIOC, info->releasePin);
+                    //palSetPad(GPIOC, info->tightenPin);
+                    pwm_values.dir[info->wheel] = PWM_tighten;
+                    chMtxUnlock(&pwm_valuesMtx);
+                }
             }
         } // end antilock functionality
 
@@ -392,12 +423,23 @@ static msg_t tightenWheel(wheelthreadinfo_t *info)
         // compare currents from the newly measured current (as we have been released from )
         if (*info->motorcurrent > maxCurrent) {
             // overCurrent protection
-            palClearPad(GPIOC, info->tightenPin);
+            //palClearPad(GPIOC, info->tightenPin);
+            chMtxLock(&pwm_valuesMtx); // we definetly lock here
+            pwm_values.duty[info->wheel] = (pwm_values.duty[info->wheel] > 0) ?
+                                              (pwm_values.duty[info->wheel] -1) : 0;
+            chMtxUnlock(&pwm_valuesMtx);
+
             curOffTime = TIME_US2I(500);
         } else if (curOffTime && curOffTime < chVTGetSystemTime()) {
             // restore current again from current protection
             curOffTime = 0;
-            palSetPad(GPIOC, info->tightenPin);
+            if (*info->motorcurrent < maxCurrent) {
+                chMtxLock(&pwm_valuesMtx);
+                pwm_values.duty[info->wheel] = (pwm_values.duty[info->wheel] < PWM_MAX_DUTY) ?
+                                                (pwm_values.duty[info->wheel] +1u) : PWM_MAX_DUTY;
+                chMtxUnlock(&pwm_valuesMtx);
+            }
+            //palSetPad(GPIOC, info->tightenPin);
         } else if (chVTGetSystemTime() > revupTime) {
             // we are past revup time
 
@@ -412,7 +454,11 @@ static msg_t tightenWheel(wheelthreadinfo_t *info)
     }
 
     // we are finished
-    palClearPad(GPIOC, info->tightenPin);
+    //palClearPad(GPIOC, info->tightenPin);
+    chMtxLock(&pwm_valuesMtx);
+    pwm_values.dir[info->wheel] = PWM_off;
+    pwm_values.duty[info->wheel] = 0;
+    chMtxUnlock(&pwm_valuesMtx);
 
     return success;
 }
@@ -424,8 +470,13 @@ static msg_t serviceWheel(wheelthreadinfo_t *info)
     pwm_bridgeEnable();
     osalSysUnlock();
 
-    palSetPad(GPIOC, info->tightenPin); // make sure opposing side is clear
-    palSetPad(GPIOC, info->releasePin);
+    //palSetPad(GPIOC, info->tightenPin); // make sure opposing side is clear
+    //palSetPad(GPIOC, info->releasePin);
+    chMtxLock(&pwm_valuesMtx);
+    pwm_values.duty[info->wheel] = PWM_MAX_DUTY;
+    pwm_values.dir[info->wheel] = PWM_loosen;
+    chMtxUnlock(&pwm_valuesMtx);
+
     msg_t success = MSG_OK;
 
     systime_t curOffTime = 0,
@@ -460,12 +511,20 @@ static msg_t serviceWheel(wheelthreadinfo_t *info)
         // compare currents from the newly measured current (as we have been released from pad)
         if (*info->motorcurrent > maxCurrent) {
             // overCurrent protection
-            palClearPad(GPIOC, info->releasePin);
+            //palClearPad(GPIOC, info->releasePin);
+            chMtxLock(&pwm_valuesMtx); // we definitely lock here
+            pwm_values.duty[info->wheel] = (pwm_values.duty[info->wheel] > 0) ?
+                                              (pwm_values.duty[info->wheel] -1) : 0;
+            chMtxUnlock(&pwm_valuesMtx);
             curOffTime = TIME_US2I(500);
         } else if (curOffTime && curOffTime < chVTGetSystemTime()) {
             // restore current again from current protection
             curOffTime = 0;
-            palSetPad(GPIOC, info->releasePin);
+            chMtxLock(&pwm_valuesMtx);
+            pwm_values.duty[info->wheel] = (pwm_values.duty[info->wheel] < PWM_MAX_DUTY) ?
+                                            (pwm_values.duty[info->wheel] +1u) : PWM_MAX_DUTY;
+            chMtxUnlock(&pwm_valuesMtx);
+            //palSetPad(GPIOC, info->releasePin);
         } else if (chVTGetSystemTime() > revupTime) {
             // we are past revup time
             if (!isReleased && *info->motorcurrent < settings[S_CurrentFreeThreshold]) {
@@ -483,7 +542,11 @@ static msg_t serviceWheel(wheelthreadinfo_t *info)
     }
 
     // we are finished
-    palClearPad(GPIOC, info->releasePin);
+    //palClearPad(GPIOC, info->releasePin);
+    chMtxLock(&pwm_valuesMtx);
+    pwm_values.duty[info->wheel] = 0;
+    pwm_values.dir[info->wheel] = PWM_off;
+    chMtxUnlock(&pwm_valuesMtx);
 
     return success;
 }

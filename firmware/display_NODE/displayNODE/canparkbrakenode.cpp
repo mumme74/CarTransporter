@@ -136,7 +136,7 @@ bool CanParkbrakeNode::activateOutput(int wheel, bool tighten) const
     // LeftFront == 0, RightRear == 3
     quint8 shift = tighten ? 4 : 0;
     shift +=  wheel;
-    quint8 msk = 1 << shift;
+    quint8 msk = static_cast<quint8>(1u << shift);
 
     QByteArray pl;
     pl.append(msk);

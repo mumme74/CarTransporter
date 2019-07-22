@@ -640,7 +640,7 @@ bool CanAbstractNode::clearAllDtcs(can_msgIdsDiag_e canDiagId)
 {
     // gets cleared when reponse frame arrives
     QByteArray pl;
-    pl.append(m_dtcCount);
+    pl.append(static_cast<quint8>(m_dtcCount & 0xFF));
     QCanBusFrame f(CAN_MSG_TYPE_DIAG | canDiagId | C_displayNode, pl);
     return m_canIface->sendFrame(f);
 }
@@ -675,7 +675,7 @@ bool CanAbstractNode::fetchFreezeFrame(int dtcNr, QJSValue jsCallback, can_msgId
 
     // get from can
     QByteArray pl;
-    pl.append(dtcNr);
+    pl.append(static_cast<quint8>(dtcNr & 0xFF));
     QCanBusFrame f(CAN_MSG_TYPE_DIAG | canDiagId | C_displayNode, pl);
     return m_canIface->sendFrame(f);
 }
@@ -759,13 +759,13 @@ bool CanAbstractNode::setSettingF(quint8 idx, float vlu, QJSValue jsCallback, ca
         return false;
 
     m_settingsSetCallback.insert(idx, jsCallback);
-    quint32 u_vlu = *(quint32*)&vlu;
+    quint32 *u_vlu = reinterpret_cast<quint32*>(&vlu);
     QByteArray pl("\0\0\0\0\0", 5);
     pl[0] = idx;
-    pl[1] = (u_vlu & 0x000000FF);
-    pl[2] = (u_vlu & 0x0000FF00) >> 8;
-    pl[3] = (u_vlu & 0x00FF0000) >> 16;
-    pl[4] = (u_vlu & 0xFF000000) >> 24;
+    pl[1] = ((*u_vlu) & 0x000000FF);
+    pl[2] = ((*u_vlu) & 0x0000FF00) >> 8;
+    pl[3] = ((*u_vlu) & 0x00FF0000) >> 16;
+    pl[4] = ((*u_vlu) & 0xFF000000) >> 24;
 
     QCanBusFrame f(CAN_MSG_TYPE_COMMAND | canCmdId | C_displayNode, pl);
     return m_canIface->sendFrame(f);
@@ -791,7 +791,7 @@ void CanAbstractNode::settingsFetchArrivalFloat(int idx, float vlu)
 {
     if (m_settingsFetchCallback.contains(idx)) {
         QJSValue jsCallback = m_settingsFetchCallback.take(idx);
-        jsCallback.call(QJSValueList { vlu });
+        jsCallback.call(QJSValueList { static_cast<qreal>(vlu) });
     }
 }
 
@@ -799,7 +799,7 @@ void CanAbstractNode::settingsSetArrivalFloat(int idx, float vlu)
 {
     if (m_settingsSetCallback.contains(idx)) {
         QJSValue jsCallback = m_settingsSetCallback.take(idx);
-        jsCallback.call(QJSValueList { vlu });
+        jsCallback.call(QJSValueList { static_cast<qreal>(vlu) });
     }
 }
 

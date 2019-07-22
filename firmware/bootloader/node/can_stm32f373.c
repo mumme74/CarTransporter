@@ -33,7 +33,7 @@ extern fifo_t can_rxqueue, can_txqueue; // is visible to global from can.c
 
 
 // prototypes
-int8_t _canPost(canframe_t *msg);
+int8_t _canPost(can_frame_t *msg);
 void _canInit(void);
 bool _canGet(void);
 
@@ -66,7 +66,7 @@ static void receive(uint8_t fifo)
 
     uint8_t fmi;
     uint16_t timestamp;
-    canframe_t msg;
+    can_frame_t msg;
     can_receive(CAN1, fifo, true, &msg.EID, &msg.ext,
                 &msg.rtr, &fmi, &msg.DLC, &msg.data8[0], &timestamp);
     fifo_push(&can_rxqueue, &msg);
@@ -100,7 +100,7 @@ void usb_hp_can1_tx_isr(void)
     CAN_TSR(CAN1) |= CAN_TSR_RQCP2;
 
   if (can_available_mailbox(CAN1)) {
-    canframe_t msg;
+    can_frame_t msg;
     if (!fifo_pop(&can_txqueue, &msg))
       return; // nothing to send
 
@@ -145,7 +145,7 @@ bool _canGet(void)
   return false; // does nothing in this architecture
 }
 
-int8_t _canPost(canframe_t *msg)
+int8_t _canPost(can_frame_t *msg)
 {
   // should we send immediately?
   if (can_available_mailbox(CAN1)) {

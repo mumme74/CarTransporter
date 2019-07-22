@@ -14,12 +14,12 @@
 #include <stdint.h>
 
 // private variables to this file
-static canframe_t rxbuf[BUFFER_SIZE];
-static canframe_t txbuf[BUFFER_SIZE];
+static can_frame_t rxbuf[BUFFER_SIZE];
+static can_frame_t txbuf[BUFFER_SIZE];
 
 // symbols exported in other translation units
 // architecture specific
-extern int8_t _canPost(canframe_t *msg);
+extern int8_t _canPost(can_frame_t *msg);
 extern void _canInit(void);
 extern bool _canGet(void);
 
@@ -39,7 +39,7 @@ void canInit(void)
   _canInit();
 }
 
-void canWaitRecv(canframe_t *msg) {
+void canWaitRecv(can_frame_t *msg) {
   uint32_t resetAt = systemMillis() + WAIT_UNRESPONSE_CAN_BEFORE_RESET,
            now;
   while(!canGet(msg)) {
@@ -55,10 +55,10 @@ void canWaitRecv(canframe_t *msg) {
   }
 }
 
-void canWaitSend(canframe_t *msg) {
+void canWaitSend(can_frame_t *msg) {
   uint32_t resetAt = systemMillis() + WAIT_UNRESPONSE_CAN_BEFORE_RESET,
            now;
-  canframe_t rcvFrm;
+  can_frame_t rcvFrm;
   while(canPost(msg) != 1) {
       now = systemMillis();
       if (now > resetAt)
@@ -81,7 +81,7 @@ void canWaitSend(canframe_t *msg) {
  *          fills msg with last received frame
  *              return true if not empty
  */
-bool canGet(canframe_t *msg)
+bool canGet(can_frame_t *msg)
 {
   if (fifo_pop(&can_rxqueue, msg)) {
     if (commandIsResetFrame(msg))
@@ -97,7 +97,7 @@ bool canGet(canframe_t *msg)
  *          0 if queued
  *          1 if send immediately
  */
-int8_t canPost(canframe_t *msg)
+int8_t canPost(can_frame_t *msg)
 {
   // notify which node sends this msg
   //msg->IDE &= (CAN_MSG_TYPE_MASK | CAN_MSG_ID_MASK); // other clears sender bits
@@ -114,7 +114,7 @@ int8_t canPost(canframe_t *msg)
   return 1;
 }
 
-void canInitFrame(canframe_t *msg, uint32_t id)
+void canInitFrame(can_frame_t *msg, uint32_t id)
 {
   msg->EID = id;
   msg->data64 = 0;

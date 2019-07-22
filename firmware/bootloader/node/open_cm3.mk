@@ -34,7 +34,7 @@ DEFS += -Icrc32/ -I$(CAR_TRANSPORTER_ROOT)/firmware/system_headers/
 $(info NODE_ID=$(NODE_ID))
 
 
-ifeq (STM32F103,)
+ifeq ($(STM32F103),)
 # parkbrakeNode, stm32f373
   ARCH_FLAGS = -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 
   LDSCRIPT = stm32f373xRB.ld

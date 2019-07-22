@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include "types.h"
+#include "can_types.h"
 
 #ifndef MIN
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))

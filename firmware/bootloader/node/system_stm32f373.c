@@ -113,7 +113,7 @@ void systemToApplication(void)
   // safetycheck, if hang in bootloader mode if we dont have a valid start of vector table
   if (applicationAddress[0] > (size_t)(&_stack) +4 ||
       applicationAddress[0] < (size_t)(&_heapstart) +100) {
-    canframe_t msg;
+    can_frame_t msg;
     canInitFrame(&msg, canId);
     systemInit(); // set up clock
     canInit();// need to reactivate

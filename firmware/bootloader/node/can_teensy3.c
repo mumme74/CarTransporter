@@ -111,7 +111,7 @@ extern fifo_t can_rxqueue, can_txqueue; // is visible to global from can.c
 
 
 // prototypes
-int8_t _canPost(canframe_t *msg);
+int8_t _canPost(can_frame_t *msg);
 void _canInit(void);
 void _canLoop(void);
 bool _canGet(void);
@@ -159,7 +159,7 @@ void canEnableIRQ(void)
 
 // -----------------------------------------------------------
 // architecture specific from here on, treat as private
-static void writeTx(const canframe_t *frm, uint8_t buffer);
+static void writeTx(const can_frame_t *frm, uint8_t buffer);
 
 void _canInit(void)
 {
@@ -265,7 +265,7 @@ bool _canGet(void)
 
 
 // check if we have any available mailboxes already
-int8_t _canPost(canframe_t *msg)
+int8_t _canPost(can_frame_t *msg)
 {
   canDisableIRQ();
   for (uint8_t i = _TX_start; i <= _TX_end; ++i) {
@@ -291,7 +291,7 @@ int8_t _canPost(canframe_t *msg)
 }
 
 // NOTE !! this is called from isr, not used by normal code
-static void readMB(canframe_t *frm, uint8_t buffer, fifo_t *queue)
+static void readMB(can_frame_t *frm, uint8_t buffer, fifo_t *queue)
 {
   // get identifier and dlc
   frm->DLC = FLEXCAN_get_length(FLEXCANb_MBn_CS(FLEXCAN0_BASE, buffer));
@@ -328,7 +328,7 @@ static void readMB(canframe_t *frm, uint8_t buffer, fifo_t *queue)
 }
 
 // NOTE! this is called from is, do not use from normal code
-static void writeTx(const canframe_t *frm, uint8_t buffer)
+static void writeTx(const can_frame_t *frm, uint8_t buffer)
 {
   // transmit the frame
 
@@ -372,7 +372,7 @@ static void writeTx(const canframe_t *frm, uint8_t buffer)
 void can0_message_isr(void) {
   //a message either came in or was freshly sent. Figure out which and act accordingly.
     uint32_t status = FLEXCANb_IFLAG1(FLEXCAN0_BASE);
-    canframe_t frm;
+    can_frame_t frm;
     //bool caughtFrame;
 
     for (int i = 0; i < 16; i++) if (status & (1 << i)) //has this mailbox triggered an interrupt?
@@ -434,69 +434,3 @@ void can0_rx_warn_isr(void) {
 
 void can0_wakeup_isr(void) {
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-//int8_t _canPost(canframe_t *msg)
-//{
-//  if (fifo_peek(&can_txqueue, msg)) {
-//    CAN_message_t frm;
-//    frm.id = msg->EID;
-//    frm.ext = msg->ext;
-//    frm.rtr = msg->rtr;
-//    frm.len = msg->DLC;
-//    for(uint8_t i = 0; i < msg->DLC; ++i)
-//      frm.buf[i] = msg->data8[i];
-//
-//    if (Can0.write(frm)) {
-//      fifo_pop(&can_txqueue, msg);
-//      print_str("post:");print_uint(frm.buf[0]);endl();
-//      return 1;
-//    }
-//  }
-//  return 0;
-//}
-
-
-//// should be called from teensy_main
-//void _canLoop(void)
-//{
-//  if (!fifo_empty(&can_txqueue)) {
-//    canframe_t msg;
-//    _canPost(&msg);
-//  }
-//
-//  CAN_message_t frm;
-//
-//  if (Can0.read(frm)) {
-//    // check if we are full
-//    if (fifo_spaceleft(&can_rxqueue) < 2)// need 2 as 1 + 1 would reset (start over algorithm assumes empty)
-//       return;
-//
-//    canframe_t msg;
-//    msg.DLC = frm.len;
-//    msg.EID = frm.id;
-//    msg.ext = frm.ext != 0;
-//    msg.rtr = frm.rtr != 0;
-//    for (uint8_t i = 0; i< msg.DLC; ++i)
-//      msg.data8[i] = frm.buf[i];
-//
-//    fifo_push(&can_rxqueue, &msg);
-//  }
-//
-//
-//  digitalWrite(6, !digitalRead(6));
-//  //delay(20);
-//}
-
-

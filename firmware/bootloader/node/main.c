@@ -17,7 +17,7 @@ int main(void)
     canInit(); // canId from system.c
     systickInit();
 
-    canframe_t msg;
+    can_frame_t msg;
     canInitFrame(&msg, canId);
     msg.data8[msg.DLC++] = C_bootloaderReset;
     canPost(&msg);

@@ -14,7 +14,7 @@
 #include "can.h"
 #include <string.h> // for memcpy
 
-void fifo_init(fifo_t *queue, canframe_t *buf, uint8_t size)
+void fifo_init(fifo_t *queue, can_frame_t *buf, uint8_t size)
 {
   queue->size = size;
   queue->head = 0;
@@ -22,7 +22,7 @@ void fifo_init(fifo_t *queue, canframe_t *buf, uint8_t size)
   queue->buf = buf;
 }
 
-bool fifo_push(fifo_t *queue, canframe_t *frm)
+bool fifo_push(fifo_t *queue, can_frame_t *frm)
 {
   canDisableIRQ();
   int sp = fifo_spaceleft(queue);
@@ -32,8 +32,8 @@ bool fifo_push(fifo_t *queue, canframe_t *frm)
     canEnableIRQ();
     return false;
   }
-  canframe_t *f = &queue->buf[queue->head];
-  memcpy(f, frm, sizeof(canframe_t));
+  can_frame_t *f = &queue->buf[queue->head];
+  memcpy(f, frm, sizeof(can_frame_t));
   ++queue->head;
 
   if (queue->head == queue->size)
@@ -43,7 +43,7 @@ bool fifo_push(fifo_t *queue, canframe_t *frm)
   return true;
 }
 
-bool fifo_pop(fifo_t *queue, canframe_t *frm)
+bool fifo_pop(fifo_t *queue, can_frame_t *frm)
 {
   canDisableIRQ();
   if (fifo_peek(queue, frm)) {
@@ -57,12 +57,12 @@ bool fifo_pop(fifo_t *queue, canframe_t *frm)
   return false; // nothing stored, empty
 }
 
-bool fifo_peek(fifo_t *queue, canframe_t *frm)
+bool fifo_peek(fifo_t *queue, can_frame_t *frm)
 {
   canDisableIRQ();
   if (queue->tail != queue->head) {
-    canframe_t *f = &queue->buf[queue->tail];
-    memcpy(frm, f, sizeof(canframe_t));
+    can_frame_t *f = &queue->buf[queue->tail];
+    memcpy(frm, f, sizeof(can_frame_t));
     canEnableIRQ();
     return true;
   }

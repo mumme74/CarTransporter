@@ -175,7 +175,7 @@ void systemToApplication(void)
   if (applicationAddress[0] > (uint32_t)(&_stack) + 4 ||
       applicationAddress[0] < (uint32_t)(&_heapstart) + 100)
   {
-    canframe_t msg;
+    can_frame_t msg;
     canInitFrame(&msg, canId);
     systemInit(); // set up clock
     canInit();// need to reactivate

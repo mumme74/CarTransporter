@@ -22,7 +22,7 @@
 // _appRomXXX from linkscript
 extern const uint32_t _appRomStart, _appRomEnd;
 
-static void sendErr(canframe_t *msg, can_bootloaderErrs_e err)
+static void sendErr(can_frame_t *msg, can_bootloaderErrs_e err)
 {
   msg->DLC = 2;
   msg->data8[1] = err;
@@ -32,7 +32,7 @@ static void sendErr(canframe_t *msg, can_bootloaderErrs_e err)
 static byte4_t addr, endAddr;
 
 // used by both readflash and writeflash
-static bool getAndCheckAddress(canframe_t *msg)
+static bool getAndCheckAddress(can_frame_t *msg)
 {
   addr.b0 = msg->data8[4];
   addr.b1 = msg->data8[3];
@@ -53,7 +53,7 @@ static bool getAndCheckAddress(canframe_t *msg)
   return true;
 }
 
-static bool runCommand(canframe_t *msg)
+static bool runCommand(can_frame_t *msg)
 {
   static byte4_t crc;
   static byte2_t canPageNr; // as in CAN page
@@ -382,7 +382,7 @@ writeCanPageLoop:
 
 // ------------------------------------------------------------------------
 // public functions and variables
-bool commandsStart(canframe_t *msg)
+bool commandsStart(can_frame_t *msg)
 {
   bool res =true;
   while(res){
@@ -404,7 +404,7 @@ bool commandsStart(canframe_t *msg)
 }
 
 
-bool commandIsResetFrame(canframe_t *frm)
+bool commandIsResetFrame(can_frame_t *frm)
 {
   return (frm->DLC == 1 && frm->data8[0] == C_bootloaderReset);
 }

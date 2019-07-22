@@ -9,6 +9,7 @@
 #include "hal.h"
 #include "ch.h"
 #include "can_protocol.h"
+#include "can_types.h"
 #include "control.h"
 #include "debug.h"
 #include "eeprom_setup.h"

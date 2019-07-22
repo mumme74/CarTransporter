@@ -63,9 +63,17 @@ set(SOURCES ${DRIVER_SOURCES}
             "main.c"
             "../node/crc32/crc32.c")
 
+set(INCLUDEDIRS ./ ${INCLUDEDIRS}
+                ../../system_headers/
+                ../node/crc32/)
+
 # QTCREATOR fixes, find files not set by current configuration
 # such as conditional inclution windows, linux files
-FILE(GLOB_RECURSE HeadFiles "*.h")
+foreach(DIRSTR ${INCLUDEDIRS})
+    file(GLOB_RECURSE HeadFilesTmp "${DIRSTR}*.h")
+    #message(STATUS "here" ${DIRSTR} ${HeadFilesTmp})
+    set(HeadFiles ${HeadFiles} ${HeadFilesTmp})
+endforeach()
 add_custom_target(headers SOURCES ${HeadFiles})
 FILE(GLOB_RECURSE CFiles "*.c")
 FILE(GLOB_RECURSE CppFiles "*.cpp")
@@ -93,5 +101,5 @@ endif(SET_DEBUG_FLAG)
 
 include_directories(
     ${INCLUDEDIRS}
-    ../../system_headers/
+    ../../system_headers
     ../node/crc32)

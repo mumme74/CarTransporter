@@ -44,15 +44,17 @@
 
 // memory structure of uC
 typedef struct {
-    uint32_t bootRomStart;
-    uint32_t bootRomEnd;
-    uint16_t pageSize;
-    uint16_t nrPages;
+    uint32_t bootRomStart,
+             bootRomEnd,
+             ramStart,
+             ramEnd;
+    uint16_t pageSize,
+             nrPages;
 } memoryinfo_t;
 
 extern uint32_t canNodeID;
 
-static memoryinfo_t memory = { 0 ,0 ,0 ,0 };
+static memoryinfo_t memory = { 0 };
 static byte4_t  nodeCrc,
                 binCrc;
 
@@ -167,12 +169,12 @@ static void initMemoryInfo(canframe_t *sendFrm, canframe_t *recvFrm)
     sendFrm->data[0] = C_bootloaderStartAddress;
     if (canbridge_send(sendFrm, 20) < 1) {
         printCanError();
-        errExit("can't send\n");
+        errExit("can't send startAddr req.\n");
     }
 
     // get result
-    if (!filteredRecv(recvFrm, 10, 0, C_bootloaderStartAddress))
-        errExit("No response from node\n");
+    if (!filteredRecv(recvFrm, 20, 0, C_bootloaderStartAddress))
+        errExit("No response from node (getting StartAdress)\n");
 
     byte4_t addr;
     addr.b0 = recvFrm->data[4];
@@ -188,12 +190,12 @@ static void initMemoryInfo(canframe_t *sendFrm, canframe_t *recvFrm)
     sendFrm->data[0] = C_bootloaderMemPageInfo;
     if (canbridge_send((sendFrm), 20) < 1) {
         printCanError();
-        errExit("cant send\n");
+        errExit("cant send mempage req.\n");
     }
 
 
-    if (!filteredRecv(recvFrm, 10, 0, C_bootloaderMemPageInfo))
-        errExit("No response from node\n");
+    if (!filteredRecv(recvFrm, 20, 0, C_bootloaderMemPageInfo))
+        errExit("No response from node (getting mempage)\n");
 
     byte2_t pgSz, nPg;
     pgSz.b0 = recvFrm->data[4];
@@ -201,11 +203,34 @@ static void initMemoryInfo(canframe_t *sendFrm, canframe_t *recvFrm)
     nPg.b0 = recvFrm->data[2];
     nPg.b1 = recvFrm->data[1];
 
+    // get RAM info
+    sendFrm->can_dlc = 1;
+    sendFrm->data[0] = C_bootloaderRamInfo;
+    if (canbridge_send((sendFrm), 20) < 1) {
+        printCanError();
+        errExit("cant send RAM info req.\n");
+    }
+
+    if (!filteredRecv(recvFrm, 20, 0, C_bootloaderRamInfo))
+        errExit("No response from node (getting raminfo)\n");
+
+    byte4_t ramStart, ramSize = { 0 };
+    ramStart.b0 = recvFrm->data[4];
+    ramStart.b1 = recvFrm->data[3];
+    ramStart.b2 = recvFrm->data[2];
+    ramStart.b3 = recvFrm->data[1];
+
+    ramSize.b0  = recvFrm->data[3];
+    ramSize.b1  = recvFrm->data[2];
+    ramSize.b2  = recvFrm->data[1];
+
+    // store the info
     memory.pageSize = pgSz.vlu; //(uint16_t)(recvFrm->data[2] << 8 | recvFrm->data[1]);
     memory.nrPages  = nPg.vlu; // (uint16_t)(recvFrm->data[4] << 8 | recvFrm->data[3]);
-
+    memory.ramStart = ramStart.vlu;
     memory.bootRomEnd = memory.bootRomStart +
                             (memory.pageSize * memory.nrPages);
+    memory.ramEnd = memory.ramStart + ramSize.vlu;
 }
 
 static can_bootloaderErrs_e resetNode(canframe_t *sendFrm, canframe_t *recvFrm)
@@ -847,15 +872,19 @@ void doPrintMemorySetupCmd(void)
     // get memory setup from Node uC
     initMemoryInfo(&sendFrm, &recvFrm);
 
-    fprintf(stdout, "\nStartAddress:  0x%x\n"
-                      "Endaddress:    0x%x\n"
-                      "PageSize:     %u\n"
-                      "Nr pages:     %u\n"
-                      "Totalsize:    %u\n\n",
+    fprintf(stdout, "\nStartAddress:\t0x%08x\n"
+                      "Endaddress:\t0x%08x\n"
+                      "PageSize:\t%u\n"
+                      "Nr pages:\t%u\n"
+                      "Ram size.\t%x\n"
+                      "Ram start:\n0x%08x\n"
+                      "Totalsize(ROM):\t%u\n\n",
                        memory.bootRomStart,
                        memory.bootRomEnd,
                        memory.pageSize,
                        memory.nrPages,
+                       memory.ramEnd - memory.ramStart,
+                       memory.ramStart,
                        memory.nrPages * memory.pageSize);
 
 }

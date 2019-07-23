@@ -20,7 +20,7 @@
 
 
 // _appRomXXX from linkscript
-extern const uint32_t _appRomStart, _appRomEnd;
+extern const uint32_t _appRomStart, _appRomEnd, _ramStart, _stack;
 
 static void sendErr(can_frame_t *msg, can_bootloaderErrs_e err)
 {
@@ -367,6 +367,21 @@ writeCanPageLoop:
     msg->data8[2] = canPageNr.b0; //(canPageNr & 0x00FF) >> 8;
     CAN_POST_MSG;
   }  break;
+
+  case C_bootloaderRamInfo: {
+    msg->DLC = 8;
+    byte4_t ramStart = { (uint32_t)&_ramStart },
+            nrBytes = { (uint32_t)&_stack - (uint32_t)&_ramStart };
+    msg->data8[1] = ramStart.b3;
+    msg->data8[2] = ramStart.b2;
+    msg->data8[3] = ramStart.b1;
+    msg->data8[4] = ramStart.b0;
+    msg->data8[5] = nrBytes.b2; // only 24 bits
+    msg->data8[6] = nrBytes.b1;
+    msg->data8[8] = nrBytes.b0;
+    CAN_POST_MSG;
+  } break;
+
   case C_bootloaderWait:
     msg->DLC = 2;
     msg->data8[1] = C_bootloaderErrOK;

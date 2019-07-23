@@ -561,16 +561,24 @@ typedef enum {
                                     // cmd 0x83
 
                                     // responds:
-                                    // [0:7]        [0:32]
+                                    // [0:7]        [0:31]
                                     // cmd 0x83     app startadress
 
   C_bootloaderMemPageInfo   = 0x84, // request single byte with command
                                     // [0:7]
-                                    // cmd 0x83
+                                    // cmd 0x84
 
                                     // responds:
                                     // [0:7]        [0:15]              [0:15]
                                     // cmd 0x84     pageSize i bytes    nr of pages
+
+  C_bootloaderRamInfo       = 0x85, // request single byte with command
+                                    // [0:7]
+                                    // cmd 0x85
+
+                                    // responds:
+                                    // [0:7]        [0:31]          [0:24]
+                                    // cmd 0x85     Startadress     size of ram in bytes
 
   C_bootloaderWriteFlash    = 0xF2, // write (a new bin file) to memory region
                                     // [0:7]        [0:31]         [0:23]

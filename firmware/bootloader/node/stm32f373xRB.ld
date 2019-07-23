@@ -70,7 +70,8 @@ SECTIONS
  end = .;
  _heapstart = .;
  
- _stack = ORIGIN(ram) + LENGTH(ram) -4;
+ _ramStart    = ORIGIN(ram);
+ _stack       = ORIGIN(ram) + LENGTH(ram) -4;
  _appRomStart = ORIGIN(rom);
  _appRomEnd   = ORIGIN(rom) + LENGTH(rom) -4;
  _bootRom     = ORIGIN(bootrom);

@@ -109,6 +109,7 @@ SECTIONS
 	. = ALIGN(4);
 	_heapstart = .;
 
+    _ramStart = ORIGIN(RAM);
 	_estack = ORIGIN(RAM) + LENGTH(RAM) -4;
 	_stack  = _estack;
 	_appRomStart = ORIGIN(rom);

@@ -128,6 +128,7 @@ void systemToApplication(void)
     can_frame_t msg;
     canInitFrame(&msg, CAN_MY_ID);
     systemInit(); // set up clock
+    systickInit();
     canInit();// need to reactivate
     while (1) {
       msg.DLC = 2;
@@ -214,7 +215,7 @@ can_bootloaderErrs_e systemFlashErase(uint8_t *startAddr, uint8_t *endAddr)
 can_bootloaderErrs_e systemFlashWritePage(uint16_t *memPageBuf,
                                           volatile uint16_t *addr)
 {
-  if (addr < (uint16_t*)_appRomStart)
+  if (addr < (uint16_t*)(&_appRomStart))
     return C_bootloaderErrStartAddressOutOfRange;
 
   can_bootloaderErrs_e err = C_bootloaderErrOK;

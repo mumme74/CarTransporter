@@ -204,36 +204,37 @@ void _canInit(void)
     }
 
 
-    for(uint32_t nr = 0; nr < 2; ++nr) {
-      uint16_t id1 = (CAN_MY_ID << 5), msk1 = (0x7FF<<5), id2 = ((CAN_HOST_ID) << 5), msk2 = (0x7FF << 5);
-      uint32_t fifo = 0, nr = 0;
-      uint32_t filter_select_bit = 1 << nr;
+//    for(uint32_t nr = 0; nr < 2; ++nr) {
+//      uint16_t id1 = (CAN_MY_ID << 5), msk1 = (0x7FF<<5), id2 = ((CAN_HOST_ID) << 5), msk2 = (0x7FF << 5);
+//      uint32_t fifo = 0;
+//      uint32_t filter_select_bit = 1 << nr;
+//
+//      /* Request initialization "enter". */
+//      CAN_FMR(CAN1) |= CAN_FMR_FINIT; // enter filter setup mode
+//      /* Deactivate the filter. */
+//      CAN_FA1R(CAN1) &= ~filter_select_bit; // turn off filter
+//      /* Set 16-bit scale for the filter. */
+//      CAN_FS1R(CAN1) &= ~filter_select_bit; // 0 = 2*16bits filter, 1= 1*32bit filter
+//      /* Set filter mode to id/mask mode. */
+//      CAN_FM1R(CAN1) &= ~filter_select_bit; // list = 1/mask = 0 mode
+//      /* Set the first filter register. */
+//      CAN_FiR1(CAN1, nr) = (msk1 << 16) | (id1);
+//      /* Set the second filter register. */
+//      CAN_FiR2(CAN1, nr) = (msk2 << 16) | (id2);
+//      if (fifo) {
+//        CAN_FFA1R(CAN1) |= filter_select_bit;  /* FIFO1 */ // 1=fifo1
+//      } else {
+//        CAN_FFA1R(CAN1) &= ~filter_select_bit; /* FIFO0 */ // 0=fifo0
+//      }
+//      CAN_FA1R(CAN1) |= filter_select_bit; /* Activate filter. */
+//
+//      /* Request initialization "leave". */
+//      CAN_FMR(CAN1) &= ~CAN_FMR_FINIT; // exit filter setup mode
+//
+//      uint32_t regF1 = CAN_FiR1(CAN1, nr);
+//      uint32_t regF2 = CAN_FiR2(CAN1, nr);
+//    }
 
-      /* Request initialization "enter". */
-      CAN_FMR(CAN1) |= CAN_FMR_FINIT; // enter filter setup mode
-      /* Deactivate the filter. */
-      CAN_FA1R(CAN1) &= ~filter_select_bit; // turn off filter
-      /* Set 16-bit scale for the filter. */
-      CAN_FS1R(CAN1) &= ~filter_select_bit; // 0 = 2*16bits filter, 1= 1*32bit filter
-      /* Set filter mode to id/mask mode. */
-      CAN_FM1R(CAN1) &= ~filter_select_bit; // list = 1/mask = 0 mode
-      /* Set the first filter register. */
-      CAN_FiR1(CAN1, nr) = (msk1 << 16) | (id1);
-      /* Set the second filter register. */
-      CAN_FiR2(CAN1, nr) = (msk2 << 16) | (id2);
-      if (fifo) {
-        CAN_FFA1R(CAN1) |= filter_select_bit;  /* FIFO1 */ // 1=fifo1
-      } else {
-        CAN_FFA1R(CAN1) &= ~filter_select_bit; /* FIFO0 */ // 0=fifo0
-      }
-      CAN_FA1R(CAN1) |= filter_select_bit; /* Activate filter. */
-
-      /* Request initialization "leave". */
-      CAN_FMR(CAN1) &= ~CAN_FMR_FINIT; // exit filter setup mode
-
-      uint32_t regF1 = CAN_FiR1(CAN1, nr);
-      uint32_t regF2 = CAN_FiR2(CAN1, nr);
-    }
 
     //can_filter_id_mask_16bit_init(0, id1, msk1,id2, msk2, 0, true);
     /* CAN filter init.on all fifos we have 14 filter banks */
@@ -243,12 +244,9 @@ void _canInit(void)
 
     // these are right aligned, took me long time to figure out...
     //           filtenr 32bit?  list,no msk    id1          id2        fifo  enable
-    //can_filter_init(0,   false,  true,      (CAN_MY_ID<<5), (CAN_HOST_ID<<5), 0, true);
-    //can_filter_init(2,   false,  true,      (CAN_MY_ID<<5), (CAN_HOST_ID<<5), 1, true);
-    /*for (int i = 2; i < 14; ++i) {
-      // match nothing for these
-      can_filter_id_mask_16bit_init(i, 0x000, 0x7FF, 0x000, 0x7FF, (i % 2), true);
-    }*/
+    can_filter_init(0,   false,  true, (((0x7FF<<(5+16))| (CAN_MY_ID<<5))), ((0x7FF<<(5+16))|(CAN_HOST_ID<<5)), 0, true);
+    can_filter_init(1,   false,  true, (((0x7FF<<(5+16))| (CAN_MY_ID<<5))), ((0x7FF<<(5+16))|(CAN_HOST_ID<<5)), 1, true);
+
     //init_filters(canId, 0x07F8, true);
     //init_filters(0, 0, true); // for debug, all filters open
 

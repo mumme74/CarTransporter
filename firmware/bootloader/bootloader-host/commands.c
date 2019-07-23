@@ -333,6 +333,9 @@ static uint8_t *readLocalFile(const char *binName, long *sz)
 
 static const char *sanityCheckLocalFile(uint8_t *fileBuf, size_t sz, memoptions_t *mopt)
 {
+    enum { VECTORS_SZ = 32 };
+    byte4_t vectors[VECTORS_SZ];
+
     static char errBuf[200] = {0};
     // check if first byte is within merory region
     // this one assumes uC is ARM like with stack pointer at buf[0]
@@ -348,23 +351,49 @@ static const char *sanityCheckLocalFile(uint8_t *fileBuf, size_t sz, memoptions_
         return errBuf;
     }
 
-    uint32_t stackPtr = fileBuf[3] | fileBuf[2]  | fileBuf[1]  | fileBuf[0],
-             startupFunc = fileBuf[7] | fileBuf[6]  | fileBuf[5]  | fileBuf[4];
+    printf("\n%02x %02x %02x %02x\n", fileBuf[7], fileBuf[6], fileBuf[5], fileBuf[4]);
+    byte4_t stackPtr, startupFunc;
+    stackPtr.b0 = fileBuf[0];
+    stackPtr.b1 = fileBuf[1];
+    stackPtr.b2 = fileBuf[2];
+    stackPtr.b3 = fileBuf[3];
+    startupFunc.b0 = fileBuf[4];
+    startupFunc.b1 = fileBuf[5];
+    startupFunc.b2 = fileBuf[6];
+    startupFunc.b3 = fileBuf[7];
+    printf("%08x\n", stackPtr.vlu);
 
-    if (startupFunc < mopt->lowerbound || startupFunc > mopt->upperbound)
-        return "Startup function is not within available flash\nCheck linkscript\n";
 
-    if (stackPtr >= mopt->lowerbound || stackPtr <= mopt->upperbound)
-        return "Stackptr points to flashmemory\nCheck link script\n";
+    if (startupFunc.vlu < mopt->lowerbound || startupFunc.vlu > mopt->upperbound) {
+        snprintf(errBuf, sizeof (errBuf),
+                 "Startup function ptr is not within available flash region.\n"
+                 "\tpoints to 0x%08x expects within 0x%08x to 0x%08x\n"
+                 "\tError in your bin (Correct linkscript used?)\n",
+                 startupFunc.vlu, mopt->lowerbound + 2 + sizeof (vectors), mopt->upperbound);
+        return errBuf;
+    }
+
+    if (stackPtr.vlu >= mopt->lowerbound && stackPtr.vlu <= mopt->upperbound) {
+        snprintf(errBuf, sizeof (errBuf),
+                 "Stackptr points to flashmemory, must point to RAM\n"
+                 "\tPoints to 0x%08x\n"
+                 "\tError in your bin (Correct linkscript used?)\n",
+                  stackPtr.vlu);
+        return errBuf;
+    }
 
     // checks vectors table
-    uint32_t vectors[32];
-    for (uint8_t i = 2; i < sizeof (vectors) - 2; ++i) {
-        vectors[i] = fileBuf[i + 3] | fileBuf[i + 2]  | fileBuf[i + 1]  | fileBuf[i];
-        if (vectors[i] < mopt->lowerbound + 34 || vectors[i] > mopt->upperbound) {
+    for (uint32_t i = 0; i < VECTORS_SZ; ++i) {
+        uint32_t addr = (i * 4) + 8;
+        vectors[i].b3 = fileBuf[addr + 3];
+        vectors[i].b2 = fileBuf[addr + 2];
+        vectors[i].b1 = fileBuf[addr + 1];
+        vectors[i].b0 = fileBuf[addr];
+        if (vectors[i].vlu < mopt->lowerbound + 34 || vectors[i].vlu > mopt->upperbound) {
             snprintf(errBuf, sizeof (errBuf),
-                     "Vectors table[%u] points outside of flash\nCheck your link script\n",
-                     i - 2);
+                     "Vectors table[%u] points outside of flash to 0x%08x\n"
+                     "\tError in your bin (Correct linkscript used?)\n",
+                     ((i/4) - 2), vectors[i].vlu);
             return  errBuf;
         }
     }

@@ -50,7 +50,7 @@ typedef struct {
     uint16_t nrPages;
 } memoryinfo_t;
 
-extern uint32_t canIdx;
+extern uint32_t canNodeID;
 
 static memoryinfo_t memory = { 0 ,0 ,0 ,0 };
 static byte4_t  nodeCrc,
@@ -154,7 +154,7 @@ static bool filteredRecv(canframe_t *recvFrm, uint32_t timeout,
 static void initFrame(canframe_t *frm)
 {
     memset(frm, 0, sizeof(canframe_t));
-    frm->can_id = canIdx;
+    frm->can_id = canMyID;
 }
 
 static void initMemoryInfo(canframe_t *sendFrm, canframe_t *recvFrm)
@@ -1051,8 +1051,7 @@ void doBootloaderModeCmd(void)
                     sendFrm.can_dlc = 1;
                     sendFrm.data[0] = C_bootloaderWait;
                     canbridge_send(&sendFrm, 3);
-                    if (filteredRecv(&recvFrm, 1000, 0, C_bootloaderWait))
-                        ; //break;
+                    filteredRecv(&recvFrm, 1000, 0, C_bootloaderWait);
 
                     usleep(1000);
                 }

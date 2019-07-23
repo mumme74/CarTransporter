@@ -100,9 +100,7 @@ bool canGet(can_frame_t *msg)
 int8_t canPost(can_frame_t *msg)
 {
   // notify which node sends this msg
-  //msg->IDE &= (CAN_MSG_TYPE_MASK | CAN_MSG_ID_MASK); // other clears sender bits
-  //msg->IDE |=  NODE_ID; // sets sender bits
-  msg->IDE = canId;
+  msg->IDE = CAN_MY_ID;
 
   if (!_canPost(msg)) {
       // buffer full?

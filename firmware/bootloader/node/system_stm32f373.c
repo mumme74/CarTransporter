@@ -35,13 +35,21 @@ const struct rcc_clock_scale clock_scale  = {
     .apb2_frequency = 72e6,
 };
 
-#if NODE_ID==CAN_PARKBRAKE_NODE
-const uint16_t canId = CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdBootloader | C_parkbrakeNode;
-#elif NODE_ID==CAN_SUSPENSION_NODE
-const uint16_t canId = CAN_MSG_TYPE_COMMAND | C_suspensionCmdBootloader | C_suspensionNode;
-#endif
+
+const struct rcc_clock_scale clock_scaleInternal  = { /* 48MHz */
+    .pllsrc = RCC_CFGR_PLLSRC_HSI_DIV2,
+    .pllmul = RCC_CFGR_PLLMUL_MUL12,
+    .hpre = RCC_CFGR_HPRE_DIV_NONE,
+    .ppre1 = RCC_CFGR_PPRE1_DIV_2,
+    .ppre2 = RCC_CFGR_PPRE2_DIV_NONE,
+    .flash_waitstates = 1,
+    .ahb_frequency  = 48000000,
+    .apb1_frequency = 24000000,
+    .apb2_frequency = 48000000,
+};
 
 const uint16_t pageSize = 2048; // 2kb
+static uint8_t clockSet = 0;
 
 
 volatile uint32_t msSinceStartup = 0;
@@ -55,13 +63,17 @@ void hard_fault_handler(void)
 
 void systemInit(void)
 {
-  rcc_clock_setup_pll(&clock_scale);
+  //rcc_CR_startup = RCC_CR;
+  if (!clockSet)
+    rcc_clock_setup_pll(&clock_scale);
+  clockSet = 1;
 }
 
 void systemDeinit(void)
 {
   // Can't figure out this one , continue on ext oscillator and hope for the best..
-  // rcc_clock_setup_pll(&rcc_configs[RCC_CLOCK_HSI_64MHZ]);
+ // rcc_set_sysclk_source(RCC_CLOCK_HSI_48MHZ);
+  //rcc_clock_setup_hsi(&clock_scaleInternal);
 }
 
 uint32_t systemMillis() {
@@ -114,7 +126,7 @@ void systemToApplication(void)
   if (applicationAddress[0] > (size_t)(&_stack) +4 ||
       applicationAddress[0] < (size_t)(&_heapstart) +100) {
     can_frame_t msg;
-    canInitFrame(&msg, canId);
+    canInitFrame(&msg, CAN_MY_ID);
     systemInit(); // set up clock
     canInit();// need to reactivate
     while (1) {

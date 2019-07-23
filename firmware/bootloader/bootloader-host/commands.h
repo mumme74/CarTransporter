@@ -22,7 +22,8 @@ typedef struct {
 // gets set in main.c
 extern int abortVar;
 extern int abortVar;
-extern uint32_t canIdx;
+extern uint32_t canNodeID,
+                canMyID;
 
 
 void cmdInit(void);

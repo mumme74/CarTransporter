@@ -46,7 +46,7 @@ static void init_filters(uint32_t id, uint32_t mask, bool enable)
     // filter out all but 11bit ids and our specific ID
     can_filter_id_mask_16bit_init(
                 filterId++,     /* Filter ID */
-                (uint16_t)id, /* CAN ID */
+                (uint16_t)id,   /* CAN ID */
                 (uint16_t)mask,  /* CAN ID mask */
                 (uint16_t)id,
                 (uint16_t)mask,
@@ -122,6 +122,9 @@ void canShutdown(void)
                         CAN_IER_FMPIE1 | CAN_IER_FFIE1 |
                         CAN_IER_TMEIE);
   can_reset(CAN1);
+
+  rcc_periph_clock_disable(RCC_CAN1);
+  rcc_periph_clock_disable(RCC_GPIOA);
 }
 
 void canDisableIRQ(void)
@@ -201,9 +204,18 @@ void _canInit(void)
     }
 
 
-    /* CAN filter init.on all fifos */
-    can_filter_id_mask_16bit_init(0, 0, canId, 0x0000, canId | C_displayNode, 0, true);
-    can_filter_id_mask_16bit_init(1, 0, canId, 0x0000, canId | C_displayNode, 1, true);
+    /* CAN filter init.on all fifos we have 14 filter banks */
+    //                       filternr  id1        mask1    id2      mask2   fifo  enabled
+  //can_filter_id_mask_16bit_init(0,   CAN_MY_ID, 0x7FF, CAN_HOST_ID, 0x7FF, 0,   true);
+  //can_filter_id_mask_16bit_init(1,   CAN_MY_ID, 0x7FF, CAN_HOST_ID, 0x7FF, 1,   true);
+
+    //           filtenr 32bit?  list,no msk    id1         id2        fifo  enable
+    can_filter_init(0,   false,  true,          CAN_MY_ID,  CAN_HOST_ID, 0, true);
+    can_filter_init(2,   false,  true,          CAN_MY_ID,  CAN_HOST_ID, 1, true);
+    /*for (int i = 2; i < 14; ++i) {
+      // match nothing for these
+      can_filter_id_mask_16bit_init(i, 0x000, 0x7FF, 0x000, 0x7FF, (i % 2), true);
+    }*/
     //init_filters(canId, 0x07F8, true);
     //init_filters(0, 0, true); // for debug, all filters open
 

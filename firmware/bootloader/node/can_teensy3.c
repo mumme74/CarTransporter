@@ -52,17 +52,18 @@ typedef volatile uint8_t  vuint8_t;
 #define FLEXCANb_IDFLT_TAB(b, n)          (*(vuint32_t*)(b+0xE0+(n*4)))
 */
 
-#define FLEXCAN_MCR_HALT               (0x10000000)
-#define FLEXCAN_MCR_FRZ_ACK            (0x01000000)
-#define FLEXCAN_MCR_SOFT_RST           (0x02000000)
 #define FLEXCAN_CTRL_CLK_SRC           (0x00002000)
 #define FLEXCAN_CTRL_BOFF_MSK          (0x00008000)
+#define FLEXCAN_MCR_IRMQ               (0x00010000)
+#define FLEXCAN_MCR_SRX_DIS            (0x00020000)
+#define FLEXCAN_MCR_LPM_ACK            (0x00100000)
+#define FLEXCAN_MCR_FRZ_ACK            (0x01000000)
+#define FLEXCAN_MCR_SOFT_RST           (0x02000000)
+#define FLEXCAN_MCR_NOT_RDY            (0x08000000)
+#define FLEXCAN_MCR_HALT               (0x10000000)
+#define FLEXCAN_MCR_RFEN               (0x20000000)
 #define FLEXCAN_MCR_FRZ                (0x40000000)
 #define FLEXCAN_MCR_MDIS               (0x80000000)
-#define FLEXCAN_MCR_LPM_ACK            (0x00100000)
-#define FLEXCAN_MCR_SRX_DIS            (0x00020000)
-#define FLEXCAN_MCR_IRMQ               (0x00010000)
-#define FLEXCAN_MCR_NOT_RDY            (0x08000000)
 #define FLEXCAN_MB_CS_IDE             (0x00200000)
 #define FLEXCAN_MB_CS_SRR             (0x00400000)
 #define FLEXCAN_MB_CS_RTR             (0x00100000)
@@ -113,7 +114,6 @@ extern fifo_t can_rxqueue, can_txqueue; // is visible to global from can.c
 // prototypes
 int8_t _canPost(can_frame_t *msg);
 void _canInit(void);
-void _canLoop(void);
 bool _canGet(void);
 
 typedef enum {
@@ -122,18 +122,24 @@ typedef enum {
   RX1,
   RX2,
   RX3,
-  _RX_end = RX3,
+  RX4,
+  RX5,
+  RX6,
+  RX7,
+  _RX_end = RX7,
   _TX_start,
   TX0 = _TX_start,
   //_TX_end = TX0 // only 1 tx box so we dont get race issues
   TX1,
   TX2,
   TX3,
- _TX_end = TX3
+  TX4,
+  TX5,
+  TX6,
+  TX7,
+ _TX_end = TX7,
+ _mbEnd = 16,
 } mailboxes_t;
-
-static uint32_t canFilter = 0,
-	        canMask   = 0x7FF;
 
 // -----------------------------------------------------------
 // public functions and variables
@@ -142,8 +148,14 @@ void canShutdown(void)
 {
   // enter freeze mode
   FLEXCANb_MCR(FLEXCAN0_BASE) |= (FLEXCAN_MCR_HALT);
-  while(!(FLEXCANb_MCR(FLEXCAN0_BASE) & FLEXCAN_MCR_FRZ_ACK))
-    ;
+  while(!(FLEXCANb_MCR(FLEXCAN0_BASE) & FLEXCAN_MCR_FRZ_ACK));
+
+  // reset FLexCAN
+  FLEXCANb_MCR(FLEXCAN0_BASE) |= FLEXCAN_MCR_SOFT_RST;
+  while(FLEXCANb_MCR(FLEXCAN0_BASE) & FLEXCAN_MCR_SOFT_RST);
+
+  // turn off FLEXCAN
+  FLEXCANb_MCR(FLEXCAN0_BASE) |= FLEXCAN_MCR_MDIS;
 }
 
 void canDisableIRQ(void)
@@ -170,10 +182,6 @@ void _canInit(void)
 //    Can0.setFilter(canFilter1, i);
 //    Can0.setFilter(canFilter2, i);
 //  }
-
-  canFilter = (canId & (CAN_MSG_ID_MASK | CAN_MSG_TYPE_MASK))
-					    | C_displayNode;
-  canMask   = 0x7F8;
 
   // these are taken from FlexCAN.cpp
   CORE_PIN3_CONFIG = PORT_PCR_MUX(2);
@@ -211,16 +219,23 @@ void _canInit(void)
 
   // enable per-mailbox filtering
   FLEXCANb_MCR(FLEXCAN0_BASE) |= FLEXCAN_MCR_IRMQ;
+  // no hardware fifo
+  FLEXCANb_MCR(FLEXCAN0_BASE) &= ~FLEXCAN_MCR_RFEN;
 
   // set filter and mask
   // we must be in freeze mode, but we assured we are above
-  for (int c = _RX_start; c < _TX_start; ++c) {
+  for (uint8_t mb = _RX_start; mb < _TX_start; ++mb) {
       // Set mask
-      FLEXCANb_MB_MASK(FLEXCAN0_BASE, c) = canMask;
+      FLEXCANb_MB_MASK(FLEXCAN0_BASE, mb) = 0x7F7;
 
       // set Filter, should not listen to extended frames
-      FLEXCANb_MBn_ID(FLEXCAN0_BASE, c) = FLEXCAN_MB_ID_IDSTD(canFilter);
-      FLEXCANb_MBn_CS(FLEXCAN0_BASE, c) &= ~FLEXCAN_MB_CS_IDE;
+      if (mb == _RX_start)
+        // dedicate 1 mb to my own ID
+        FLEXCANb_MBn_ID(FLEXCAN0_BASE, mb) = FLEXCAN_MB_ID_IDSTD(CAN_MY_ID);
+      else
+        // rest to host (displayNode)
+        FLEXCANb_MBn_ID(FLEXCAN0_BASE, mb) = FLEXCAN_MB_ID_IDSTD(CAN_HOST_ID);
+      FLEXCANb_MBn_CS(FLEXCAN0_BASE, mb) &= ~FLEXCAN_MB_CS_IDE;
   }
 
   // start the CAN
@@ -405,7 +420,9 @@ void can0_message_isr(void) {
             //it seems filtering works by matching against the ID stored in the mailbox
             //so after a frame comes in we've got to refresh the ID field to be the filter ID and not the ID
             //that just came in.
-            FLEXCANb_MBn_ID(FLEXCAN0_BASE, i) = FLEXCAN_MB_ID_IDSTD(canFilter);
+
+            // we dont use masks so that should not be a problem
+            //FLEXCANb_MBn_ID(FLEXCAN0_BASE, i) = FLEXCAN_MB_ID_IDSTD(canFilter);
 
             break;
         case FLEXCAN_MB_CODE_TX_INACTIVE:

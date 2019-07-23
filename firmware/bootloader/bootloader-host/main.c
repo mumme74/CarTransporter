@@ -34,7 +34,8 @@
 
 // global vars
 int abortVar = 0;
-uint32_t canIdx = 0;
+uint32_t canNodeID = 0,
+         canMyID = 0;
 static uint32_t canFilterMask = 0;
 static int extendedCanId = 0;
 
@@ -84,14 +85,14 @@ void setup_can_iface(char *name)
     uint32_t mask;
     if (canFilterMask) {
         mask = canFilterMask;
-    } else if (canIdx < 0x800) {
+    } else if (canNodeID < 0x800) {
         // 11 bit id
-        mask = 0x7F8; // filter in only this id
+        mask = 0x7FF; // filter in only this id
     } else {
         // 29 bit (extended frame)
-        mask = 0x1FFFFFF8;
+        mask = 0x1FFFFFFF;
     }
-    if (!canbridge_set_filter(mask, canIdx, extendedCanId))
+    if (!canbridge_set_filter(mask, canNodeID, extendedCanId))
         errExit(canbridge_errmsg);
 
     canbridge_set_abortvariable(&abortVar);
@@ -131,6 +132,39 @@ bool parse_memoptions(memoptions_t *mopt, char *argoption)
     return true;
 }
 
+void setNodeIds(can_senderIds_e nodeNr) {
+    switch (nodeNr) {
+    case 0:
+        canNodeID = CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdBootloader | C_parkbrakeNode;
+        canMyID   = CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdBootloader | C_displayNode;
+        break;
+    case 1:
+        canNodeID = CAN_MSG_TYPE_COMMAND | C_suspensionCmdBootloader | C_displayNode;
+        canMyID   = CAN_MSG_TYPE_COMMAND | C_suspensionCmdBootloader | C_displayNode;
+        break;
+    case 2:
+        canNodeID = CAN_MSG_TYPE_COMMAND; // | C_displayDiag_LAST | C_displayNode;
+        break;
+    case 3:
+        canNodeID = CAN_MSG_TYPE_COMMAND;
+        break;
+    case 4:
+        canNodeID = CAN_MSG_TYPE_COMMAND;
+        break;
+    case 5:
+        canNodeID = CAN_MSG_TYPE_COMMAND;
+        break;
+    case 6:
+        canNodeID = CAN_MSG_TYPE_COMMAND;
+        break;
+    case 7:
+        canNodeID = CAN_MSG_TYPE_DIAG;
+        break;
+    default:
+        break;
+    }
+}
+
 void print_usage(char *prg)
 {
     fprintf(stderr, "\nUsage: %s [options] <CAN interface> <action> [arguments]\n", prg);
@@ -140,7 +174,8 @@ void print_usage(char *prg)
     fprintf(stderr, "                                       2=displayNode <currently inactive>\n");
     fprintf(stderr, "                                       3-7=currently not used nodes\n");
     fprintf(stderr, "         -N <node>    nodename: parkbrakeNode | suspensionNode\n");
-    fprintf(stderr, "         -i <ID>      CAN frameid to listen to in HEX\n");
+    fprintf(stderr, "         -i <ID>      CAN frameid to node to talk with in HEX (used as canfilter)\n");
+    fprintf(stderr, "         -I <ID>      CAN frameid for this node when conversating, in HEX (used when sending)\n");
     fprintf(stderr, "         -m <mask>    Use mask  as filterMask, must be hex value\n");
     fprintf(stderr, "                        default filterMask is to match against canID, must be hex value\n");
     fprintf(stderr, "                       0 turns off filterMask\n");
@@ -221,9 +256,10 @@ int main(int argc, char *argv[])
 
     abortVar = 0;
 
-    while ((opt = getopt(argc, argv, "i:m:n:N:d:b:h?")) != -1) {
+    while ((opt = getopt(argc, argv, "i:I:m:n:N:d:b:h?")) != -1) {
         switch (opt) {
         case 'i': {
+            // send in a custom ID for node to talk to
             char *nxt = NULL;
             long idx = strtol(optarg, &nxt, 16);
             if (nxt != &optarg[strnlen(optarg, 20)])
@@ -231,11 +267,25 @@ int main(int argc, char *argv[])
             if (idx < 0 || idx > 0x7FFFFF)
                 errExit("Wrong canID given\n");
 
-            canIdx = (unsigned int)idx;
+            canNodeID = (unsigned int)idx;
+            if (!extendedCanId && strnlen(optarg, 10) > 4)
+                extendedCanId = 1;
+        }   break;
+        case 'I': {
+            // send in a custom ID for this node
+            char *nxt = NULL;
+            long idx = strtol(optarg, &nxt, 16);
+            if (nxt != &optarg[strnlen(optarg, 20)])
+                errExit("Invalid canID\n");
+            if (idx < 0 || idx > 0x7FFFFF)
+                errExit("Wrong canID given\n");
+
+            canMyID = (unsigned int)idx;
             if (!extendedCanId && strnlen(optarg, 10) > 4)
                 extendedCanId = 1;
         }   break;
         case  'm': {
+            // send in a custom Mask
             char *nxt = NULL;
             long filter = strtol(optarg, &nxt, 16);
             if (nxt != &optarg[strnlen(optarg, 20)])
@@ -248,43 +298,16 @@ int main(int argc, char *argv[])
         }   break;
         case 'n': {
             int idx = atoi(optarg);
-            if (idx < 0 || idx > MAX_NODENR || !isdigit(optarg[0])) {
+            if (idx < 0 || idx > MAX_NODENR || !isdigit(optarg[0]))
                 errExit("Wrong nodeNr given. Only 11bits is ok\n");
-            }
-            switch (idx) {
-            case 0:
-                canIdx = CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdBootloader | C_displayNode;
-                break;
-            case 1:
-                canIdx = CAN_MSG_TYPE_COMMAND | C_suspensionCmdBootloader | C_displayNode;
-                break;
-            case 2:
-                canIdx = CAN_MSG_TYPE_COMMAND; // | C_displayDiag_LAST | C_displayNode;
-                break;
-            case 3:
-                canIdx = CAN_MSG_TYPE_COMMAND;
-                break;
-            case 4:
-                canIdx = CAN_MSG_TYPE_COMMAND;
-                break;
-            case 5:
-                canIdx = CAN_MSG_TYPE_COMMAND;
-                break;
-            case 6:
-                canIdx = CAN_MSG_TYPE_COMMAND;
-                break;
-            case 7:
-                canIdx = CAN_MSG_TYPE_DIAG;
-                break;
-            default:
-                break;
-            }
+
+            setNodeIds((can_senderIds_e)idx);
         }   break;
         case 'N':
             if (strcmp(optarg, "parkbrakeNode") == 0)
-                canIdx = CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdBootloader | C_displayNode;
+                setNodeIds(C_parkbrakeNode);
             else if (strcmp(optarg, "suspensionNode") == 0)
-                canIdx = CAN_MSG_TYPE_COMMAND | C_suspensionCmdBootloader | C_displayNode;
+                setNodeIds(C_suspensionNode);
             else {
                 fprintf(stderr, "Unknown node %s\n", optarg);
                 errExit(0);
@@ -331,7 +354,7 @@ int main(int argc, char *argv[])
 #endif
         fprintf(stderr, " /dev/ttySerial (driver=slcan) etc.\n\n");
         errExit(0);
-    } else if (canIdx <= 0) {
+    } else if (canNodeID <= 0) {
         fprintf(stderr, "Node not selected, see: %s -h\n\n", basename(argv[0]));
         errExit(0);
     } else {

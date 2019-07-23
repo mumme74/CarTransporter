@@ -18,7 +18,7 @@ int main(void)
     systickInit();
 
     can_frame_t msg;
-    canInitFrame(&msg, canId);
+    canInitFrame(&msg, CAN_MY_ID);
     msg.data8[msg.DLC++] = C_bootloaderReset;
     canPost(&msg);
 
@@ -27,8 +27,8 @@ int main(void)
         commandsStart(&msg); // resets from within
     }
 
-    systemDeinit();
     canShutdown();
     systickShutdown();
+    systemDeinit();
     systemToApplication();
 }

@@ -1,6 +1,4 @@
 cmake_minimum_required(VERSION 3.0)
-project(bootloader-host)
-
 
 #common driver sources
 set(DRIVER_SOURCES "slcan.c" "buffer.c")
@@ -18,25 +16,34 @@ if(WIN32 AND NOT COMPILE_FOR_RPI)
 else()
   set(UNIX_FIXES "unix_common.c")
   if (COMPILE_FOR_RPI)
-    set(RPI_SYSROOT CACHE PATH "Sysroot for raspberrypi" "")
-    set(RPI_STAGING_PREFIX CACHE PATH "Install to" "")
-    set(RPI_TOOLCHAIN_PATH CACHE PATH "Path to crosscompiler toolchain")
-    set(CMAKE_SYSTEM_NAME Linux)
-    #set(INCLUDEDIRS "/Volumes/qt5pi/usr/include/arm-rpi3-linux-gnueabihf" ${INCLUDEDIRS})
+    set(RPI_SYSROOT "" CACHE PATH "Sysroot for raspberrypi")
+    set(RPI_STAGING_PREFIX "" CACHE PATH "Install to" "")
+    set(RPI_TOOLCHAIN_PATH "" CACHE PATH "Path to crosscompiler toolchain")
+    set(RPI_TOOLCHAIN_PREFIX CACHE STRING "arm-linux-gnueabihf-")
 
+    #set(INCLUDEDIRS "/Volumes/qt5pi/usr/include/arm-rpi3-linux-gnueabihf" ${INCLUDEDIRS})
+    set(CMAKE_SYSTEM_NAME Linux)
     set(CMAKE_SYSTEM_PROCESSOR arm)
 
     if (RPI_SYSROOT)
         set(CMAKE_SYSROOT ${RPI_SYSROOT})
+        link_directories(/usr/lib/arm-linux-gnueabihf/
+                        /usr/lib/)
+        string(REGEX REPLACE "(.*)-$" "\\1" RPI_TOOLCHAIN_DIR ${RPI_TOOLCHAIN_PREFIX})
+        set(INCLUDEDIRS "${CMAKE_SYSROOT}/usr/include/${RPI_TOOLCHAIN_DIR}"
+                         "${CMAKE_SYSROOT}/usr/include" ${INCLUDEDIRS})
+
+        #message(FATAL_ERROR ${INCLUDEDIRS})
     endif()
     if (RPI_STAGING_PREFIX)
         set(CMAKE_STAGING_PREFIX ${RPI_STAGING_PREFIX})
     endif()
 
     set(tools ${RPI_TOOLCHAIN_PATH})
-    set(CMAKE_C_COMPILER ${tools}/bin/arm-linux-gnueabihf-gcc)
-    set(CMAKE_CXX_COMPILER ${tools}/bin/arm-linux-gnueabihf-g++)
+    set(CMAKE_C_COMPILER ${tools}/${RPI_TOOLCHAIN_PREFIX}gcc)
+    set(CMAKE_CXX_COMPILER ${tools}/${RPI_TOOLCHAIN_PREFIX}g++)
 
+    message(here ${CMAKE_C_COMPILER})
     set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
     set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
     set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
@@ -50,8 +57,11 @@ else()
 
   endif()
 
-  add_compile_options(-Wall -Wextra -pedantic)
+  add_compile_options(-Wall -Wextra -pedantic -g -ggdb)
+  add_link_options(-g -ggdb)
 endif()
+
+
 
 
 # app sources
@@ -82,7 +92,7 @@ add_custom_target(srcs SOURCES ${CFiles} ${CppFiles})
 
 
 # setup for compile
-project(bootloader-host)
+project(bootloader-host LANGUAGES C)
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 

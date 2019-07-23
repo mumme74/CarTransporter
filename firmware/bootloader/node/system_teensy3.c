@@ -112,12 +112,7 @@ RAMFUNC bool flash_run_cmd() {
 
 // -------------- Begin exported symbols ---------------------------
 
-#if NODE_ID==CAN_PARKBRAKE_NODE
-const uint16_t canId = CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdBootloader | C_parkbrakeNode;
-#elif NODE_ID==CAN_SUSPENSION_NODE
-const uint16_t canId = CAN_MSG_TYPE_COMMAND | C_suspensionCmdBootloader | C_suspensionNode;
-#endif
-
+const uint16_t canId = CAN_MY_ID;
 
 const uint16_t pageSize = 2048; // 2kb
 

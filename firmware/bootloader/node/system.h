@@ -25,6 +25,13 @@
 # define WAIT_BEFORE_APPBOOT 100
 #endif
 
+#if NODE_ID==CAN_PARKBRAKE_NODE
+# define CAN_MY_ID   (CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdBootloader  | C_parkbrakeNode)
+# define CAN_HOST_ID (CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdBootloader  | C_displayNode)
+#elif NODE_ID==CAN_SUSPENSION_NODE
+# define CAN_MY_ID   (CAN_MSG_TYPE_COMMAND | C_suspensionCmdBootloader | C_suspensionNode)
+# define CAN_HOST_ID (CAN_MSG_TYPE_COMMAND | C_suspensionCmdBootloader | C_displayNode)
+#endif
 
 
 #define WAIT_UNRESPONSE_CAN_BEFORE_RESET (60000 * 15) /*15 minutes of inactivity*/
@@ -50,6 +57,7 @@ extern "C" {
 #endif
 
 extern const uint16_t canId;
+extern const uint16_t canId_displayNode;
 
 extern const uint16_t pageSize;
 

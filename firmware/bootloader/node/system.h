@@ -26,11 +26,11 @@
 #endif
 
 #if NODE_ID==CAN_PARKBRAKE_NODE
-# define CAN_MY_ID   (CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdBootloader  | C_parkbrakeNode)
-# define CAN_HOST_ID (CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdBootloader  | C_displayNode)
+# define CAN_MY_ID   (uint32_t)(CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdBootloader  | C_parkbrakeNode)
+# define CAN_HOST_ID (uint32_t)(CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdBootloader  | C_displayNode)
 #elif NODE_ID==CAN_SUSPENSION_NODE
-# define CAN_MY_ID   (CAN_MSG_TYPE_COMMAND | C_suspensionCmdBootloader | C_suspensionNode)
-# define CAN_HOST_ID (CAN_MSG_TYPE_COMMAND | C_suspensionCmdBootloader | C_displayNode)
+# define CAN_MY_ID   (uint32_t)(CAN_MSG_TYPE_COMMAND | C_suspensionCmdBootloader | C_suspensionNode)
+# define CAN_HOST_ID (uint32_t)(CAN_MSG_TYPE_COMMAND | C_suspensionCmdBootloader | C_displayNode)
 #endif
 
 

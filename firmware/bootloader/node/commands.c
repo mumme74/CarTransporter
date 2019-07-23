@@ -128,8 +128,8 @@ readPageLoop:
 	break; // bust out of this command
       if (msg->DLC != 2 || msg->data8[0] != C_bootloaderReadFlash)
         goto rescan;
-      if (msg->IDE != (canId & (CAN_MSG_ID_MASK | CAN_MSG_TYPE_MASK )))
-	continue;
+      if (msg->IDE != CAN_HOST_ID)
+        continue;
     } while(msg->data8[0] != C_bootloaderReadFlash);
 
     //print_str("after ack adr:");print_uint(addr.vlu);

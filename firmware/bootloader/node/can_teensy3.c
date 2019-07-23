@@ -226,7 +226,7 @@ void _canInit(void)
   // we must be in freeze mode, but we assured we are above
   for (uint8_t mb = _RX_start; mb < _TX_start; ++mb) {
       // Set mask
-      FLEXCANb_MB_MASK(FLEXCAN0_BASE, mb) = 0x7F7;
+      FLEXCANb_MB_MASK(FLEXCAN0_BASE, mb) = FLEXCAN_MB_ID_IDSTD(0x7FF);
 
       // set Filter, should not listen to extended frames
       if (mb == _RX_start)

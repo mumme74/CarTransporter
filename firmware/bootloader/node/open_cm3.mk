@@ -47,7 +47,7 @@ else
   LIBNAME += opencm3_stm32f1
 endif
 
-ARCH_FLAGS += -Os
+ARCH_FLAGS += -O0 #-Os
 LDLIBS += -lc -lgcc -lnosys
 SRCS = can_stm32f373.c \
        system_stm32f373.c \

@@ -139,7 +139,7 @@ void setNodeIds(can_senderIds_e nodeNr) {
         canMyID   = CAN_MSG_TYPE_COMMAND | C_parkbrakeCmdBootloader | C_displayNode;
         break;
     case 1:
-        canNodeID = CAN_MSG_TYPE_COMMAND | C_suspensionCmdBootloader | C_displayNode;
+        canNodeID = CAN_MSG_TYPE_COMMAND | C_suspensionCmdBootloader | C_suspensionNode;
         canMyID   = CAN_MSG_TYPE_COMMAND | C_suspensionCmdBootloader | C_displayNode;
         break;
     case 2:

@@ -331,6 +331,46 @@ static uint8_t *readLocalFile(const char *binName, long *sz)
     return fileBuf; // NOTE! caller must free this memory
 }
 
+static const char *sanityCheckLocalFile(uint8_t *fileBuf, size_t sz, memoptions_t *mopt)
+{
+    static char errBuf[200] = {0};
+    // check if first byte is within merory region
+    // this one assumes uC is ARM like with stack pointer at buf[0]
+    // and startup ptr at buf[1]
+    if (sz < 0xFF)
+        return "Not even space for vectors table + startup\n";
+
+    // does it fit within given space?
+    if ((uint32_t)sz > mopt->upperbound - mopt->lowerbound) {
+        snprintf(errBuf, sizeof(errBuf),
+                 "Binfile is bigger than given memory, available:%ubytes  bin is:%ubytes\n",
+                 mopt->upperbound - mopt->lowerbound, sz);
+        return errBuf;
+    }
+
+    uint32_t stackPtr = fileBuf[3] | fileBuf[2]  | fileBuf[1]  | fileBuf[0],
+             startupFunc = fileBuf[7] | fileBuf[6]  | fileBuf[5]  | fileBuf[4];
+
+    if (startupFunc < mopt->lowerbound || startupFunc > mopt->upperbound)
+        return "Startup function is not within available flash\nCheck linkscript\n";
+
+    if (stackPtr >= mopt->lowerbound || stackPtr <= mopt->upperbound)
+        return "Stackptr points to flashmemory\nCheck link script\n";
+
+    // checks vectors table
+    uint32_t vectors[32];
+    for (uint8_t i = 2; i < sizeof (vectors) - 2; ++i) {
+        vectors[i] = fileBuf[i + 3] | fileBuf[i + 2]  | fileBuf[i + 1]  | fileBuf[i];
+        if (vectors[i] < mopt->lowerbound + 34 || vectors[i] > mopt->upperbound) {
+            snprintf(errBuf, sizeof (errBuf),
+                     "Vectors table[%u] points outside of flash\nCheck your link script\n",
+                     i - 2);
+            return  errBuf;
+        }
+    }
+    return NULL; // checks out
+}
+
 static can_bootloaderErrs_e writeFileToNode(memoptions_t *mopt, uint8_t *fileCache, size_t sz,
                                             canframe_t *sendFrm, canframe_t *recvFrm)
 {
@@ -630,6 +670,8 @@ void doReadCmd(memoptions_t *mopt, char *storeName)
     uint8_t *fileCache = NULL;
     char *fileName = NULL;
     canframe_t sendFrm, recvFrm;
+    uint32_t writtenLen = 0;
+
     initFrame(&sendFrm);
     initFrame(&recvFrm);
 
@@ -710,7 +752,6 @@ void doReadCmd(memoptions_t *mopt, char *storeName)
     }
 
     // initiate reception sequence
-    uint32_t writtenLen = 0;
     can_bootloaderErrs_e err = recvFileFromNode(fileCache, &sendFrm, &recvFrm, &writtenLen,
                                                 mopt->lowerbound, mopt->upperbound);
 
@@ -736,9 +777,8 @@ void doReadCmd(memoptions_t *mopt, char *storeName)
             fprintf(stderr, "**Error when saving file to disk\n");
             errOccured = true;
             goto readCleanup;
-        }
-
-        fprintf(stdout, "\n--Successfully written to '%s'\n\n", fileName);
+        } else
+            fprintf(stdout, "\n--Written flash to '%s'\n\n", fileName);
     } else {
         // some error during reception?
         fprintf(stderr, "**Error when recieving bin from node: %s\n", bootloadErrToStr(err));
@@ -755,8 +795,12 @@ void doReadCmd(memoptions_t *mopt, char *storeName)
 readCleanup:
     if (fileName !=  NULL && fileName != storeName)
         free(fileName);
-    if (fileCache)
+    if (fileCache) {
+        const char *inValidStr = sanityCheckLocalFile(fileCache, writtenLen, mopt);
+        if (inValidStr)
+            fprintf(stderr, "**%s", inValidStr);
         free(fileCache);
+    }
     fclose(binFile);
     binFile = 0;
     if (errOccured)
@@ -843,7 +887,6 @@ void doCompareCmd(const char *binName)
     long sz;
     uint8_t *buf = readLocalFile(binName, &sz);
     binCrc.vlu = crc32(0, buf, (size_t)sz);
-    free(buf);
 
     fprintf(stdout, "\n--Binfile crc32 = %u\n\n", binCrc.vlu);
 
@@ -860,6 +903,13 @@ void doCompareCmd(const char *binName)
         fprintf(stdout, "\n--Files match!!!\n\n");
     else
         fprintf(stdout, "*********** MISMATCH ***********\n\n");
+
+    const char *inValidStr = sanityCheckLocalFile(buf, (size_t)sz, &mopt);
+    if (inValidStr)
+        fprintf(stderr, "**%s", inValidStr);
+
+    if (buf)
+        free(buf);
 }
 
 void doEraseCmd(memoptions_t *mopt)
@@ -923,16 +973,18 @@ void doWriteCmd(memoptions_t *mopt, char *binName)
     uint8_t *fileCache = readLocalFile(binName, &sz);
     binCrc.vlu = crc32(0, fileCache, (size_t)sz);
 
-    // does it fit within given space?
-    if ((uint32_t)sz > mopt->upperbound - mopt->lowerbound) {
-        fprintf(stderr, "**Binfile is bigger than given memory, available:%ubytes  bin is:%libytes\n", (mopt->upperbound - mopt->lowerbound), sz);
-        errorOccured = true;
-        goto writeCleanup;
-    } else if (mopt->lowerbound == memory.bootRomStart &&
-               mopt->upperbound == memory.bootRomEnd)
+    if (mopt->lowerbound == memory.bootRomStart &&
+        mopt->upperbound == memory.bootRomEnd)
     {
         // send only our binfile (is probably smaller than max memory)
         mopt->upperbound = memory.bootRomStart + (uint32_t)sz;
+    }
+
+    const char *inValidStr = sanityCheckLocalFile(fileCache, (size_t)sz, mopt);
+    if (inValidStr) {
+        fprintf(stderr, "**%s", inValidStr);
+        errorOccured = true;
+        goto writeCleanup;
     }
 
     fprintf(stdout, "\n--Writing binfile '%s' with crc32 = %u\n\n", binName, binCrc.vlu);

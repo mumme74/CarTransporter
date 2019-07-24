@@ -27,7 +27,7 @@ USER_DEFINES += -DDEBUG_UART_ON
 USER_DEFINES += -DDEBUG_CAN_SERIAL
 
 # user settings
-CPPFLAGS := -I $(realpath ../system_headers/) $(USER_DEFINES)
+CPPFLAGS := -I $(realpath ../system_common/) $(USER_DEFINES)
 
 all:
 	@echo "${USER_INCLUDES}"

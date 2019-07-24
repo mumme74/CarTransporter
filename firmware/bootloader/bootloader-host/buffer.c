@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "cantypes.h"
 #include "buffer.h"
 #include "canbridge.h"
 

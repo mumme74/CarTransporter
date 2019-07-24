@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include "types.h"
+#include "cantypes.h"
 #include "can_types.h"
 
 #ifndef MIN
@@ -18,7 +19,7 @@
 #endif
 
 // include drivers
-#include "slcan.h" // lawcell protocol, over serialport
+#include "slcan.h" // lawicell protocol, over serialport
 
 #ifdef BUILD_SOCKETCAN
 # include "socketcan.h" // only available on linux

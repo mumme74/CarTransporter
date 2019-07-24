@@ -99,7 +99,7 @@ C_EXTRAFLAGS += -DCANSERIAL=yes
 CHIBIOS_CONTRIB = $(CHIBIOS)/ChibiOS-Contrib
 
 #system things
-SYSTEM_HEADERS = $(HOME)/elektronik/CarTransporter/firmware/system_headers/
+SYSTEM_HEADERS = $(HOME)/elektronik/CarTransporter/firmware/system_common/
 
 # Licensing files.
 include $(CHIBIOS)/os/license/license.mk
@@ -136,6 +136,7 @@ CSRC = $(ALLCSRC) \
        diag.c \
        canserial.c \
        pwm.c \
+       ../../system_common/can_types.c \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global

@@ -28,7 +28,7 @@ endif
 
 CSTD = -std=gnu11
 DEFS += -DNODE_ID=$(NODE_ID)
-DEFS += -Icrc32/ -I$(CAR_TRANSPORTER_ROOT)/firmware/system_headers/
+DEFS += -Icrc32/ -I$(CAR_TRANSPORTER_ROOT)/firmware/system_common/
 
 
 $(info NODE_ID=$(NODE_ID))

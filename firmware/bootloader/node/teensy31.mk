@@ -6,7 +6,7 @@ ARDUINO_DIR=$(wildcard /Applications/arduino)
 endif
 
 ARDMK_DIR=${HOME}/elektronik/Arduino-Makefile
-USER_LIB_PATH := $(realpath ../../system_headers)
+#USER_LIB_PATH := $(realpath ../../system_common)
 
 BOARD_TAG    = teensy31
 LINKER_SCRIPTS := -T$(realpath ./mk20dx256.ld) 
@@ -42,7 +42,7 @@ LOCAL_CPP_SRCS =
 
 # user settings
 CFLAGS := -I $(realpath ./) \
-          -I $(realpath ../../system_headers/) \
+          -I $(realpath ../../system_common/) \
           -I $(realpath crc32/) \
           -g \
           $(USER_DEFINES)

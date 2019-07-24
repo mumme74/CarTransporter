@@ -3,7 +3,8 @@
  *
  *  Created on: 7 jul 2019
  *      Author: jof
- */#ifndef TYPES_H
+ */
+#ifndef TYPES_H
 #define TYPES_H
 
 #include <stdint.h>

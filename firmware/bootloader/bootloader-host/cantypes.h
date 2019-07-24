@@ -8,6 +8,8 @@
 #ifndef CANTYPES_H
 #define CANTYPES_H
 
+#ifndef BUILD_SOCKETCAN
+
 #include <stdint.h>
 
 
@@ -66,6 +68,9 @@ typedef struct {
     canid_t can_id; // filter ID
     canid_t can_mask; // filter mask
 } can_filter_t;
-
+#else
+# include <linux/can.h>
+typedef struct can_frame canframe_t;
+#endif
 
 #endif // CANTYPES_H

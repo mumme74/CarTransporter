@@ -376,7 +376,7 @@ static const char *sanityCheckLocalFile(uint8_t *fileBuf, size_t sz, memoptions_
         return errBuf;
     }
 
-    printf("\n%02x %02x %02x %02x\n", fileBuf[7], fileBuf[6], fileBuf[5], fileBuf[4]);
+    //printf("\n%02x %02x %02x %02x\n", fileBuf[7], fileBuf[6], fileBuf[5], fileBuf[4]);
     byte4_t stackPtr, startupFunc;
     stackPtr.b0 = fileBuf[0];
     stackPtr.b1 = fileBuf[1];
@@ -386,24 +386,34 @@ static const char *sanityCheckLocalFile(uint8_t *fileBuf, size_t sz, memoptions_
     startupFunc.b1 = fileBuf[5];
     startupFunc.b2 = fileBuf[6];
     startupFunc.b3 = fileBuf[7];
-    printf("%08x\n", stackPtr.vlu);
+    //printf("%08x\n", stackPtr.vlu);
 
 
     if (startupFunc.vlu < mopt->lowerbound || startupFunc.vlu > mopt->upperbound) {
         snprintf(errBuf, sizeof (errBuf),
                  "Startup function ptr is not within available flash region.\n"
                  "\tpoints to 0x%08x expects within 0x%08x to 0x%08x\n"
-                 "\tError in your bin (Correct linkscript used?)\n",
+                 "\tError in your bin (Correct linkscript used when compile?)\n",
                  startupFunc.vlu, mopt->lowerbound + 2 + sizeof (vectors), mopt->upperbound);
         return errBuf;
     }
 
-    if (stackPtr.vlu >= mopt->lowerbound && stackPtr.vlu <= mopt->upperbound) {
+    // check stackpointer
+    if (stackPtr.vlu >= mopt->lowerbound && stackPtr.vlu <= mopt->upperbound)
+    {
         snprintf(errBuf, sizeof (errBuf),
                  "Stackptr points to flashmemory, must point to RAM\n"
                  "\tPoints to 0x%08x\n"
                  "\tError in your bin (Correct linkscript used?)\n",
                   stackPtr.vlu);
+        return errBuf;
+    }
+    if (stackPtr.vlu != memory.ramEnd) {
+        snprintf(errBuf, sizeof (errBuf),
+                 "Stackptr does not point to last RAM adress, must point to end of RAM\n"
+                 "\tPoints to 0x%08x expected 0x%08x\n"
+                 "\tError in your bin (Correct linkscript used when compile?)\n",
+                 stackPtr.vlu, memory.ramEnd);
         return errBuf;
     }
 
@@ -414,10 +424,12 @@ static const char *sanityCheckLocalFile(uint8_t *fileBuf, size_t sz, memoptions_
         vectors[i].b2 = fileBuf[addr + 2];
         vectors[i].b1 = fileBuf[addr + 1];
         vectors[i].b0 = fileBuf[addr];
-        if (vectors[i].vlu < mopt->lowerbound + 34 || vectors[i].vlu > mopt->upperbound) {
+        if ((vectors[i].vlu < mopt->lowerbound + 34 || vectors[i].vlu > mopt->upperbound) &&
+            (vectors[i].vlu < memory.ramStart || vectors[i].vlu > memory.ramEnd))
+        {
             snprintf(errBuf, sizeof (errBuf),
-                     "Vectors table[%u] points outside of flash to 0x%08x\n"
-                     "\tError in your bin (Correct linkscript used?)\n",
+                     "Vectors table[%u] points outside of flash or RAM to 0x%08x\n"
+                     "\tError in your bin (Correct linkscript used when compile?)\n",
                      ((i/4) - 2), vectors[i].vlu);
             return  errBuf;
         }

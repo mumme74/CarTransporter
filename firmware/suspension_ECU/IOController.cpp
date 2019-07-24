@@ -117,7 +117,7 @@ void CAN::IOController::_recievedCommand(CAN_message_t *msg,
     case C_suspensionCmdReboot: {
       // we should only reset if we have a value above 0x7f
       if (msg->len != 1 || msg->buf[0] < 0x7F)
-	break;
+        break;
       // from arm documentation, page 4-17
       //http://infocenter.arm.com/help/topic/com.arm.doc.dui0553b/DUI0553.pdf
       //http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0552a/Cihehdge.html
